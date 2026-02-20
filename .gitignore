@@ -39,3 +39,7 @@ env/
 
 # Data files
 working_state.json
+data/working_state.demo.json
+
+# Runtime logs
+logs/

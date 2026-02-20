@@ -1,6 +1,6 @@
 # Kingdom
 
-An object-oriented game-world simulation in Python. Kingdom is a structured game engine that allows you to model a fantasy world with items, containers, rooms, and player characters.
+An object-oriented game-world simulation in Python. Kingdom is a structured game engine that allows you to model a fantasy world with items, containers, rooms, and player characters. This is just a framework for later implementation of Castle once we find the room data!
 
 ## Features
 
