@@ -1,0 +1,51 @@
+{
+  "boxes": [
+    {
+      "box_name": "Royal Vault",
+      "items": [
+        "Golden Knight",
+        {
+          "name": "Crown of Kings",
+          "pickupable": false,
+          "refuse_string": "The crown is too sacred to steal!"
+        },
+        "Ruby Dragon"
+      ]
+    },
+    {
+      "box_name": "Garden Shed",
+      "items": ["Old Ball", "Rusty Robot"]
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Entrance Hall",
+      "description": "A grand hall with a chandelier and marble floors.",
+      "items": ["Silver Goblet"],
+      "boxes": [
+        {
+          "box_name": "Throne Box",
+          "items": ["Crown Jewels", "Scepter"]
+        }
+      ]
+    },
+    {
+      "name": "Library",
+      "description": "A quiet room filled with shelves of books.",
+      "items": [
+        {
+          "name": "Ancient Tome",
+          "pickupable": false,
+          "refuse_string": "The ancient tome is chained to the shelf!"
+        },
+        "Leather Book"
+      ],
+      "boxes": [
+        {
+          "box_name": "Archive Box",
+          "items": ["Ancient Scroll"]
+        }
+      ]
+    }
+  ]
+}
