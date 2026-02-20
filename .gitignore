@@ -42,6 +42,10 @@ scripts/pre_edit.py
 # Data files
 working_state.json
 data/working_state.demo.json
+*.sav
+
+# Notebook/editor checkpoints
+**/.ipynb_checkpoints/
 
 # Runtime logs
 logs/
