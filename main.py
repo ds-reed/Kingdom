@@ -27,6 +27,13 @@ from kingdom.terminal_style import (
 )
 
 
+def iter_known_noun_names(game: Game):
+    for noun in game.get_all_nouns():
+        yield noun.get_name()
+        yield noun.get_descriptive_phrase()
+        yield noun.get_noun_name()
+
+
 def ensure_terminal_session() -> bool:
     """Ensure game runs in a real terminal window on Windows.
 
@@ -119,7 +126,7 @@ def main():
             resolved_command = resolve_command(
                 command,
                 known_verbs=verbs.keys(),
-                known_nouns=(noun.get_name() for noun in game.get_all_nouns()),
+                known_nouns=iter_known_noun_names(game),
             )
             if resolved_command is None:
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)

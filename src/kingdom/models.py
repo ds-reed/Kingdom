@@ -3,6 +3,39 @@ from pathlib import Path
 from typing import Iterable
 
 
+def _normalize_tokens(text: str) -> list[str]:
+    return [token for token in str(text).strip().lower().split() if token]
+
+
+def _derive_noun_name(text: str) -> str:
+    tokens = _normalize_tokens(text)
+    if not tokens:
+        return ""
+    articles = {"a", "an", "the"}
+    if tokens[0] in articles and len(tokens) > 1:
+        tokens = tokens[1:]
+    return tokens[-1]
+
+
+def _serialize_item(item: "Item") -> dict:
+    payload = {
+        "name": item.name,
+        "noun_name": item.get_noun_name(),
+    }
+
+    if not item.pickupable:
+        payload["pickupable"] = False
+
+    default_refusal = f"You can't pick up {item.name}"
+    if item.refuse_string and item.refuse_string != default_refusal:
+        payload["refuse_string"] = item.refuse_string
+
+    if item.presence_string:
+        payload["presence_string"] = item.presence_string
+
+    return payload
+
+
 class Noun:
     """Parent class for all game world entities (items, boxes, rooms)."""
     all_nouns = []  # Class variable to track every noun created
@@ -13,6 +46,30 @@ class Noun:
     def get_name(self):
         """Return the name of this noun."""
         return self.name
+
+    def get_noun_name(self):
+        """Return the short handle name for this noun (e.g., 'carrot')."""
+        noun_name = getattr(self, "noun_name", None)
+        if noun_name:
+            return str(noun_name)
+        return _derive_noun_name(self.get_name())
+
+    def get_descriptive_phrase(self):
+        """Return the longer descriptive phrase for this noun."""
+        phrase = getattr(self, "descriptive_phrase", None)
+        if phrase:
+            return str(phrase)
+        return self.get_name()
+
+    def matches_reference(self, reference: str) -> bool:
+        """Return True if input text refers to this noun by phrase or handle name."""
+        candidate = " ".join(_normalize_tokens(reference))
+        if not candidate:
+            return False
+
+        descriptive = " ".join(_normalize_tokens(self.get_descriptive_phrase()))
+        noun_name = " ".join(_normalize_tokens(self.get_noun_name()))
+        return candidate in {descriptive, noun_name}
 
     def get_presence_text(self):
         """Default sentence used when this noun is noticed in a room."""
@@ -67,13 +124,15 @@ class Verb(Noun):
 class Item(Noun):
     all_items = []  # Class variable to track every item created
 
-    def __init__(self, name, pickupable=True, refuse_string=None, presence_string=None):
+    def __init__(self, name, pickupable=True, refuse_string=None, presence_string=None, noun_name=None):
         super().__init__()
-        self.name = name
+        self.name = str(name).strip()
+        self.descriptive_phrase = self.name
+        self.noun_name = str(noun_name).strip().lower() if noun_name else _derive_noun_name(self.name)
         self.current_box = None
         self.is_broken = False
         self.pickupable = pickupable
-        self.refuse_string = refuse_string or f"You can't pick up {name}"
+        self.refuse_string = refuse_string or f"You can't pick up {self.name}"
         self.presence_string = presence_string
         Item.all_items.append(self)
 
@@ -368,32 +427,36 @@ class Game(Noun):
         }
 
         for box in self.boxes:
-            payload['boxes'].append(
-                {
-                    'box_name': box.box_name,
-                    'items': [item.name for item in box.contents]
-                }
-            )
+            box_payload = {
+                'box_name': box.box_name,
+                'items': [_serialize_item(item) for item in box.contents],
+            }
+            if box.presence_string:
+                box_payload['presence_string'] = box.presence_string
+            payload['boxes'].append(box_payload)
 
         for room in self.rooms:
-            payload['rooms'].append(
-                {
-                    'name': room.name,
-                    'description': room.description,
-                    'items': [it.name for it in room.items],
-                    'boxes': [
-                        {
-                            'box_name': box.box_name,
-                            'items': [item.name for item in box.contents]
-                        }
-                        for box in room.boxes
-                    ],
-                    'connections': {
-                        direction: destination.name
-                        for direction, destination in room.connections.items()
-                    }
+            room_payload = {
+                'name': room.name,
+                'description': room.description,
+                'items': [_serialize_item(item) for item in room.items],
+                'boxes': [],
+                'connections': {
+                    direction: destination.name
+                    for direction, destination in room.connections.items()
+                },
+            }
+
+            for box in room.boxes:
+                box_payload = {
+                    'box_name': box.box_name,
+                    'items': [_serialize_item(item) for item in box.contents],
                 }
-            )
+                if box.presence_string:
+                    box_payload['presence_string'] = box.presence_string
+                room_payload['boxes'].append(box_payload)
+
+            payload['rooms'].append(room_payload)
 
         with open(filepath, 'w') as file:
             json.dump(payload, file, indent=4)
@@ -432,7 +495,8 @@ def _construct_boxes(data):
                     item_spec.get("name"),
                     pickupable=item_spec.get("pickupable", True),
                     refuse_string=item_spec.get("refuse_string"),
-                    presence_string=item_spec.get("presence_string")
+                    presence_string=item_spec.get("presence_string"),
+                    noun_name=item_spec.get("noun_name")
                 )
             new_box.add_item(new_item, announce=False)
     return Box.all_boxes
@@ -458,7 +522,8 @@ def _construct_rooms(data):
                     item_spec.get("name"),
                     pickupable=item_spec.get("pickupable", True),
                     refuse_string=item_spec.get("refuse_string"),
-                    presence_string=item_spec.get("presence_string")
+                    presence_string=item_spec.get("presence_string"),
+                    noun_name=item_spec.get("noun_name")
                 )
                 room.items.append(item_obj)
         # Add boxes to the room
@@ -475,7 +540,8 @@ def _construct_rooms(data):
                         item_spec.get("name"),
                         pickupable=item_spec.get("pickupable", True),
                         refuse_string=item_spec.get("refuse_string"),
-                        presence_string=item_spec.get("presence_string")
+                        presence_string=item_spec.get("presence_string"),
+                        noun_name=item_spec.get("noun_name")
                     )
                 box.add_item(item_obj, announce=False)
             room.add_box(box)

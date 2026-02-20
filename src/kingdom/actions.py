@@ -22,7 +22,6 @@ ConfirmAction = Callable[[str], bool]
 LegacyVerbSpec: TypeAlias = tuple[str, tuple[str, ...]]
 
 LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
-    ("drop", ()),
     ("throw", ()),
     ("read", ()),
     ("open", ()),
@@ -115,7 +114,7 @@ def examine_action(state: GameActionState, *target_words: str) -> str:
         return _describe_room(state.current_room)
 
     for obj in [*state.current_room.items, *state.current_room.boxes]:
-        if obj.get_name().lower() == target_name:
+        if obj.matches_reference(target_name):
             return f"You examine {obj.get_name()} carefully."
 
     return f"You don't see {target_name} here."
@@ -181,7 +180,7 @@ def take_action(state: GameActionState, game: Game, *target_words: str) -> str:
 
     for container_name, contents in sources:
         for item in contents:
-            if item.name.lower() == target_name:
+            if item.matches_reference(target_name):
                 found_item = item
                 found_contents = contents
                 found_container_name = container_name
@@ -204,25 +203,50 @@ def take_action(state: GameActionState, game: Game, *target_words: str) -> str:
     return f"{player.name} takes {found_item.name} from {found_container_name}."
 
 
+def drop_action(state: GameActionState, game: Game, *target_words: str) -> str:
+    if state.current_room is None:
+        return "There is nowhere to drop anything."
+
+    player = game.current_player
+    if player is None:
+        return "No hero is active yet."
+
+    if not target_words:
+        return "Drop what?"
+
+    target_name = " ".join(target_words).strip().lower()
+    if not target_name:
+        return "Drop what?"
+
+    for item in player.sack.contents:
+        if item.matches_reference(target_name):
+            player.sack.contents.remove(item)
+            state.current_room.items.append(item)
+            item.current_box = None
+            return f"{player.name} drops {item.name}."
+
+    return f"{player.name} doesn't have {target_name}!"
+
+
 def _find_carrot_containers(state: GameActionState, game: Game) -> tuple[object | None, object | None]:
     player = game.current_player
     if player is None:
         return None, None
 
     for item in player.sack.contents:
-        if "carrot" in item.name.lower():
+        if item.matches_reference("carrot"):
             return player.sack.contents, item
 
     if state.current_room is None:
         return None, None
 
     for item in state.current_room.items:
-        if "carrot" in item.name.lower():
+        if item.matches_reference("carrot"):
             return state.current_room.items, item
 
     for box in state.current_room.boxes:
         for item in box.contents:
-            if "carrot" in item.name.lower():
+            if item.matches_reference("carrot"):
                 return box.contents, item
 
     return None, None
@@ -305,8 +329,9 @@ def _build_core_verbs(
     examine_verb = Verb("examine", lambda *words: examine_action(state, *words), synonyms=["inspect", "look"])
     inventory_verb = Verb("inventory", lambda: inventory_action(game), synonyms=["inven"])
     take_verb = Verb("take", lambda *words: take_action(state, game, *words), synonyms=["get"])
+    drop_verb = Verb("drop", lambda *words: drop_action(state, game, *words))
     eat_verb = Verb("eat", lambda *words: eat_action(state, game, *words))
-    return [quit_verb, go_verb, save_verb, load_verb, examine_verb, inventory_verb, take_verb, eat_verb]
+    return [quit_verb, go_verb, save_verb, load_verb, examine_verb, inventory_verb, take_verb, drop_verb, eat_verb]
 
 
 def _build_legacy_stub_verbs(specs: Sequence[LegacyVerbSpec] = LEGACY_VERB_SPECS) -> list[Verb]:

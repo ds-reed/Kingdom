@@ -3,34 +3,59 @@
     {
       "box_name": "Royal Vault",
       "items": [
-        "Golden Knight",
+        {
+          "name": "Golden Knight",
+          "noun_name": "knight"
+        },
         {
           "name": "Crown of Kings",
           "pickupable": false,
-          "refuse_string": "The crown is too sacred to steal!"
+          "refuse_string": "The crown is too sacred to steal!",
+          "noun_name": "kings"
         },
-        "Ruby Dragon"
+        {
+          "name": "Ruby Dragon",
+          "noun_name": "dragon"
+        }
       ]
     },
     {
       "box_name": "Garden Shed",
       "items": [
-        "Old Ball",
-        "Rusty Robot"
+        {
+          "name": "Old Ball",
+          "noun_name": "ball"
+        },
+        {
+          "name": "Rusty Robot",
+          "noun_name": "robot"
+        }
       ]
     },
     {
       "box_name": "Armory Locker",
       "items": [
-        "Iron Helm",
-        "Training Spear"
+        {
+          "name": "Iron Helm",
+          "noun_name": "helm"
+        },
+        {
+          "name": "Training Spear",
+          "noun_name": "spear"
+        }
       ]
     },
     {
       "box_name": "Treasury Chest",
       "items": [
-        "Silver Coin",
-        "Pearl Ring"
+        {
+          "name": "Silver Coin",
+          "noun_name": "coin"
+        },
+        {
+          "name": "Pearl Ring",
+          "noun_name": "ring"
+        }
       ]
     }
   ],
@@ -39,14 +64,23 @@
       "name": "Entrance Hall",
       "description": "A grand hall with a chandelier and marble floors.",
       "items": [
-        "a cheery orange carrot"
+        {
+          "name": "a cheery orange carrot",
+          "noun_name": "carrot"
+        }
       ],
       "boxes": [
         {
           "box_name": "Throne Box",
           "items": [
-            "Crown Jewels",
-            "Scepter"
+            {
+              "name": "Crown Jewels",
+              "noun_name": "jewels"
+            },
+            {
+              "name": "Scepter",
+              "noun_name": "scepter"
+            }
           ]
         }
       ],
@@ -63,15 +97,22 @@
         {
           "name": "Ancient Tome",
           "pickupable": false,
-          "refuse_string": "The ancient tome is chained to the shelf!"
+          "refuse_string": "The ancient tome is chained to the shelf!",
+          "noun_name": "tome"
         },
-        "Leather Book"
+        {
+          "name": "Leather Book",
+          "noun_name": "book"
+        }
       ],
       "boxes": [
         {
           "box_name": "Archive Box",
           "items": [
-            "Ancient Scroll"
+            {
+              "name": "Ancient Scroll",
+              "noun_name": "scroll"
+            }
           ]
         }
       ],
@@ -85,7 +126,10 @@
       "name": "Great Hall",
       "description": "Long tables stretch beneath banners of old victories.",
       "items": [
-        "Brass Plate"
+        {
+          "name": "Brass Plate",
+          "noun_name": "plate"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -98,7 +142,10 @@
       "name": "Kitchen",
       "description": "Warm ovens and copper pots fill the busy kitchen.",
       "items": [
-        "Wooden Spoon"
+        {
+          "name": "Wooden Spoon",
+          "noun_name": "spoon"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -110,7 +157,10 @@
       "name": "Pantry",
       "description": "Shelves packed with spices, preserves, and grain sacks.",
       "items": [
-        "Dried Herbs"
+        {
+          "name": "Dried Herbs",
+          "noun_name": "herbs"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -122,7 +172,10 @@
       "name": "Servants Quarters",
       "description": "Simple bunks and footlockers line the walls.",
       "items": [
-        "Worn Cloak"
+        {
+          "name": "Worn Cloak",
+          "noun_name": "cloak"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -134,7 +187,10 @@
       "name": "Courtyard",
       "description": "An open courtyard with a stone fountain at its center.",
       "items": [
-        "Fountain Coin"
+        {
+          "name": "Fountain Coin",
+          "noun_name": "coin"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -147,14 +203,23 @@
       "name": "Garden",
       "description": "Flowerbeds and trimmed hedges create a peaceful maze.",
       "items": [
-        "Rose Clipping"
+        {
+          "name": "Rose Clipping",
+          "noun_name": "clipping"
+        }
       ],
       "boxes": [
         {
           "box_name": "Tool Crate",
           "items": [
-            "Pruning Shears",
-            "Seed Pouch"
+            {
+              "name": "Pruning Shears",
+              "noun_name": "shears"
+            },
+            {
+              "name": "Seed Pouch",
+              "noun_name": "pouch"
+            }
           ]
         }
       ],
@@ -167,7 +232,10 @@
       "name": "Greenhouse",
       "description": "Glass panes trap warm air for delicate plants.",
       "items": [
-        "Rare Orchid"
+        {
+          "name": "Rare Orchid",
+          "noun_name": "orchid"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -179,7 +247,10 @@
       "name": "Herbalist Nook",
       "description": "Bundles of roots and leaves hang from wooden beams.",
       "items": [
-        "Mortar and Pestle"
+        {
+          "name": "Mortar and Pestle",
+          "noun_name": "pestle"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -191,7 +262,10 @@
       "name": "Infirmary",
       "description": "A calm room stocked with bandages and tonics.",
       "items": [
-        "Healing Salve"
+        {
+          "name": "Healing Salve",
+          "noun_name": "salve"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -203,7 +277,10 @@
       "name": "Chapel",
       "description": "Candlelight flickers across carved stone altars.",
       "items": [
-        "Prayer Beads"
+        {
+          "name": "Prayer Beads",
+          "noun_name": "beads"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -215,14 +292,23 @@
       "name": "Treasury",
       "description": "Heavy iron doors protect rows of locked chests.",
       "items": [
-        "Ledger"
+        {
+          "name": "Ledger",
+          "noun_name": "ledger"
+        }
       ],
       "boxes": [
         {
           "box_name": "Royal Lockbox",
           "items": [
-            "Gemstone Brooch",
-            "Mint Seal"
+            {
+              "name": "Gemstone Brooch",
+              "noun_name": "brooch"
+            },
+            {
+              "name": "Mint Seal",
+              "noun_name": "seal"
+            }
           ]
         }
       ],
@@ -235,7 +321,10 @@
       "name": "Throne Room",
       "description": "Polished stone and silk banners frame the royal throne.",
       "items": [
-        "Velvet Cushion"
+        {
+          "name": "Velvet Cushion",
+          "noun_name": "cushion"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -248,7 +337,10 @@
       "name": "War Room",
       "description": "Maps and miniature armies cover a central table.",
       "items": [
-        "Campaign Map"
+        {
+          "name": "Campaign Map",
+          "noun_name": "map"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -260,14 +352,23 @@
       "name": "Armory",
       "description": "Weapon racks and armor stands line reinforced walls.",
       "items": [
-        "Shield Strap"
+        {
+          "name": "Shield Strap",
+          "noun_name": "strap"
+        }
       ],
       "boxes": [
         {
           "box_name": "Spare Parts Bin",
           "items": [
-            "Rivet Kit",
-            "Chain Links"
+            {
+              "name": "Rivet Kit",
+              "noun_name": "kit"
+            },
+            {
+              "name": "Chain Links",
+              "noun_name": "links"
+            }
           ]
         }
       ],
@@ -281,7 +382,10 @@
       "name": "Barracks",
       "description": "Rows of cots and training gear fill the quarters.",
       "items": [
-        "Practice Gloves"
+        {
+          "name": "Practice Gloves",
+          "noun_name": "gloves"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -293,7 +397,10 @@
       "name": "Stables",
       "description": "Horses stamp and snort among straw-filled stalls.",
       "items": [
-        "Horse Brush"
+        {
+          "name": "Horse Brush",
+          "noun_name": "brush"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -305,7 +412,10 @@
       "name": "Dungeon Gate",
       "description": "A barred gate leads down into the darker cells.",
       "items": [
-        "Ring of Keys"
+        {
+          "name": "Ring of Keys",
+          "noun_name": "keys"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -318,7 +428,10 @@
       "name": "Cellar",
       "description": "Cool stone vaults hold casks and old supplies.",
       "items": [
-        "Dusty Bottle"
+        {
+          "name": "Dusty Bottle",
+          "noun_name": "bottle"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -330,7 +443,10 @@
       "name": "Laundry",
       "description": "Steam and soap scent the cramped wash room.",
       "items": [
-        "Linen Bundle"
+        {
+          "name": "Linen Bundle",
+          "noun_name": "bundle"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -342,7 +458,10 @@
       "name": "Study",
       "description": "A private room with a writing desk and sealed letters.",
       "items": [
-        "Quill"
+        {
+          "name": "Quill",
+          "noun_name": "quill"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -354,7 +473,10 @@
       "name": "Observatory",
       "description": "A high circular chamber with a brass telescope.",
       "items": [
-        "Star Chart"
+        {
+          "name": "Star Chart",
+          "noun_name": "chart"
+        }
       ],
       "boxes": [],
       "connections": {
@@ -367,7 +489,10 @@
       "name": "Watchtower",
       "description": "Narrow stairs rise to battlements overlooking the realm.",
       "items": [
-        "Signal Horn"
+        {
+          "name": "Signal Horn",
+          "noun_name": "horn"
+        }
       ],
       "boxes": [],
       "connections": {
