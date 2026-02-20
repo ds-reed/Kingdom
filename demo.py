@@ -1,156 +1,83 @@
-"""
-Demo and test script for the Kingdom game world simulator.
-Shows gameplay examples, Verb usage, and Noun registry.
-"""
+"""Smoke-test demo for the current Kingdom command/action pipeline."""
 
 from pathlib import Path
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Item, Box, Robber, Room, Player, Verb, Noun, Game
+from kingdom.models import Game
+from kingdom.actions import GameActionState, QuitGame, build_verbs
+from kingdom.parser import resolve_command
+
+
+def _run_command(verbs, command):
+    resolved_command = resolve_command(command, known_verbs=verbs.keys())
+    if resolved_command is None:
+        return "UNKNOWN"
+
+    verb_word = resolved_command.verb
+    args = resolved_command.args
+
+    verb = verbs.get(verb_word)
+    if verb is None:
+        return "UNKNOWN"
+
+    try:
+        return verb.execute(*args)
+    except QuitGame:
+        return "QUIT"
+    except TypeError:
+        return "ARG_ERROR"
+
+
+def _expect(condition, message):
+    if not condition:
+        raise AssertionError(message)
+    print(f"[PASS] {message}")
 
 
 def demo():
-    """Run a complete gameplay demonstration."""
-    
-    # Setup paths
-    BASE_DIR = Path(__file__).parent
-    DATA_PATH = BASE_DIR / "data" / "initial_state.json"
-    SAVE_PATH = BASE_DIR / "data" / "working_state.json"
-    
-    # Create the Game (special noun representing the world)
+    """Run deterministic smoke tests for core gameplay flows."""
+    base_dir = Path(__file__).parent
+    data_path = base_dir / "data" / "initial_state.json"
+    demo_save_path = base_dir / "data" / "working_state.demo.json"
+
     game = Game.get_instance()
-    save_verb, load_verb = game.create_state_verbs()
-    
-    # Load initial kingdom
-    print(f"--- Loading Kingdom from {DATA_PATH} ---")
-    game.setup_world(DATA_PATH)
+    game.setup_world(data_path)
 
-    # Print initial state
-    print("\n--- Initial Boxes ---")
-    for box in game.boxes:
-        print(box)
-    print("\n--- Initial Rooms ---")
-    for room in game.rooms:
-        print(room)
+    _expect(len(game.rooms) > 0, "World loads rooms")
+    _expect(len(game.boxes) > 0, "World loads boxes")
 
-    # Save initial state using the save verb
-    print(f"\n--- Saving current state using save_verb ---")
-    print(save_verb.execute(SAVE_PATH))
+    action_state = GameActionState(current_room=game.rooms[0] if game.rooms else None)
+    verbs = build_verbs(action_state, game, demo_save_path, confirm_action=lambda _prompt: True)
 
-    # Gameplay: Player takes items
-    print("\n--- Gameplay: Player Takes Items ---")
-    if game.boxes and game.rooms:
-        player = Player("Hero")
-        game.set_current_player(player)
-        first_box = game.boxes[0]
-        
-        if len(first_box.contents) >= 2:
-            # Try taking the Crown of Kings (non-pickupable)
-            crown_item = None
-            for item in first_box.contents:
-                if item.name == "Crown of Kings":
-                    crown_item = item
-                    break
-            if crown_item:
-                player.take(first_box, crown_item)
-            
-            # Try taking Golden Knight (pickupable)
-            gold_item = first_box.contents[0] if first_box.contents and first_box.contents[0].pickupable else None
-            if gold_item:
-                player.take(first_box, gold_item)
-        
-        # Try taking an item from a room
-        if game.rooms:
-            library = game.rooms[1]  # Library room
-            if library.items:
-                # Try to take Ancient Tome (non-pickupable)
-                for item in library.items:
-                    if item.name == "Ancient Tome":
-                        player.take(library, item)
-                        break
-                # Try to take Leather Book
-                for item in library.items:
-                    if item.name == "Leather Book":
-                        player.take(library, item)
-                        break
+    _expect(set(["go", "save", "load", "examine", "verbs", "quit"]).issubset(verbs.keys()), "Core verbs are registered")
 
-    # Print state after player takes items
-    print("\n--- State After Player Takes Items ---")
-    for box in game.boxes:
-        print(box)
-    print("\n--- Rooms After Player Takes Items ---")
-    for room in game.rooms:
-        print(room)
-    if game.current_player:
-        print(f"\nPlayer's Sack: {game.current_player.sack}")
+    verbs_result = _run_command(verbs, "verbs")
+    _expect("Available verbs:" in verbs_result, "verbs command returns listing")
 
-    # Test Verbs system
-    print("\n--- Testing Verbs System ---")
-    
-    def examine_action(target):
-        if isinstance(target, Room):
-            exits = target.available_directions()
-            visible_text = [obj.get_presence_text() for obj in [*target.items, *target.boxes]]
-            if not exits:
-                exits_text = "There are no visible exits."
-            elif len(exits) == 1:
-                exits_text = f"There is an exit to the {exits[0]}."
-            else:
-                exits_text = f"There are exits to the {', '.join(exits[:-1])} and {exits[-1]}."
-            if visible_text:
-                return f"You examine {target.name} carefully. {' '.join(visible_text)} {exits_text}"
-            return f"You examine {target.name} carefully. {exits_text}"
-        return f"You examine {target} carefully."
-    
-    def describe_action(location_name):
-        return f"You stand in {location_name}, taking in the surroundings."
-    
-    examine_verb = Verb("examine", examine_action)
-    describe_verb = Verb("describe", describe_action)
-    
-    print(f"Created verbs: {examine_verb}, {describe_verb}, {save_verb}, {load_verb}")
-    print(f"Examine result: {examine_verb.execute('Golden Knight')}")
-    print(f"Describe result: {describe_verb.execute('Library')}")
+    examine_result = _run_command(verbs, "examine")
+    _expect(isinstance(examine_result, str) and "You examine" in examine_result, "examine command describes current room")
 
-    # Hero walks through connected rooms and examines each one
-    print("\n--- Hero Walkthrough ---")
-    room_by_name = {room.name: room for room in game.rooms}
-    current_room = room_by_name.get("Entrance Hall")
-    walk_path = ["north", "east", "east", "south"]
+    go_result = _run_command(verbs, "go north")
+    _expect(isinstance(go_result, str) and go_result.startswith("You go "), "go command moves to connected room")
 
-    if current_room and game.current_player:
-        print(f"{game.current_player.name} starts in {current_room.name}.")
-        print(examine_verb.execute(current_room))
-        print(current_room.get_description())
+    short_dir_result = _run_command(verbs, "n")
+    _expect(isinstance(short_dir_result, str) and short_dir_result.startswith("You go "), "single-letter directions map to go")
 
-        for direction in walk_path:
-            next_room = current_room.get_connection(direction)
-            if next_room is None:
-                print(f"No room to the {direction} from {current_room.name}. Walk ends.")
-                break
+    save_result = _run_command(verbs, "save")
+    _expect("Game saved to" in save_result, "save command writes demo save file")
+    _expect(demo_save_path.exists(), "Demo save file exists")
 
-            print(f"{game.current_player.name} goes {direction} to {next_room.name}.")
-            current_room = next_room
-            print(examine_verb.execute(current_room))
-            print(current_room.get_description())
+    load_result = _run_command(verbs, "load")
+    _expect("Game loaded from" in load_result, "load command restores from demo save file")
 
-    # Demonstrate unified Noun registry (including Game)
-    print("\n--- All Nouns in the Game World ---")
-    print(f"Total nouns: {len(Noun.all_nouns)}")
-    for noun in Noun.all_nouns:
-        noun_type = type(noun).__name__
-        print(f"  {noun_type}: {noun.get_name()}")
+    unknown_result = _run_command(verbs, "dance")
+    _expect(unknown_result == "UNKNOWN", "Unknown commands are detected")
 
-    # Load previously saved state using load verb
-    print(f"\n--- Loading Boxes from {SAVE_PATH} using load_verb ---")
-    print(load_verb.execute(SAVE_PATH))
-    for box in game.boxes:
-        print(box)
-    
-    print(f"\n--- Loaded Rooms---")
-    for room in game.rooms:
-        print(room)
+    quit_result = _run_command(verbs, "quit")
+    _expect(quit_result == "QUIT", "quit command returns QUIT sentinel")
+
+    print("\nAll demo smoke tests passed.")
 
 
 if __name__ == "__main__":

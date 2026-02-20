@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Iterable
 
 
 class Noun:
@@ -25,18 +26,32 @@ class Verb(Noun):
     """
     all_verbs = []  # Class variable to track every verb created
 
-    def __init__(self, verb, action):
+    def __init__(self, verb, action, synonyms: Iterable[str] | None = None):
         """Initialize a Verb.
         
         Args:
             verb: The verb name (e.g., 'take', 'drop', 'examine')
             action: A callable that performs the action
+            synonyms: Optional list of alternate verb spellings/phrases
         """
         super().__init__()
-        self.name = verb  # Noun uses 'name'
-        self.verb = verb
+        normalized_verb = str(verb).strip().lower()
+        self.name = normalized_verb  # Noun uses 'name'
+        self.verb = normalized_verb
         self.action = action
+        self.synonyms = tuple(
+            sorted(
+                {
+                    normalized
+                    for synonym in (synonyms or [])
+                    if (normalized := str(synonym).strip().lower()) and normalized != normalized_verb
+                }
+            )
+        )
         Verb.all_verbs.append(self)    
+
+    def all_names(self):
+        return (self.verb, *self.synonyms)
     
     def execute(self, *args, **kwargs):
         """Execute the action associated with this verb."""
@@ -45,6 +60,8 @@ class Verb(Noun):
         return self.action(*args, **kwargs)
     
     def __repr__(self):
+        if self.synonyms:
+            return f"Verb({self.verb}, synonyms={list(self.synonyms)})"
         return f"Verb({self.verb})"
 
 class Item(Noun):
@@ -87,25 +104,29 @@ class Box(Noun):
             return self.presence_string
         return f"There is {self.box_name} here."
 
-    def add_item(self, item):
+    def add_item(self, item, announce=True):
         """The King claims an item. If it's in another box, he seizes it."""
         if self.capacity is not None and len(self.contents) >= self.capacity:
-            print(f"KING {self.box_name}: The box is full!")
+            if announce:
+                print(f"KING {self.box_name}: The box is full!")
             return
 
         if item.current_box == self:
-            print(f"KING {self.box_name}: I already own {item.name}!")
+            if announce:
+                print(f"KING {self.box_name}: I already own {item.name}!")
             return
 
         # Handle the move logic (Seizing from another box)
         if item.current_box is not None:
-            print(f"KING {self.box_name}: Seizing {item.name} from {item.current_box.box_name}!")
+            if announce:
+                print(f"KING {self.box_name}: Seizing {item.name} from {item.current_box.box_name}!")
             item.current_box.contents.remove(item)
 
         # Update states
         self.contents.append(item)
         item.current_box = self
-        print(f"KING {self.box_name}: {item.name} has been added to the treasury.")
+        if announce:
+            print(f"KING {self.box_name}: {item.name} has been added to the treasury.")
 
     def __repr__(self):
         return f"Box({self.box_name}, contents={self.contents})"
@@ -413,7 +434,7 @@ def _construct_boxes(data):
                     refuse_string=item_spec.get("refuse_string"),
                     presence_string=item_spec.get("presence_string")
                 )
-            new_box.add_item(new_item)
+            new_box.add_item(new_item, announce=False)
     return Box.all_boxes
 
 
@@ -456,7 +477,7 @@ def _construct_rooms(data):
                         refuse_string=item_spec.get("refuse_string"),
                         presence_string=item_spec.get("presence_string")
                     )
-                box.add_item(item_obj)
+                box.add_item(item_obj, announce=False)
             room.add_box(box)
 
         pending_connections.append((room, entry.get("connections", {})))

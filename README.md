@@ -8,7 +8,7 @@ An object-oriented game-world simulation in Python. Kingdom is a structured game
 - **Container System**: Boxes with customizable capacity limits for inventory management
 - **Room System**: Interconnected rooms with items, boxes, and minigames
 - **Character Classes**: Player (with 10-item sack capacity) and Robber characters
-- **Action System**: Extensible Verb class to pair verb names with action functions
+- **Action System**: Extensible Verb class with canonical names + synonym aliases
 - **State Persistence**: Save and load game world state to/from JSON
 
 ## Project Structure
@@ -23,6 +23,9 @@ Kingdom/
 ├── src/
 │   └── kingdom/
 │       ├── __init__.py
+│       ├── actions.py     # Command action handlers for main loop verbs
+│       ├── parser.py      # Gentle command parsing helpers (case-insensitive noun/verb matching)
+│       ├── utilities.py   # Shared utility helpers (session logging, tee output)
 │       └── models.py      # Core game classes (Item, Box, Room, Player, Robber, Verb)
 └── tests/                 # Test suite
 ```
@@ -156,4 +159,4 @@ MIT
 
 ## Author
 
-Created as a progressive object-oriented design exercise.
+Dave Reed

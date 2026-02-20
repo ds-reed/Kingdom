@@ -1,0 +1,404 @@
+{
+    "boxes": [
+        {
+            "box_name": "Royal Vault",
+            "items": [
+                "Golden Knight",
+                "Crown of Kings",
+                "Ruby Dragon"
+            ]
+        },
+        {
+            "box_name": "Garden Shed",
+            "items": [
+                "Old Ball",
+                "Rusty Robot"
+            ]
+        },
+        {
+            "box_name": "Armory Locker",
+            "items": [
+                "Iron Helm",
+                "Training Spear"
+            ]
+        },
+        {
+            "box_name": "Treasury Chest",
+            "items": [
+                "Silver Coin",
+                "Pearl Ring"
+            ]
+        },
+        {
+            "box_name": "Throne Box",
+            "items": [
+                "Crown Jewels",
+                "Scepter"
+            ]
+        },
+        {
+            "box_name": "Archive Box",
+            "items": [
+                "Ancient Scroll"
+            ]
+        },
+        {
+            "box_name": "Tool Crate",
+            "items": [
+                "Pruning Shears",
+                "Seed Pouch"
+            ]
+        },
+        {
+            "box_name": "Royal Lockbox",
+            "items": [
+                "Gemstone Brooch",
+                "Mint Seal"
+            ]
+        },
+        {
+            "box_name": "Spare Parts Bin",
+            "items": [
+                "Rivet Kit",
+                "Chain Links"
+            ]
+        }
+    ],
+    "rooms": [
+        {
+            "name": "Entrance Hall",
+            "description": "A grand hall with a chandelier and marble floors.",
+            "items": [
+                "a cheery orange carrot"
+            ],
+            "boxes": [
+                {
+                    "box_name": "Throne Box",
+                    "items": [
+                        "Crown Jewels",
+                        "Scepter"
+                    ]
+                }
+            ],
+            "connections": {
+                "north": "Library",
+                "east": "Great Hall",
+                "south": "Courtyard"
+            }
+        },
+        {
+            "name": "Library",
+            "description": "A quiet room filled with shelves of books.",
+            "items": [
+                "Ancient Tome",
+                "Leather Book"
+            ],
+            "boxes": [
+                {
+                    "box_name": "Archive Box",
+                    "items": [
+                        "Ancient Scroll"
+                    ]
+                }
+            ],
+            "connections": {
+                "north": "Entrance Hall",
+                "east": "Study",
+                "south": "Observatory"
+            }
+        },
+        {
+            "name": "Great Hall",
+            "description": "Long tables stretch beneath banners of old victories.",
+            "items": [
+                "Brass Plate"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Entrance Hall",
+                "east": "Kitchen"
+            }
+        },
+        {
+            "name": "Kitchen",
+            "description": "Warm ovens and copper pots fill the busy kitchen.",
+            "items": [
+                "Wooden Spoon"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Great Hall",
+                "east": "Pantry"
+            }
+        },
+        {
+            "name": "Pantry",
+            "description": "Shelves packed with spices, preserves, and grain sacks.",
+            "items": [
+                "Dried Herbs"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Kitchen",
+                "east": "Servants Quarters"
+            }
+        },
+        {
+            "name": "Servants Quarters",
+            "description": "Simple bunks and footlockers line the walls.",
+            "items": [
+                "Worn Cloak"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Pantry",
+                "east": "Laundry"
+            }
+        },
+        {
+            "name": "Courtyard",
+            "description": "An open courtyard with a stone fountain at its center.",
+            "items": [
+                "Fountain Coin"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Entrance Hall",
+                "east": "Garden",
+                "south": "Stables"
+            }
+        },
+        {
+            "name": "Garden",
+            "description": "Flowerbeds and trimmed hedges create a peaceful maze.",
+            "items": [
+                "Rose Clipping"
+            ],
+            "boxes": [
+                {
+                    "box_name": "Tool Crate",
+                    "items": [
+                        "Pruning Shears",
+                        "Seed Pouch"
+                    ]
+                }
+            ],
+            "connections": {
+                "north": "Courtyard",
+                "east": "Greenhouse"
+            }
+        },
+        {
+            "name": "Greenhouse",
+            "description": "Glass panes trap warm air for delicate plants.",
+            "items": [
+                "Rare Orchid"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Garden",
+                "east": "Herbalist Nook"
+            }
+        },
+        {
+            "name": "Herbalist Nook",
+            "description": "Bundles of roots and leaves hang from wooden beams.",
+            "items": [
+                "Mortar and Pestle"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Greenhouse",
+                "east": "Infirmary"
+            }
+        },
+        {
+            "name": "Infirmary",
+            "description": "A calm room stocked with bandages and tonics.",
+            "items": [
+                "Healing Salve"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Herbalist Nook",
+                "east": "Chapel"
+            }
+        },
+        {
+            "name": "Chapel",
+            "description": "Candlelight flickers across carved stone altars.",
+            "items": [
+                "Prayer Beads"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Infirmary",
+                "east": "Treasury"
+            }
+        },
+        {
+            "name": "Treasury",
+            "description": "Heavy iron doors protect rows of locked chests.",
+            "items": [
+                "Ledger"
+            ],
+            "boxes": [
+                {
+                    "box_name": "Royal Lockbox",
+                    "items": [
+                        "Gemstone Brooch",
+                        "Mint Seal"
+                    ]
+                }
+            ],
+            "connections": {
+                "north": "Chapel",
+                "east": "Throne Room"
+            }
+        },
+        {
+            "name": "Throne Room",
+            "description": "Polished stone and silk banners frame the royal throne.",
+            "items": [
+                "Velvet Cushion"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Treasury",
+                "east": "War Room",
+                "south": "Entrance Hall"
+            }
+        },
+        {
+            "name": "War Room",
+            "description": "Maps and miniature armies cover a central table.",
+            "items": [
+                "Campaign Map"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Throne Room",
+                "east": "Armory"
+            }
+        },
+        {
+            "name": "Armory",
+            "description": "Weapon racks and armor stands line reinforced walls.",
+            "items": [
+                "Shield Strap"
+            ],
+            "boxes": [
+                {
+                    "box_name": "Spare Parts Bin",
+                    "items": [
+                        "Rivet Kit",
+                        "Chain Links"
+                    ]
+                }
+            ],
+            "connections": {
+                "north": "War Room",
+                "east": "Barracks",
+                "south": "Dungeon Gate"
+            }
+        },
+        {
+            "name": "Barracks",
+            "description": "Rows of cots and training gear fill the quarters.",
+            "items": [
+                "Practice Gloves"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Armory",
+                "east": "Stables"
+            }
+        },
+        {
+            "name": "Stables",
+            "description": "Horses stamp and snort among straw-filled stalls.",
+            "items": [
+                "Horse Brush"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Barracks",
+                "east": "Courtyard"
+            }
+        },
+        {
+            "name": "Dungeon Gate",
+            "description": "A barred gate leads down into the darker cells.",
+            "items": [
+                "Ring of Keys"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Armory",
+                "east": "Cellar",
+                "south": "Watchtower"
+            }
+        },
+        {
+            "name": "Cellar",
+            "description": "Cool stone vaults hold casks and old supplies.",
+            "items": [
+                "Dusty Bottle"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Dungeon Gate",
+                "east": "Laundry"
+            }
+        },
+        {
+            "name": "Laundry",
+            "description": "Steam and soap scent the cramped wash room.",
+            "items": [
+                "Linen Bundle"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Cellar",
+                "east": "Servants Quarters"
+            }
+        },
+        {
+            "name": "Study",
+            "description": "A private room with a writing desk and sealed letters.",
+            "items": [
+                "Quill"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Library",
+                "east": "Observatory"
+            }
+        },
+        {
+            "name": "Observatory",
+            "description": "A high circular chamber with a brass telescope.",
+            "items": [
+                "Star Chart"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Study",
+                "east": "Library",
+                "south": "Watchtower"
+            }
+        },
+        {
+            "name": "Watchtower",
+            "description": "Narrow stairs rise to battlements overlooking the realm.",
+            "items": [
+                "Signal Horn"
+            ],
+            "boxes": [],
+            "connections": {
+                "north": "Observatory",
+                "east": "Dungeon Gate"
+            }
+        }
+    ]
+}
