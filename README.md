@@ -8,7 +8,7 @@ An object-oriented game-world simulation in Python. Kingdom is a structured game
 - **Container System**: Boxes with customizable capacity limits for inventory management
 - **Room System**: Interconnected rooms with items, boxes, and minigames
 - **Character Classes**: Player (with 10-item sack capacity) and Robber characters
-- **Action System**: Extensible Verbs class to pair verb names with action functions
+- **Action System**: Extensible Verb class to pair verb names with action functions
 - **State Persistence**: Save and load game world state to/from JSON
 
 ## Project Structure
@@ -23,7 +23,7 @@ Kingdom/
 ├── src/
 │   └── kingdom/
 │       ├── __init__.py
-│       └── models.py      # Core game classes (Item, Box, Room, Player, Robber, Verbs)
+│       └── models.py      # Core game classes (Item, Box, Room, Player, Robber, Verb)
 └── tests/                 # Test suite
 ```
 
@@ -77,11 +77,11 @@ thief = Robber("Shadow")
 thief.steal(box, item)  # Steal from box or room
 ```
 
-### Verbs
+### Verb
 Pairs action names with executable functions.
 
 ```python
-examine = Verbs("examine", lambda obj: f"You examine {obj} carefully.")
+examine = Verb("examine", lambda obj: f"You examine {obj} carefully.")
 result = examine.execute("Golden Knight")  # "You examine Golden Knight carefully."
 ```
 
@@ -131,7 +131,7 @@ python main.py
 The demo will:
 1. Load the initial kingdom state
 2. Show a Player taking items from boxes and rooms
-3. Demonstrate the Verbs system with example actions
+3. Demonstrate the Verb system with example actions
 4. Save the state to `data/working_state.json`
 5. Reload and display the updated state
 

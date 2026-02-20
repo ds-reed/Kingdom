@@ -8,7 +8,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PY_FILES = [p for p in ROOT.rglob('*.py') if 'site-packages' not in str(p) and '.ipynb_checkpoints' not in str(p)]
+PY_FILES = [
+    p
+    for p in ROOT.rglob('*.py')
+    if 'site-packages' not in str(p)
+    and '.ipynb_checkpoints' not in str(p)
+    and p.name != '__init__.py'
+]
 
 created = []
 for p in PY_FILES:

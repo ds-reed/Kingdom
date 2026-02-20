@@ -1,24 +1,91 @@
-class Item:
+import json
+from pathlib import Path
+
+
+class Noun:
+    """Parent class for all game world entities (items, boxes, rooms)."""
+    all_nouns = []  # Class variable to track every noun created
+
+    def __init__(self):
+        Noun.all_nouns.append(self)
+
+    def get_name(self):
+        """Return the name of this noun."""
+        return self.name
+
+    def get_presence_text(self):
+        """Default sentence used when this noun is noticed in a room."""
+        return f"There is {self.name} here."
+
+class Verb(Noun):
+    """A verb paired with an action function.
+    
+    Verbs are used to define actions that can be performed in the game.
+    Each verb has a name and an associated callable that implements the action.
+    """
+    all_verbs = []  # Class variable to track every verb created
+
+    def __init__(self, verb, action):
+        """Initialize a Verb.
+        
+        Args:
+            verb: The verb name (e.g., 'take', 'drop', 'examine')
+            action: A callable that performs the action
+        """
+        super().__init__()
+        self.name = verb  # Noun uses 'name'
+        self.verb = verb
+        self.action = action
+        Verb.all_verbs.append(self)    
+    
+    def execute(self, *args, **kwargs):
+        """Execute the action associated with this verb."""
+        if not callable(self.action):
+            raise TypeError(f"Action for verb '{self.verb}' is not callable")
+        return self.action(*args, **kwargs)
+    
+    def __repr__(self):
+        return f"Verb({self.verb})"
+
+class Item(Noun):
     all_items = []  # Class variable to track every item created
 
-    def __init__(self, name, pickupable=True, refuse_string=None):
+    def __init__(self, name, pickupable=True, refuse_string=None, presence_string=None):
+        super().__init__()
         self.name = name
         self.current_box = None
         self.is_broken = False
         self.pickupable = pickupable
         self.refuse_string = refuse_string or f"You can't pick up {name}"
+        self.presence_string = presence_string
         Item.all_items.append(self)
+
+    def get_presence_text(self):
+        if self.presence_string:
+            return self.presence_string
+        return f"There is {self.name} here."
 
     def __repr__(self):
         """Controls how the item looks when printed in a list."""
         status = " [BROKEN]" if self.is_broken else ""
         return f"'{self.name}{status}'"
 
-class Box:
-    def __init__(self, box_name, capacity=None):
+class Box(Noun):
+    all_boxes = []  # Class variable to track every box created
+
+    def __init__(self, box_name, capacity=None, presence_string=None):
+        super().__init__()
+        self.name = box_name  # Noun uses 'name'
         self.box_name = box_name
         self.contents = []
         self.capacity = capacity  # None = unlimited
+        self.presence_string = presence_string
+        Box.all_boxes.append(self)
+
+    def get_presence_text(self):
+        if self.presence_string:
+            return self.presence_string
+        return f"There is {self.box_name} here."
 
     def add_item(self, item):
         """The King claims an item. If it's in another box, he seizes it."""
@@ -129,18 +196,23 @@ class Player:
         item.current_box = None
 
 
-class Room:
+class Room(Noun):
     """A simple Room that can hold `Item` objects and connect to other rooms.
 
     Adapted from the Castle example; uses the project's `Item` class.
     """
+    all_rooms = []  # Class variable to track every room created
+    DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
+
     def __init__(self, name, description):
+        super().__init__()
         self.name = name
         self.description = description
         self.items = []  # list[Item]
         self.boxes = []  # list[Box]
         self.connections = {}
         self.minigame = None
+        Room.all_rooms.append(self)
 
     def add_item(self, item):
         """Add an Item instance or create one from a string name."""
@@ -157,8 +229,35 @@ class Room:
             raise TypeError("Room.add_box expects a Box instance")
         self.boxes.append(box)
 
+    def add_direction(self, direction):
+        if not isinstance(direction, str):
+            raise TypeError("direction must be a string")
+        if direction == "":
+            raise ValueError("direction cannot be empty")
+        if direction not in Room.DIRECTIONS:
+            Room.DIRECTIONS.append(direction)
+        return direction
+
     def connect_room(self, direction, room):
-        self.connections[direction] = room
+        if not isinstance(room, Room):
+            raise TypeError("connect_room expects a Room instance")
+        registered_direction = self.add_direction(direction)
+        self.connections[registered_direction] = room
+
+    def get_connection(self, direction):
+        return self.connections.get(direction)
+
+    def can_go(self, direction):
+        return self.get_connection(direction) is not None
+
+    def available_directions(self):
+        return sorted(self.connections.keys())
+
+    def move(self, direction):
+        destination = self.get_connection(direction)
+        if destination is None:
+            raise ValueError(f"No connection from {self.name} via '{direction}'")
+        return destination
 
     def get_description(self):
         return self.description
@@ -174,10 +273,122 @@ class Room:
     def __repr__(self):
         items_str = [it.name for it in self.items]
         boxes_str = [b.box_name for b in self.boxes]
-        return f"Room({self.name}, desc='{self.description}', items={items_str}, boxes={boxes_str})"
+        connections_str = {direction: room.name for direction, room in self.connections.items()}
+        return (
+            f"Room({self.name}, desc='{self.description}', items={items_str}, "
+            f"boxes={boxes_str}, connections={connections_str})"
+        )
 
 
+class Game(Noun):
+    """The Game world itself - a special noun that represents the overall game state.
+    
+    The Game noun is always instantiated and manages the kingdom's boxes, rooms,
+    and current player. Unlike other nouns, it is not loaded from JSON.
+    """
+    _instance = None  # Singleton pattern
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "Game"
+        self.boxes = []
+        self.rooms = []
+        self.current_player = None
+        Game._instance = self
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton Game instance."""
+        if cls._instance is None:
+            cls._instance = Game()
+        return cls._instance
+    
+    def set_world(self, boxes, rooms):
+        """Set the kingdom boxes and rooms."""
+        self.boxes = boxes
+        self.rooms = rooms
+    
+    def set_current_player(self, player):
+        """Set the current player character."""
+        self.current_player = player
+    
+    def get_all_nouns(self):
+        """Get all nouns in the game world (boxes, items, rooms, players, etc)."""
+        return Noun.all_nouns
 
+    def setup_world(self, filepath):
+        """Load and construct world state from a JSON file."""
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+
+        if isinstance(data, dict):
+            boxes = _construct_boxes(data.get('boxes', []))
+            rooms = _construct_rooms(data.get('rooms', []))
+        else:
+            boxes = _construct_boxes(data)
+            rooms = []
+
+        self.set_world(boxes, rooms)
+        return boxes, rooms
+
+    def load_world(self, filepath):
+        """Load previously saved world state from a JSON file."""
+        return self.setup_world(filepath)
+
+    def save_world(self, filepath):
+        """Save current world state to JSON."""
+        target = Path(filepath)
+        if target.name == "initial_state.json":
+            raise RuntimeError("Refusing to overwrite initial_state.json")
+
+        payload = {
+            'boxes': [],
+            'rooms': []
+        }
+
+        for box in self.boxes:
+            payload['boxes'].append(
+                {
+                    'box_name': box.box_name,
+                    'items': [item.name for item in box.contents]
+                }
+            )
+
+        for room in self.rooms:
+            payload['rooms'].append(
+                {
+                    'name': room.name,
+                    'description': room.description,
+                    'items': [it.name for it in room.items],
+                    'boxes': [
+                        {
+                            'box_name': box.box_name,
+                            'items': [item.name for item in box.contents]
+                        }
+                        for box in room.boxes
+                    ],
+                    'connections': {
+                        direction: destination.name
+                        for direction, destination in room.connections.items()
+                    }
+                }
+            )
+
+        with open(filepath, 'w') as file:
+            json.dump(payload, file, indent=4)
+
+    def create_state_verbs(self):
+        """Create save/load verbs bound to this Game instance."""
+
+        def save_action(path):
+            self.save_world(path)
+            return f"Game saved to {path}"
+
+        def load_action(path):
+            self.load_world(path)
+            return f"Game loaded from {path}"
+
+        return Verb("save", save_action), Verb("load", load_action)
 
 
 def _construct_boxes(data):
@@ -186,9 +397,12 @@ def _construct_boxes(data):
     Expects `data` to be a list of dicts with keys 'box_name' and 'items'.
     Each item can be a string or a dict with 'name', 'pickupable', 'refuse_string'.
     """
-    all_boxes = []
+    Box.all_boxes.clear()  # Clear existing boxes for a clean load
     for entry in data:
-        new_box = Box(entry["box_name"])
+        new_box = Box(
+            entry["box_name"],
+            presence_string=entry.get("presence_string")
+        )
         for item_spec in entry.get("items", []):
             if isinstance(item_spec, str):
                 new_item = Item(item_spec)
@@ -196,20 +410,22 @@ def _construct_boxes(data):
                 new_item = Item(
                     item_spec.get("name"),
                     pickupable=item_spec.get("pickupable", True),
-                    refuse_string=item_spec.get("refuse_string")
+                    refuse_string=item_spec.get("refuse_string"),
+                    presence_string=item_spec.get("presence_string")
                 )
             new_box.add_item(new_item)
-        all_boxes.append(new_box)
-    return all_boxes
+    return Box.all_boxes
+
 
 
 def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.
 
-    Each room dict should have 'name', 'description', optional 'items', and optional 'boxes'.
+    Each room dict should have 'name', 'description', optional 'items', optional 'boxes', and optional 'connections'.
     Items can be strings or dicts with 'name', 'pickupable', 'refuse_string'.
     """
-    all_rooms = []
+    Room.all_rooms.clear()  # Clear existing rooms for a clean load
+    pending_connections = []
     for entry in data:
         room = Room(entry.get("name"), entry.get("description", ""))
         # Add items to the room
@@ -220,12 +436,16 @@ def _construct_rooms(data):
                 item_obj = Item(
                     item_spec.get("name"),
                     pickupable=item_spec.get("pickupable", True),
-                    refuse_string=item_spec.get("refuse_string")
+                    refuse_string=item_spec.get("refuse_string"),
+                    presence_string=item_spec.get("presence_string")
                 )
                 room.items.append(item_obj)
         # Add boxes to the room
         for box_data in entry.get("boxes", []):
-            box = Box(box_data.get("box_name"))
+            box = Box(
+                box_data.get("box_name"),
+                presence_string=box_data.get("presence_string")
+            )
             for item_spec in box_data.get("items", []):
                 if isinstance(item_spec, str):
                     item_obj = Item(item_spec)
@@ -233,35 +453,35 @@ def _construct_rooms(data):
                     item_obj = Item(
                         item_spec.get("name"),
                         pickupable=item_spec.get("pickupable", True),
-                        refuse_string=item_spec.get("refuse_string")
+                        refuse_string=item_spec.get("refuse_string"),
+                        presence_string=item_spec.get("presence_string")
                     )
                 box.add_item(item_obj)
             room.add_box(box)
-        all_rooms.append(room)
-    return all_rooms
 
+        pending_connections.append((room, entry.get("connections", {})))
 
-class Verbs:
-    """A verb paired with an action function.
-    
-    Verbs are used to define actions that can be performed in the game.
-    Each verb has a name and an associated callable that implements the action.
-    """
-    def __init__(self, verb, action):
-        """Initialize a Verb.
-        
-        Args:
-            verb: The verb name (e.g., 'take', 'drop', 'examine')
-            action: A callable that performs the action
-        """
-        self.verb = verb
-        self.action = action
-    
-    def execute(self, *args, **kwargs):
-        """Execute the action associated with this verb."""
-        if not callable(self.action):
-            raise TypeError(f"Action for verb '{self.verb}' is not callable")
-        return self.action(*args, **kwargs)
-    
-    def __repr__(self):
-        return f"Verb({self.verb})"
+    room_by_name = {room.name: room for room in Room.all_rooms}
+    for room, raw_connections in pending_connections:
+        if isinstance(raw_connections, dict):
+            iterable = raw_connections.items()
+            for direction, destination_name in iterable:
+                destination_room = room_by_name.get(destination_name)
+                if destination_room is not None:
+                    room.connect_room(direction, destination_room)
+        elif isinstance(raw_connections, list):
+            for connection in raw_connections:
+                if isinstance(connection, dict):
+                    direction = connection.get("direction")
+                    destination_name = connection.get("room")
+                    if direction and destination_name:
+                        destination_room = room_by_name.get(destination_name)
+                        if destination_room is not None:
+                            room.connect_room(direction, destination_room)
+                elif isinstance(connection, str):
+                    destination_room = room_by_name.get(connection)
+                    if destination_room is not None:
+                        room.connect_room(connection, destination_room)
+
+    return Room.all_rooms
+
