@@ -20,6 +20,10 @@ BRIGHT_AMBER = "\033[93m"
 
 #TRS-80 shades for a more authentic look
 TRS80_WHITE = "\033[38;2;220;220;255m"  # subtle bluish tint
+SHOW_STATUS_BANNER = False
+TERMINAL_MODE_TRS80 = "trs80"
+TERMINAL_MODE_MODERN = "modern"
+ACTIVE_TERMINAL_MODE = TERMINAL_MODE_TRS80
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
@@ -57,6 +61,13 @@ HALF_LEFT = "▌"
 HALF_RIGHT = "▐"
 
 
+def _apply_mode_case(text) -> str:
+    rendered = str(text)
+    if ACTIVE_TERMINAL_MODE == TERMINAL_MODE_TRS80:
+        return rendered.upper()
+    return rendered
+
+
 def trs80_print(text, style=TRS80_WHITE, bold=False, dim=False, inverse=False, end="\n"):
     codes = []
     if bold:
@@ -67,7 +78,7 @@ def trs80_print(text, style=TRS80_WHITE, bold=False, dim=False, inverse=False, e
         codes.append(INVERSE)
     codes.append(style)
     prefix = "".join(codes)
-    print(f"{prefix}{text}{RESET}", end=end, flush=True)
+    print(f"{prefix}{_apply_mode_case(text)}{RESET}", end=end, flush=True)
 
 
 def trs80_status_line(room_name, score=0, moves=0, light_on=True, width=64, hero_name=None):
@@ -97,16 +108,37 @@ def trs80_box(title, content_lines, width=60, style=TRS80_WHITE):
 
 
 def trs80_prompt(prompt_text="> "):
-    prompt = f"{TRS80_WHITE}{prompt_text}{RESET}"
+    prompt = f"{TRS80_WHITE}{_apply_mode_case(prompt_text)}{RESET}"
     return input(prompt)
 
 
-def trs80_clear_and_show_room(room, score=0, moves=0, light_on=True, hero_name=None):
-    clear_screen()
-    trs80_status_line(room.name, score, moves, light_on, hero_name=hero_name)
-    print()
+def trs80_clear_and_show_room(
+    room,
+    score=0,
+    moves=0,
+    light_on=True,
+    hero_name=None,
+    clear=True,
+    show_status=None,
+):
+    if clear:
+        clear_screen()
+    if show_status is None:
+        show_status = SHOW_STATUS_BANNER
+    if show_status:
+        trs80_status_line(room.name, score, moves, light_on, hero_name=hero_name)
+        print()
+
+    first_visit = not bool(getattr(room, "visited", False))
+
     trs80_print(room.name.upper(), bold=True, style=TRS80_WHITE)
-    trs80_print(room.description, style=TRS80_WHITE)
+    if first_visit:
+        trs80_print(room.description, style=TRS80_WHITE)
+
+    for obj in [*room.items, *room.boxes]:
+        trs80_print(obj.get_presence_text(), style=TRS80_WHITE)
+
+    room.visited = True
 
 
 if __name__ == "__main__":

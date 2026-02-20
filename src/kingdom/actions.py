@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
-from kingdom.models import Game, Room, Verb
+from kingdom.models import Game, Item, Room, Verb
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import trs80_clear_and_show_room
 
@@ -19,6 +19,7 @@ class QuitGame(Exception):
 
 
 ConfirmAction = Callable[[str], bool]
+PromptAction = Callable[[str], str]
 LegacyVerbSpec: TypeAlias = tuple[str, tuple[str, ...]]
 
 LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
@@ -49,27 +50,71 @@ LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
     ("tie", ()),
 )
 
-NO_CARROT_MESSAGE = "YOU HAVE NO CARROT! ARE YOU TRYING TO CONFUSE ME?"
-EAT_CARROT_MESSAGE = (
-    "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. "
-    "HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
-)
-
-
 def quit_action() -> None:
     raise QuitGame()
 
 
-def save_action(game: Game, default_save_path: Path, path: str | None = None) -> str:
-    target = Path(path) if path else default_save_path
-    game.save_world(target)
-    return f"Game saved to {target}"
+def _derive_player_save_path(default_save_path: Path, hero_name: str | None) -> Path:
+    if not hero_name:
+        return default_save_path
+
+    cleaned = "".join(ch.lower() if ch.isalnum() else "_" for ch in hero_name.strip())
+    cleaned = cleaned.strip("_")
+    while "__" in cleaned:
+        cleaned = cleaned.replace("__", "_")
+    if not cleaned:
+        return default_save_path
+
+    return default_save_path.with_name(f"{cleaned}.sav")
 
 
-def load_action(game: Game, default_save_path: Path, path: str | None = None) -> str:
-    target = Path(path) if path else default_save_path
-    game.load_world(target)
-    return f"Game loaded from {target}"
+def _prompt_for_path(prompt_action: PromptAction | None, prompt_label: str, default_path: Path) -> Path:
+    if prompt_action is None:
+        return default_path
+
+    raw_path = prompt_action(f"{prompt_label} file name [{default_path}]: ").strip()
+    if not raw_path:
+        return default_path
+    return Path(raw_path)
+
+
+def _is_game_command_target(target_words: tuple[str, ...], target: object | None) -> bool:
+    normalized_words = [word.strip().lower() for word in target_words if word.strip()]
+    if target is not None and not isinstance(target, Game):
+        return False
+    return isinstance(target, Game) or not normalized_words or normalized_words == ["game"]
+
+
+def save_action(
+    game: Game,
+    default_save_path: Path,
+    prompt_action: PromptAction | None,
+    *target_words: str,
+    target: object | None = None,
+) -> str:
+    if not _is_game_command_target(target_words, target):
+        return "You can't save that."
+
+    save_path = _prompt_for_path(prompt_action, "Save", default_save_path)
+
+    game.save_world(save_path)
+    return f"Game saved to {save_path}"
+
+
+def load_action(
+    game: Game,
+    default_save_path: Path,
+    prompt_action: PromptAction | None,
+    *target_words: str,
+    target: object | None = None,
+) -> str:
+    if not _is_game_command_target(target_words, target):
+        return "You can't load that."
+
+    load_path = _prompt_for_path(prompt_action, "Load", default_save_path)
+
+    game.load_world(load_path)
+    return f"Game loaded from {load_path}"
 
 
 def go_action(state: GameActionState, direction: str) -> str:
@@ -83,9 +128,82 @@ def go_action(state: GameActionState, direction: str) -> str:
         return f"You can't go {canonical_direction} from here."
 
     state.current_room = next_room
-    trs80_clear_and_show_room(state.current_room, hero_name=state.hero_name)
+    trs80_clear_and_show_room(state.current_room, hero_name=state.hero_name, clear=False)
     print()
     return f"You go {canonical_direction}."
+
+
+def climb_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
+    if state.current_room is None:
+        return "There is nowhere to climb."
+
+    direction: str | None = None
+
+    if target is not None:
+        direction = getattr(target, "canonical_direction", None)
+        if direction is None and hasattr(target, "get_noun_name"):
+            direction = normalize_direction_token(target.get_noun_name())
+
+    if direction is None and target_words:
+        direction = normalize_direction_token(target_words[0])
+
+    if direction is None:
+        vertical_exits = [d for d in state.current_room.available_directions() if d in {"up", "down"}]
+        if len(vertical_exits) == 1:
+            return go_action(state, vertical_exits[0])
+        if not vertical_exits:
+            return "There is nothing here to climb."
+        return "Climb where? Up or down?"
+
+    if direction not in {"up", "down"}:
+        return "You can only climb up or down."
+
+    return go_action(state, direction)
+
+
+def exit_action(
+    state: GameActionState,
+    confirm_action: ConfirmAction | None,
+    prompt_action: PromptAction | None,
+    *target_words: str,
+    target: object | None = None,
+) -> str:
+    if not target_words and target is None:
+        if not _confirm("Are you sure you want to quit?", confirm_action):
+            return "Quit cancelled."
+        quit_action()
+
+    target_text = " ".join(target_words).strip().lower()
+
+    if isinstance(target, Room) or target_text in {"room", "here"}:
+        if state.current_room is None:
+            return "There is nowhere to exit from."
+
+        exits = state.current_room.available_directions()
+        if not exits:
+            return "There are no exits from here."
+        if len(exits) == 1:
+            return go_action(state, exits[0])
+
+        if prompt_action is None:
+            return f"Which direction do you want to exit? ({', '.join(exits)})"
+
+        chosen_raw = prompt_action(f"Which direction? ({', '.join(exits)}): ").strip().lower()
+        if not chosen_raw:
+            return "Exit cancelled."
+        return go_action(state, chosen_raw)
+
+    if target_text in {"game", "program"}:
+        if not _confirm("Are you sure you want to quit?", confirm_action):
+            return "Quit cancelled."
+        quit_action()
+
+    if target_words:
+        maybe_direction = normalize_direction_token(target_words[0])
+        if maybe_direction in Room.DIRECTIONS:
+            return go_action(state, maybe_direction)
+
+    return "Exit where?"
 
 
 def _describe_room(room: Room) -> str:
@@ -156,7 +274,7 @@ def inventory_action(game: Game) -> str:
     return f"{player.name}'s sack contains ({len(sack_items)} {item_label}): {', '.join(sack_items)}"
 
 
-def take_action(state: GameActionState, game: Game, *target_words: str) -> str:
+def take_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
     if state.current_room is None:
         return "There is nothing to take here."
 
@@ -164,15 +282,31 @@ def take_action(state: GameActionState, game: Game, *target_words: str) -> str:
     if player is None:
         return "No hero is active yet."
 
+    sources = [(state.current_room.name, state.current_room.items)]
+    sources.extend((box.box_name, box.contents) for box in state.current_room.boxes)
+
+    if target is not None:
+        if not isinstance(target, Item):
+            return "You can't take that."
+
+        if player.sack.capacity is not None and len(player.sack.contents) >= player.sack.capacity:
+            return f"{player.name}'s sack is full (max {player.sack.capacity} items)!"
+
+        for container_name, contents in sources:
+            if target in contents:
+                contents.remove(target)
+                player.sack.contents.append(target)
+                target.current_box = player.sack
+                return f"{player.name} takes {target.name} from {container_name}."
+
+        return f"You don't see {target.get_noun_name()} here."
+
     if not target_words:
         return "Take what?"
 
     target_name = " ".join(target_words).strip().lower()
     if not target_name:
         return "Take what?"
-
-    sources = [(state.current_room.name, state.current_room.items)]
-    sources.extend((box.box_name, box.contents) for box in state.current_room.boxes)
 
     found_item = None
     found_contents = None
@@ -203,13 +337,24 @@ def take_action(state: GameActionState, game: Game, *target_words: str) -> str:
     return f"{player.name} takes {found_item.name} from {found_container_name}."
 
 
-def drop_action(state: GameActionState, game: Game, *target_words: str) -> str:
+def drop_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
     if state.current_room is None:
         return "There is nowhere to drop anything."
 
     player = game.current_player
     if player is None:
         return "No hero is active yet."
+
+    if target is not None:
+        if not isinstance(target, Item):
+            return "You can't drop that."
+        if target not in player.sack.contents:
+            return f"{player.name} doesn't have {target.get_noun_name()}!"
+
+        player.sack.contents.remove(target)
+        state.current_room.items.append(target)
+        target.current_box = None
+        return f"{player.name} drops {target.name}."
 
     if not target_words:
         return "Drop what?"
@@ -228,46 +373,78 @@ def drop_action(state: GameActionState, game: Game, *target_words: str) -> str:
     return f"{player.name} doesn't have {target_name}!"
 
 
-def _find_carrot_containers(state: GameActionState, game: Game) -> tuple[object | None, object | None]:
-    player = game.current_player
-    if player is None:
-        return None, None
+def is_present_in_known_containers(item: object, dispatch_context: dict | None) -> bool:
+    current_box = getattr(item, "current_box", None)
+    if current_box is not None and item in getattr(current_box, "contents", []):
+        return True
 
-    for item in player.sack.contents:
-        if item.matches_reference("carrot"):
-            return player.sack.contents, item
+    if not dispatch_context:
+        return False
 
-    if state.current_room is None:
-        return None, None
+    state = dispatch_context.get("state")
+    room = getattr(state, "current_room", None) if state is not None else None
+    if room is not None:
+        if item in getattr(room, "items", []):
+            return True
+        for box in getattr(room, "boxes", []):
+            if item in getattr(box, "contents", []):
+                return True
 
-    for item in state.current_room.items:
-        if item.matches_reference("carrot"):
-            return state.current_room.items, item
+    game = dispatch_context.get("game")
+    player = getattr(game, "current_player", None) if game is not None else None
+    if player is not None and item in getattr(player.sack, "contents", []):
+        return True
 
-    for box in state.current_room.boxes:
-        for item in box.contents:
-            if item.matches_reference("carrot"):
-                return box.contents, item
-
-    return None, None
+    return False
 
 
-def eat_action(state: GameActionState, game: Game, *target_words: str) -> str:
-    if game.current_player is None:
-        return "No hero is active yet."
+def consume_if_getable_and_present(item: object, dispatch_context: dict | None, missing_message: str) -> tuple[bool, str | None]:
+    if not getattr(item, "pickupable", True):
+        return False, "You can't eat that."
 
-    if target_words:
-        requested_target = " ".join(target_words).strip().lower()
-        if requested_target and "carrot" not in requested_target:
-            return "You can't eat that."
+    if not is_present_in_known_containers(item, dispatch_context):
+        return False, missing_message
 
-    container, carrot_item = _find_carrot_containers(state, game)
-    if carrot_item is None or container is None:
-        return NO_CARROT_MESSAGE
+    remove_method = getattr(item, "_remove_from_known_containers", None)
+    if not callable(remove_method):
+        return False, missing_message
 
-    container.remove(carrot_item)
-    carrot_item.current_box = None
-    return EAT_CARROT_MESSAGE
+    removed = remove_method(dispatch_context=dispatch_context)
+    if not removed:
+        return False, missing_message
+
+    return True, None
+
+
+def build_dispatch_context(state: GameActionState, game: Game) -> dict:
+    return {
+        "state": state,
+        "game": game,
+        "move_direction": lambda direction: go_action(state, direction),
+        "consume_if_getable_and_present": consume_if_getable_and_present,
+        "is_present_in_known_containers": is_present_in_known_containers,
+    }
+
+
+def eat_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    default_refuse = "You can't eat that."
+    default_success = "YUM! TASTES GOOD."
+
+    if target is None:
+        return "Eat what?"
+
+    if not isinstance(target, Item):
+        return default_refuse
+
+    if not target.edible:
+        return target.eat_refuse_string or default_refuse
+
+    missing_message = target.eat_missing_string or default_refuse
+    consumed, error_message = consume_if_getable_and_present(target, dispatch_context, missing_message)
+    if not consumed:
+        return error_message or target.eat_refuse_string or default_refuse
+
+    return target.eat_success_string or default_success
 
 
 def _register_aliases(verb_lookup: dict[str, Verb], verb: Verb) -> None:
@@ -300,38 +477,61 @@ def _build_core_verbs(
     game: Game,
     default_save_path: Path,
     confirm_action: ConfirmAction | None,
+    prompt_action: PromptAction | None,
 ) -> list[Verb]:
+    player_default_save_path = _derive_player_save_path(default_save_path, state.hero_name)
+
     def confirmed_quit_action() -> str | None:
         if not _confirm("Are you sure you want to quit?", confirm_action):
             return "Quit cancelled."
         quit_action()
 
-    def confirmed_save_action(path: str | None = None) -> str:
-        target = Path(path) if path else default_save_path
-        if not _confirm(f"Save game to {target}?", confirm_action):
+    def confirmed_save_action(*words: str, target: object | None = None) -> str:
+        if not _is_game_command_target(words, target):
+            return "You can't save that."
+        if not _confirm("Save game?", confirm_action):
             return "Save cancelled."
-        return save_action(game, default_save_path, path)
+        return save_action(game, player_default_save_path, prompt_action, *words, target=target)
 
-    def confirmed_load_action(path: str | None = None) -> str:
-        target = Path(path) if path else default_save_path
-        if not _confirm(f"Load game from {target}?", confirm_action):
+    def confirmed_load_action(*words: str, target: object | None = None) -> str:
+        if not _is_game_command_target(words, target):
+            return "You can't load that."
+        if not _confirm("Load game?", confirm_action):
             return "Load cancelled."
-        return load_action(game, default_save_path, path)
+        return load_action(game, player_default_save_path, prompt_action, *words, target=target)
 
-    quit_verb = Verb("quit", confirmed_quit_action, synonyms=["exit", "q"])
+    quit_verb = Verb("quit", confirmed_quit_action, synonyms=["q"])
+    exit_verb = Verb(
+        "exit",
+        lambda *words, target=None: exit_action(state, confirm_action, prompt_action, *words, target=target),
+        synonyms=["leave"],
+    )
     go_verb = Verb(
         "go",
         lambda direction: go_action(state, direction),
         synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"],
     )
+    climb_verb = Verb("climb", lambda *words, target=None: climb_action(state, *words, target=target))
     save_verb = Verb("save", confirmed_save_action, synonyms=["write"])
     load_verb = Verb("load", confirmed_load_action, synonyms=["restore"])
     examine_verb = Verb("examine", lambda *words: examine_action(state, *words), synonyms=["inspect", "look"])
     inventory_verb = Verb("inventory", lambda: inventory_action(game), synonyms=["inven"])
-    take_verb = Verb("take", lambda *words: take_action(state, game, *words), synonyms=["get"])
-    drop_verb = Verb("drop", lambda *words: drop_action(state, game, *words))
-    eat_verb = Verb("eat", lambda *words: eat_action(state, game, *words))
-    return [quit_verb, go_verb, save_verb, load_verb, examine_verb, inventory_verb, take_verb, drop_verb, eat_verb]
+    take_verb = Verb("take", lambda *words, target=None: take_action(state, game, *words, target=target), synonyms=["get"])
+    drop_verb = Verb("drop", lambda *words, target=None: drop_action(state, game, *words, target=target))
+    eat_verb = Verb("eat", lambda *words, target=None: eat_action(*words, target=target))
+    return [
+        quit_verb,
+        exit_verb,
+        go_verb,
+        climb_verb,
+        save_verb,
+        load_verb,
+        examine_verb,
+        inventory_verb,
+        take_verb,
+        drop_verb,
+        eat_verb,
+    ]
 
 
 def _build_legacy_stub_verbs(specs: Sequence[LegacyVerbSpec] = LEGACY_VERB_SPECS) -> list[Verb]:
@@ -355,10 +555,11 @@ def build_verbs(
     game: Game,
     default_save_path: Path,
     confirm_action: ConfirmAction | None = None,
+    prompt_action: PromptAction | None = None,
 ) -> dict[str, Verb]:
     verbs: dict[str, Verb] = {}
 
-    for verb in _build_core_verbs(state, game, default_save_path, confirm_action):
+    for verb in _build_core_verbs(state, game, default_save_path, confirm_action, prompt_action):
         _register_verb(verbs, verb)
 
     verbs_verb = Verb("verbs", lambda: verbs_action(verbs), synonyms=["help", "commands"])

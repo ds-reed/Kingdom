@@ -16,7 +16,6 @@ DIRECTION_ALIASES = {
     "d": "down",
 }
 
-
 @dataclass(frozen=True)
 class ParseMatch:
     text: str
@@ -94,16 +93,7 @@ def resolve_command(
     primary_verb = parse_result.primary_verb
 
     if primary_verb is None:
-        if not parse_result.tokens:
-            return None
-        maybe_direction = normalize_direction_token(parse_result.tokens[0])
-        if maybe_direction == parse_result.tokens[0]:
-            return None
-        return ResolvedCommand(
-            verb="go",
-            args=[maybe_direction, *parse_result.tokens[1:]],
-            parse=parse_result,
-        )
+        return None
 
     return ResolvedCommand(
         verb=primary_verb.text,
