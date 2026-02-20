@@ -131,6 +131,10 @@ Run the demo:
 python main.py
 ```
 
+Or on Windows, double-click [run_kingdom.bat](run_kingdom.bat) to launch directly.
+
+On Windows, Kingdom enforces a real terminal session. If it is launched without an attached console, it will automatically reopen itself in a PowerShell terminal window.
+
 The demo will:
 1. Load the initial kingdom state
 2. Show a Player taking items from boxes and rooms

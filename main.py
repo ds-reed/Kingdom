@@ -5,6 +5,8 @@ See demo.py for gameplay examples.
 """
 
 from pathlib import Path
+import os
+import subprocess
 import sys
 sys.path.append("./src")
 
@@ -23,6 +25,56 @@ from kingdom.terminal_style import (
     trs80_prompt,
     TRS80_WHITE,
 )
+
+
+def ensure_terminal_session() -> bool:
+    """Ensure game runs in a real terminal window on Windows.
+
+    Returns True when execution should continue in this process.
+    Returns False when a new terminal session is spawned and this process should exit.
+    """
+    if os.name != "nt":
+        return True
+
+    streams = (sys.stdin, sys.stdout, sys.stderr)
+    has_tty = all(getattr(stream, "isatty", lambda: False)() for stream in streams)
+    if has_tty:
+        return True
+
+    if os.environ.get("KINGDOM_TERMINAL_RELAUNCHED") == "1":
+        return True
+
+    base_dir = Path(__file__).resolve().parent
+    script_path = Path(__file__).resolve()
+
+    python_exe = Path(sys.executable)
+    if python_exe.name.lower() == "pythonw.exe":
+        python_exe = python_exe.with_name("python.exe")
+
+    working_dir = str(base_dir).replace("'", "''")
+    python_cmd = str(python_exe).replace("'", "''")
+    script_cmd = str(script_path).replace("'", "''")
+    ps_command = (
+        "$env:KINGDOM_TERMINAL_RELAUNCHED='1'; "
+        f"Set-Location -LiteralPath '{working_dir}'; "
+        f"& '{python_cmd}' '{script_cmd}'"
+    )
+
+    subprocess.Popen(
+        [
+            "cmd",
+            "/c",
+            "start",
+            '"Kingdom TRS-80"',
+            "powershell",
+            "-NoExit",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            ps_command,
+        ]
+    )
+    return False
 
 
 def main():
@@ -97,4 +149,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if ensure_terminal_session():
+        main()
