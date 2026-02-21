@@ -15,20 +15,38 @@ An object-oriented game-world simulation in Python. Kingdom is a structured game
 
 ```
 Kingdom/
-├── main.py                 # Game orchestration and demo
-├── pyproject.toml         # Project metadata
+├── pyproject.toml              # Project metadata
+├── main.py                     # Main game loop + CLI args (--mode)
+├── demo.py                     # Demo runner / sample flow
+├── run_kingdom.bat             # Windows launcher
 ├── data/
-│   ├── initial_state.json # Game world seed data
-│   └── working_state.json # Current game state (generated)
+│   ├── initial_state.json      # Seed world state
+│   ├── working_state.json      # Active save state
+│   ├── *.sav / *.bak.*         # Local saves and backups
+├── docs/
+│   ├── project_structure.md    # This file
+│   └── todo.txt                # Outstanding task list
+├── logs/                       # Session logs
+├── scripts/                    # Backup and pre-edit utility scripts
 ├── src/
 │   └── kingdom/
 │       ├── __init__.py
-│       ├── actions.py     # Command action handlers for main loop verbs
-│       ├── parser.py      # Gentle command parsing helpers (case-insensitive noun/verb matching)
-│       ├── utilities.py   # Shared utility helpers (session logging, tee output)
-│       └── models.py      # Core game classes (Item, Box, Room, Player, Robber, Verb)
-└── tests/                 # Test suite
+│       ├── actions.py          # Command handlers and game-loop actions
+│       ├── item_behaviors.py   # Item-specific behavior helpers
+│       ├── models.py           # Core world/domain models
+│       ├── parser.py           # Command parsing + noun/verb resolution
+│       ├── terminal_style.py   # TRS-80/modern terminal presentation
+│       ├── dispatch_context.py # Command context envelope (game, state, callbacks)
+│       └── utilities.py        # Shared helpers (logging, utilities)
 ```
+
+- `logs/`: Stores session logs for debugging and replay.
+- `scripts/`: Contains backup and pre-edit scripts for world state management.
+- `item_behaviors.py`: Registry and dispatch for item-specific actions (e.g., eat fish).
+- `terminal_style.py`: Handles TRS-80 and modern terminal output styles.
+- `dispatch_context.py`: Defines the context object passed to action handlers.
+
+This structure reflects the current codebase and recent refactors.
 
 ## Core Classes
 
