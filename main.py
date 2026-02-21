@@ -211,6 +211,7 @@ def main(args: argparse.Namespace | None = None):
         game.setup_world(data_path)
         ensure_direction_nouns()
 
+        print()
         hero_name = trs80_prompt("Enter hero name: ").strip() or "Hero"
         game.set_current_player(Player(hero_name))
         trs80_print(f"Welcome, {hero_name}.", style=TRS80_WHITE)
