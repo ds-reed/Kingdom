@@ -1,0 +1,107 @@
+**Grok provided source code decoder ring**
+
+# TRS-80 BASIC Text Adventure Cheat Sheet
+## Game Overview
+- Classic 1980s-style text adventure (prison/castle escape theme?)
+- Extremely lethal: wardens shoot (30% hit), darkness crashes, shrink → fall through cracks, random deaths
+- Multi-disk hinted (Disk 1 up to ~room 118?, Disk 2 via "CASDATA1")
+- Room data stored on disk (random-access file #1, records = room numbers)
+- Primitive two-word parser (verb + noun/object)
+- ~40 verbs via synonyms (GET=TAKE, etc.)
+- Inventory: max 10 items carried
+- Score exists but sparse increments (mainly eating fish)
+
+## Core Variables & Their Meanings
+
+### Location & Movement
+- N1          Current room number (1–118+ seen)
+- N2          Previous room number (used heavily for rope swing states)
+
+### Inventory & Items
+- NP(1..10)   Array of carried item numbers (0 = empty slot)
+              Shifts left on drop to pack array
+- C(1..?)     Global item location: C(item#) = room# where item is (0 = carried? or destroyed)
+- I9          Temp: item# being dropped (esp. on quit/death/clone)
+              Also used for special cases (dime=5, carrot=9, cake=12, etc.)
+
+### Flags & States
+- IT          Torch lit (1 = on, 0 = off) — tied to item #3 + lighter #6
+- I7          Light source present? (skips darkness when <>0)
+- I8          Keys used / doors unlocked (set=1 after keys on doors 1/2)
+- IL          Lamp rubbed / genie wish granted (1 = done)
+- ID          Drank liquid? (set=1 after drinking #11)
+- IS          Size state (-1 = shrunk to walnut → fall death unless in 39/40)
+- NL          Rope possessed? (alternative to checking NP for rope item)
+- BL          Bullets remaining (gun ammo counter)
+- TA          Warden/guard alert/active (1 = triggered, 0 = safe/reset after kill/swing)
+- T2          Darkness exposure turns (increments in dark rooms without light)
+- T4          Banana peel used (1 = warden can slip & die)
+
+### Room Data (A$(1) to A$(11) — 126-byte fields per room record)
+- A$(1)       Short desc or special state (modified by genie)
+- A$(2–6)     Dynamic exits (3-digit strings: "000"=none, "028"=room 28, etc.)
+              West often A$(5), North A$(2), etc.
+- A$(7)       Room score bonus (VAL() added after eating fish if <> "0")
+- A$(8)       Main state byte (char):
+                "0" = closed/locked
+                "1" = unlocked/killed guard/vending used
+                "2" = open/inserted/called
+                "3" = fully open/special
+- A$(9)       Guard health (incremented on clubbing → "1" = dead)
+- A$(10)      Guard/occupied flag ("1"=blocked, "D"=droppable?, "0"=clear)
+
+### Parsing & Lookup Strings
+- G$          Direction words for quick lookup (e.g. "NORTHSOUTHEASTWESTUPDOWN...")
+              → (INSTR(G$,verb)+4)/5 = direction index 1–10?
+- H$          Item name lookup string (5-char chunks)
+              → D1 = (INSTR(H$,LEFT$(verb,5))+4)/5 = item#
+- DN          Direction index (used as A$(DN) for exit lookup)
+
+### Scoring & Meta
+- SC          Player score (printed via SCORE verb)
+              Decreased by 20 on clone respawn after death
+- Clone mechanic (after death at 21700 → 35100):
+  - Ask to clone remains (-20 points)
+  - 30% fail chance → SC -=20 & game over
+  - Success → N1=1, continue
+
+## Important Items (from NP/C checks)
+1   Float/life preserver (pool escape)
+2   Keys
+3   Torch
+5   Dime (phone)
+6   Lighter
+7   Fish → score from A$(7)
+8   Newspaper
+9   Carrot → dramatic death, I9=9
+10  Book (Pig Latin; return in 15)
+11  Liquid → shrink (ID=1)
+12  Cake → shrink
+13  Mushroom → shrink
+14  Lamp → genie on rub (room 73)
+15  Quarter / Magic Purse (infinite coins when needed)
+16  Plum → pit = ruby (#17?)
+19  Banana peel (slip warden)
+
+## Key Puzzle & Lethal Mechanics
+- Pool (90): sink if no float (#1), drown if no light
+- Darkness (<7 or >87 without light): warden risk, crash into walls
+- Warden/guard: shoot (30% hit), club once to kill, banana slip
+- Rope swing: rooms 15, 88 (tie), 91 ↔ 118 (final escape to safety)
+- Shrink/grow: cake/mushroom/liquid → walnut size (IS=-1) → fall crack death (except 39/40)
+- Genie (73): any wish → adds west door (A$(5)="080") + connects room 72
+- Phone (20): insert dime → broken after call
+- Vending (59): insert quarter → plum (if A$(8)<"1")
+- SAVE: dumps state to record #34 (concat strings)
+- LOAD: parses record #34, restores everything
+- Disk 2: "CASDATA1", load record 34 after insert prompt
+
+## Lethal / Funny Responses
+- "NO WAY SUCKER!" (PLEASE)
+- "YOUR MOTHER TOLD YOU NOT TO PLAY WITH FIRE"
+- "THE CHEERY ORANGE CARROT SCREAMS..."
+- "IT SEEMS THAT THERE WEREN'T ENOUGH TO CLONE"
+- "THE PHONE BRINGS UP YOUR DIME WITH A MECHANICAL BELCH"
+
+Good luck with the Python port — sounds like a fun nostalgia/learning project!
+Feel free to ask for clarification on any mechanic or room inference when you hit a wall.

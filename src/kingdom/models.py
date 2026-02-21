@@ -435,7 +435,7 @@ def get_direction_nouns_for_available_exits(room: "Room | None") -> list[Directi
         return []
 
     nouns: list[DirectionNoun] = []
-    for direction in room.available_directions():
+    for direction in room.available_directions(visible_only=True):
         nouns.extend(_DIRECTION_NOUNS_BY_CANONICAL.get(str(direction).lower(), []))
     return nouns
 
@@ -783,6 +783,7 @@ class Room(Noun):
         self.items = []  # list[Item]
         self.boxes = []  # list[Box]
         self.connections = {}
+        self.hidden_directions = set()
         self.minigame = None
         Room.all_rooms.append(self)
 
@@ -810,20 +811,44 @@ class Room(Noun):
             Room.DIRECTIONS.append(direction)
         return direction
 
-    def connect_room(self, direction, room):
+    def connect_room(self, direction, room, visible=True):
         if not isinstance(room, Room):
             raise TypeError("connect_room expects a Room instance")
         registered_direction = self.add_direction(direction)
         self.connections[registered_direction] = room
+        if visible:
+            self.hidden_directions.discard(registered_direction)
+        else:
+            self.hidden_directions.add(registered_direction)
 
     def get_connection(self, direction):
         return self.connections.get(direction)
 
+    def is_exit_visible(self, direction):
+        canonical_direction = self.add_direction(direction)
+        if canonical_direction not in self.connections:
+            return False
+        return canonical_direction not in self.hidden_directions
+
+    def set_exit_visibility(self, direction, visible=True):
+        canonical_direction = self.add_direction(direction)
+        if canonical_direction not in self.connections:
+            return False
+
+        if visible:
+            self.hidden_directions.discard(canonical_direction)
+        else:
+            self.hidden_directions.add(canonical_direction)
+        return True
+
     def can_go(self, direction):
         return self.get_connection(direction) is not None
 
-    def available_directions(self):
-        return sorted(self.connections.keys())
+    def available_directions(self, visible_only=False):
+        directions = sorted(self.connections.keys())
+        if not visible_only:
+            return directions
+        return [direction for direction in directions if direction not in self.hidden_directions]
 
     def has_lit_light_source(self):
         for item in self.items:
@@ -862,7 +887,7 @@ class Room(Noun):
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
             f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, items={items_str}, "
-            f"boxes={boxes_str}, connections={connections_str})"
+            f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
 
@@ -956,6 +981,10 @@ class Game(Noun):
                     for direction, destination in room.connections.items()
                 },
             }
+
+            hidden_exits = [direction for direction in sorted(getattr(room, 'hidden_directions', set())) if direction in room.connections]
+            if hidden_exits:
+                room_payload['hidden_exits'] = hidden_exits
 
             if getattr(room, 'is_dark', False):
                 room_payload['is_dark'] = True
@@ -1055,29 +1084,40 @@ def _construct_rooms(data):
                 box.add_item(item_obj, announce=False)
             room.add_box(box)
 
-        pending_connections.append((room, entry.get("connections", {})))
+        pending_connections.append((room, entry.get("connections", {}), entry.get("hidden_exits", [])))
 
     room_by_name = {room.name: room for room in Room.all_rooms}
-    for room, raw_connections in pending_connections:
+    for room, raw_connections, hidden_exits in pending_connections:
         if isinstance(raw_connections, dict):
             iterable = raw_connections.items()
             for direction, destination_name in iterable:
-                destination_room = room_by_name.get(destination_name)
+                visible = True
+                target_name = destination_name
+                if isinstance(destination_name, dict):
+                    target_name = destination_name.get("room")
+                    visible = bool(destination_name.get("visible", True))
+                destination_room = room_by_name.get(target_name)
                 if destination_room is not None:
-                    room.connect_room(direction, destination_room)
+                    room.connect_room(direction, destination_room, visible=visible)
         elif isinstance(raw_connections, list):
             for connection in raw_connections:
                 if isinstance(connection, dict):
                     direction = connection.get("direction")
                     destination_name = connection.get("room")
+                    visible = bool(connection.get("visible", True))
                     if direction and destination_name:
                         destination_room = room_by_name.get(destination_name)
                         if destination_room is not None:
-                            room.connect_room(direction, destination_room)
+                            room.connect_room(direction, destination_room, visible=visible)
                 elif isinstance(connection, str):
                     destination_room = room_by_name.get(connection)
                     if destination_room is not None:
                         room.connect_room(connection, destination_room)
+
+        if isinstance(hidden_exits, list):
+            for direction in hidden_exits:
+                if isinstance(direction, str):
+                    room.set_exit_visibility(direction, visible=False)
 
     return Room.all_rooms
 

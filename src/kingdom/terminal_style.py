@@ -24,7 +24,7 @@ TRS80_WHITE = "\033[38;2;220;220;255m"  # subtle bluish tint
 SHOW_STATUS_BANNER = False
 TERMINAL_MODE_TRS80 = "trs80"
 TERMINAL_MODE_MODERN = "modern"
-ACTIVE_TERMINAL_MODE = TERMINAL_MODE_TRS80
+ACTIVE_TERMINAL_MODE = TERMINAL_MODE_MODERN
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
@@ -131,7 +131,7 @@ def trs80_clear_and_show_room(
         trs80_status_line(room_name, score, moves, light_on, hero_name=hero_name)
         print()
 
-    trs80_print(str(room_name).upper(), bold=True, style=TRS80_WHITE)
+    trs80_print(str(room_name), bold=True, style=TRS80_WHITE)
     for line in content_lines:
         trs80_print(line, style=TRS80_WHITE)
 

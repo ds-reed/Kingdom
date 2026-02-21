@@ -111,6 +111,11 @@ Game worlds are stored in JSON with a nested structure:
     {
       "name": "Entrance Hall",
       "description": "A grand hall...",
+      "connections": {
+        "north": "Great Gallery",
+        "down": "Secret Cellar"
+      },
+      "hidden_exits": ["down"],
       "items": ["Silver Goblet", "Ancient Tome"],
       "boxes": [
         {
@@ -123,12 +128,34 @@ Game worlds are stored in JSON with a nested structure:
 }
 ```
 
+`hidden_exits` is optional. Any direction listed there remains traversable by command but is omitted from visible exit listings (for example, `look` output).
+
 ## Usage
 
 Run the demo:
 
 ```bash
 python main.py
+```
+
+`python main.py` now defaults to modern terminal mode.
+
+Run in modern terminal mode:
+
+```bash
+python main.py --mode modern
+```
+
+Run in TRS80 mode:
+
+```bash
+python main.py --mode trs80
+```
+
+Or on Windows with Python Launcher:
+
+```bash
+py main.py --mode modern
 ```
 
 Or on Windows, double-click [run_kingdom.bat](run_kingdom.bat) to launch directly.
@@ -141,6 +168,25 @@ The demo will:
 3. Demonstrate the Verb system with example actions
 4. Save the state to `data/working_state.json`
 5. Reload and display the updated state
+
+Validate custom world JSON files before running:
+
+```bash
+python scripts/check_world_json.py data/initial_state.json
+python scripts/check_world_json.py data/initial_state.json data/working_state.json
+python scripts/check_world_json.py --strict data/my_world.json
+```
+
+On Windows, you can also run [run_state_check.bat](run_state_check.bat).
+- Double-click with no arguments to validate the default state files.
+- Or run from a terminal with custom paths, for example:
+
+```bat
+run_state_check.bat data\my_world.json
+```
+
+The checker verifies room-connection integrity, hidden-exit consistency, optional score sanity, and compatibility with the current loader.
+Use `--strict` to make warnings fail with a non-zero exit code (useful for CI checks).
 
 ## Requirements
 

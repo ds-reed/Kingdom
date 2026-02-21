@@ -1,50 +1,83 @@
 Kingdom TODO (Outstanding Only)
 ================================
 
-1) Lighting polish
-    [ ] Add extinguish verb for light sources (`extinguish torch`, `put out torch`)
-    [ ] Decide whether lit non-torch items in inventory should illuminate (currently: lit torch only)
-    [ ] Add clear feedback in `look`/status when room is illuminated by carried torch
 
-2) Verb/synonym safety
-    [ ] Add collision check so verb synonyms cannot silently shadow common nouns
-    [ ] Add quick startup warning/log entry for any verb/noun token conflicts
+1) Next session priority: Fix issues from testing
+    [ ] Cave was only giving short description so no mention of the pool after first entry 
+    [ ] Look should always show long description. (is this a general issue?)   
+    [ ] minor - room description for cave includes gold bar. Gold bar is a movable object
+    [ ] --mode modern should not use all caps
 
-3) Lamp/rub mini-feature
-    [ ] Add lamp item data and default "rub → shiny" state change
-    [ ] In one designated room, `rub lamp` should trigger Djinni appearance
-    [ ] Wire Djinni interaction as a small minigame hook
+2) Next session priority: Improve game play mechanics issues turned up in tests
+    [ ] important - some directions are hidden and should not be seen by "look" or room descriptions
+    [ ] The pool in the cave shouldn't be shown as an exit even though it is.
+    [ ] Paper bag should be carriable in inventory. Need to enhance box class
+    [ ] think about how to handle inferred nouns more generally. unlock the only unlockable for example
 
-4) Minigame integration
-    [ ] Standardize room/minigame initialization path
-    [ ] Define lightweight minigame contract (start, result, side effects)
-    [ ] Add one end-to-end sample minigame beyond placeholders
+3) Update document files
+    [ ] update project_structure.md to match current structure
+    [ ] update readme as needed
 
-5) Parser/UX improvements
-    [ ] Improve multi-word noun matching and ambiguity handling
-    [ ] Add command history / up-arrow recall
-    [ ] Keep TRS80 terminal-mode enhancements as optional future work (not core loop)
-
-6) Optional terminal enhancements (deferred)
-    [ ] Sticky status/banner line via ANSI cursor control
-    [ ] Live CAPS rewriting while typing in TRS80 mode
-
-7) Real content wiring (wait for canonical data file)
-    [ ] Replace temporary mechanics-test rooms/items with canonical world data
-    [ ] Re-map room/item IDs and noun aliases to final data-file naming
-    [ ] Re-validate trapdoor/lighting/Djinni/swim flows against canonical layout
-
-8) Gameplay guidance/scoring (deferred)
-    [ ] Add optional hint system hooks (data-driven, disabled by default)
-    [ ] Add scoring model and event hooks (treasures, deaths, milestones)
-    [ ] Add end-game summary output (score, major achievements, completion state)
-
-9) Next session priority: Wardens
+4) Next session priority: Wardens
     [ ] Design warden entities, patrol behavior, and room placement in canonical data
     [ ] Add warden interaction/encounter mechanics (detection, consequences, messaging)
     [ ] Validate warden flow against existing movement, dark-room, and death/recovery systems
 
-10) After wardens: repository update
-    [ ] Review changed files and clean temporary/testing-only artifacts
-    [ ] Update docs/changelog notes for new mechanics
-    [ ] Commit and push to `master`
+5) Lighting polish
+    [ ] Add extinguish verb for light sources (`extinguish torch`, `put out torch`)
+    [ ] Decide whether lit non-torch items in inventory should illuminate (currently: lit torch only)
+    [ ] Add clear feedback in `look`/status when room is illuminated by carried torch
+
+6) Minigame integration
+    [ ] Standardize room/minigame initialization path
+    [ ] Define lightweight minigame contract (start, result, side effects)
+    [ ] Add one end-to-end sample minigame beyond placeholders
+
+7) Parser/UX improvements
+    [ ] Improve multi-word noun matching and ambiguity handling
+    [ ] Add command history / up-arrow recall
+    [ ] Keep TRS80 terminal-mode enhancements as optional future work (not core loop)
+
+8) Optional terminal enhancements (deferred)
+    [ ] Sticky status/banner line via ANSI cursor control
+    [ ] Live CAPS rewriting while typing in TRS80 mode
+
+9) Real content wiring (wait for canonical data file)
+    [ ] Replace temporary mechanics-test rooms/items with canonical world data
+    [ ] Re-map room/item IDs and noun aliases to final data-file naming
+    [ ] Re-validate trapdoor/lighting/Djinni/swim flows against canonical layout
+
+10) Gameplay guidance/scoring (deferred)
+    [ ] Add optional hint system hooks (data-driven, disabled by default)
+    [ ] Add scoring model and event hooks (treasures, deaths, milestones)
+    [ ] Add end-game summary output (score, major achievements, completion state)
+
+11) Verb/synonym safety (deferred)
+    [ ] Add collision check so verb synonyms cannot silently shadow common nouns
+    [ ] Add quick startup warning/log entry for any verb/noun token conflicts
+
+12) Tomorrow design session: container-capable items (bag/revolver)
+    [ ] Decide architecture: shared container capability for Item + Box (preferred) vs making Box a direct Item subclass
+    [ ] Define MVP behavior for carriable containers (paper bag in inventory; open/close; put/take from carried container)
+    [ ] Define revolver model as a container-like item with capacity 6 and action hooks (load/unload/fire integration later)
+    [ ] Plan migration path that preserves current JSON and game behavior while adding new capabilities incrementally
+    [ ] Keep `unlock` as compatibility verb while evolving `insert`/`turn` into object-specific behavior
+
+13) Legacy verb implementation notes captured (2026-02-20)
+    [ ] throw: inventory item throw with optional target (`throw item`, `throw item at target`); default no-effect messaging + target hooks
+    [ ] read: readable objects (`read_text`, optional one-time clue text) for books/signs/notes
+    [ ] kick: flavor action with optional breakable interaction; can reuse `is_broken` behavior
+    [ ] knock: ambient "knock on" support now; future "knock out" routed through warden/combat system
+    [ ] shoot: revolver-based action with ammo checks; allow `shoot` (in air) and `shoot target`
+    [ ] turn: generic rotational puzzle verb (victrola crank now, turn-key flow later)
+    [ ] push/press: button/switch interactions with toggle/trigger hooks
+    [ ] dial: retro phone interactions with number map (`dial number`) and fallback/busy messaging
+    [ ] break/smash: breakable-object support with reveal/effect hooks
+    [ ] drink + upgraded eat: add hero size state and size-gated room/exit behavior
+    [ ] drag: move heavy/draggable entities (ex: warden body), later with directional drag and consequences
+    [ ] kill: warden-focused hostile action with target-specific outcomes and penalties
+    [ ] swing: traversal verb like swim (rope/chasm), can use hidden exit pathing
+    [ ] untie/tie: rope state transitions controlling traversal and puzzle state
+
+14) Long-term tooling (deferred)
+    [ ] Build a world editor program for creating/editing/validating Kingdom world JSON files

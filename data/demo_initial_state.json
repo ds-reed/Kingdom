@@ -1,4 +1,5 @@
 {
+  "score": 0,
   "boxes": [
     {
       "box_name": "Royal Vault",
@@ -134,8 +135,7 @@
       "boxes": [],
       "connections": {
         "north": "Entrance Hall",
-        "east": "Kitchen",
-        "south": "Dining Chamber"
+        "east": "Kitchen"
       }
     },
     {

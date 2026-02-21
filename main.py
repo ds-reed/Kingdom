@@ -159,8 +159,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         choices=[TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN],
-        default=TERMINAL_MODE_TRS80,
-        help="Terminal presentation mode (default: trs80)",
+        default=TERMINAL_MODE_MODERN,
+        help="Terminal presentation mode (default: modern)",
     )
     return parser.parse_args()
 

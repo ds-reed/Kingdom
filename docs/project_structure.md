@@ -1,14 +1,24 @@
-toy_kingdom/
-├── pyproject.toml       # Defines the project and its "root"
-├── main.py              # Your entry point (The "Game Engine")
-├── src/
-│   └── kingdom/         # Your "Package" name
-│       ├── __init__.py  # (Empty file)
-│       └── models.py    # Your Box, Toy, and Robber classes
+Kingdom/
+├── pyproject.toml              # Project metadata
+├── main.py                     # Main game loop + CLI args (`--mode`)
+├── demo.py                     # Demo runner / sample flow
+├── run_kingdom.bat             # Windows launcher
 ├── data/
-│   └── setup.json       # Your initial world state
+│   ├── initial_state.json      # Seed world state
+│   ├── working_state.json      # Active save state
+│   └── *.sav / *.bak.*         # Local saves and backups
 ├── docs/
-│   └── logic.md         # Your notes
-└── tests/
-    └── test_models.py   # Your asserts
+│   ├── project_structure.md    # This file
+│   └── todo.txt                # Outstanding task list
+├── logs/                       # Session logs
+├── scripts/                    # Backup and pre-edit utility scripts
+└── src/
+    └── kingdom/
+        ├── __init__.py
+        ├── actions.py          # Command handlers and game-loop actions
+        ├── item_behaviors.py   # Item-specific behavior helpers
+        ├── models.py           # Core world/domain models
+        ├── parser.py           # Command parsing + noun/verb resolution
+        ├── terminal_style.py   # TRS80/modern terminal presentation
+        └── utilities.py        # Shared helpers (logging, utilities)
 

@@ -29,14 +29,9 @@ LegacyVerbSpec: TypeAlias = tuple[str, tuple[str, ...]]
 LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
     ("throw", ()),
     ("read", ()),
-    ("open", ()),
     ("kick", ()),
     ("knock", ()),
-    ("insert", ()),
     ("shoot", ()),
-    ("climb", ()),
-    ("unlock", ()),
-    ("close", ()),
     ("turn", ()),
     ("wash", ()),
     ("push", ("press",)),
@@ -318,7 +313,7 @@ def climb_action(state: GameActionState, *target_words: str, target: object | No
         direction = normalize_direction_token(target_words[0])
 
     if direction is None:
-        vertical_exits = [d for d in state.current_room.available_directions() if d in {"up", "down"}]
+        vertical_exits = [d for d in state.current_room.available_directions(visible_only=True) if d in {"up", "down"}]
         if len(vertical_exits) == 1:
             return go_action(state, vertical_exits[0])
         if not vertical_exits:
@@ -335,6 +330,15 @@ def swim_action(state: GameActionState, game: Game, *target_words: str, target: 
     if state.current_room is None:
         return "There is nowhere to swim."
 
+    requested_direction: str | None = None
+    if target is not None:
+        requested_direction = getattr(target, "canonical_direction", None)
+        if requested_direction is None and hasattr(target, "get_noun_name"):
+            requested_direction = normalize_direction_token(target.get_noun_name())
+
+    if requested_direction is None and target_words:
+        requested_direction = normalize_direction_token(target_words[0])
+
     player = game.current_player
     if player is None:
         return "No hero is active yet."
@@ -347,7 +351,15 @@ def swim_action(state: GameActionState, game: Game, *target_words: str, target: 
 
     destination_name = getattr(state.current_room, "swim_destination", None)
     if not destination_name:
-        return "There is nowhere to swim across."
+        if requested_direction is None:
+            return "There is nowhere to swim across."
+
+        if state.current_room.get_connection(requested_direction) is None:
+            return f"You can't go {requested_direction} from here."
+        return go_action(state, requested_direction)
+
+    if requested_direction is not None and state.current_room.get_connection(requested_direction) is None:
+        return f"You can't go {requested_direction} from here."
 
     destination_room = _resolve_room_by_name(game, destination_name)
     if destination_room is None:
@@ -378,9 +390,9 @@ def exit_action(
         if state.current_room is None:
             return "There is nowhere to exit from."
 
-        exits = state.current_room.available_directions()
+        exits = state.current_room.available_directions(visible_only=True)
         if not exits:
-            return "There are no exits from here."
+            return "There are no visible exits from here."
         if len(exits) == 1:
             return go_action(state, exits[0])
 
@@ -408,14 +420,15 @@ def exit_action(
 
 def _describe_room(room: Room) -> str:
     if _is_dark_room(room):
-        return f"You examine {room.name} carefully. {_dark_room_message(room)}"
+        return _dark_room_message(room)
 
-    exits = room.available_directions()
+    exits = room.available_directions(visible_only=True)
     visible_text = [obj.get_presence_text() for obj in [*room.items, *room.boxes]]
     exits_text = _build_visible_exits_text(exits)
+    long_description = room.description.strip() if room.description else room.name
     if visible_text:
-        return f"You examine {room.name} carefully. {' '.join(visible_text)} {exits_text}"
-    return f"You examine {room.name} carefully. {exits_text}"
+        return f"{long_description} {' '.join(visible_text)} {exits_text}"
+    return f"{long_description} {exits_text}"
 
 
 def examine_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
@@ -700,9 +713,10 @@ def reveal_exit(room: Room, direction: str, destination: Room) -> bool:
     canonical_direction = normalize_direction_token(direction)
     existing = room.get_connection(canonical_direction)
     if existing is destination:
-        return False
+        changed = room.set_exit_visibility(canonical_direction, visible=True)
+        return bool(changed)
 
-    room.connect_room(canonical_direction, destination)
+    room.connect_room(canonical_direction, destination, visible=True)
     return True
 
 
@@ -714,8 +728,7 @@ def hide_exit(room: Room, direction: str) -> bool:
     if room.get_connection(canonical_direction) is None:
         return False
 
-    room.connections.pop(canonical_direction, None)
-    return True
+    return bool(room.set_exit_visibility(canonical_direction, visible=False))
 
 
 def build_dispatch_context(state: GameActionState, game: Game) -> dict:
@@ -1001,6 +1014,10 @@ def unlock_action(*target_words: str, target: object | None = None, dispatch_con
     return f"You unlock the {target_name}."
 
 
+def insert_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    return unlock_action(*target_words, target=target, dispatch_context=dispatch_context)
+
+
 def open_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
     return _toggle_open_state(target, desired_open=True, dispatch_context=dispatch_context)
 
@@ -1089,6 +1106,7 @@ def _build_core_verbs(
     say_verb = Verb("say", lambda *words, target=None, dispatch_context=None: say_action(*words, target=target, dispatch_context=dispatch_context))
     make_verb = Verb("make", lambda *words, target=None, dispatch_context=None: make_action(*words, target=target, dispatch_context=dispatch_context))
     light_verb = Verb("light", lambda *words, target=None, dispatch_context=None: light_action(*words, target=target, dispatch_context=dispatch_context))
+    insert_verb = Verb("insert", lambda *words, target=None, dispatch_context=None: insert_action(*words, target=target, dispatch_context=dispatch_context))
     open_verb = Verb("open", lambda *words, target=None, dispatch_context=None: open_action(*words, target=target, dispatch_context=dispatch_context))
     close_verb = Verb("close", lambda *words, target=None, dispatch_context=None: close_action(*words, target=target, dispatch_context=dispatch_context))
     unlock_verb = Verb("unlock", lambda *words, target=None, dispatch_context=None: unlock_action(*words, target=target, dispatch_context=dispatch_context))
@@ -1113,6 +1131,7 @@ def _build_core_verbs(
         say_verb,
         make_verb,
         light_verb,
+        insert_verb,
         open_verb,
         close_verb,
         unlock_verb,
