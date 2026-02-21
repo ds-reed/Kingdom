@@ -7,6 +7,7 @@ See demo.py for gameplay examples.
 from pathlib import Path
 import argparse
 import os
+import random
 import subprocess
 import sys
 sys.path.append("./src")
@@ -16,6 +17,7 @@ from kingdom.actions import (
     build_dispatch_context,
     GameActionState,
     build_verbs,
+    GameOver,
     QuitGame,
     render_current_room,
 )
@@ -163,6 +165,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _ensure_score(game: Game) -> None:
+    if not hasattr(game, "score"):
+        game.score = 0
+
+
+def _apply_death_score_penalty(game: Game, penalty: int = 20) -> None:
+    _ensure_score(game)
+    try:
+        game.score = max(0, int(game.score) - int(penalty))
+    except (TypeError, ValueError):
+        game.score = 0
+
+
 def main(args: argparse.Namespace | None = None):
     """Run a minimal verb-based load/save flow with input loop."""
     if args is None:
@@ -180,6 +195,7 @@ def main(args: argparse.Namespace | None = None):
         trs80_print("Welcome to Kingdom.", style=TRS80_WHITE, bold=True)
 
         game = Game.get_instance()
+        _ensure_score(game)
 
         game.setup_world(data_path)
         ensure_direction_nouns()
@@ -209,6 +225,8 @@ def main(args: argparse.Namespace | None = None):
             confirm_action=confirm_action,
             prompt_action=trs80_prompt,
         )
+        recovery_mode = False
+        recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "verbs", "help", "commands"}
 
         while True:
             command = trs80_prompt("Enter command: ")
@@ -232,6 +250,10 @@ def main(args: argparse.Namespace | None = None):
             args = resolved_command.args
             target_noun = _resolve_target_noun(game, action_state, resolved_command)
 
+            if recovery_mode and verb_word not in recovery_allowed_verbs:
+                trs80_print("You are dead. Load a saved game or quit.", style=TRS80_WHITE)
+                continue
+
             verb = verbs.get(verb_word)
             if verb is None:
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
@@ -246,9 +268,37 @@ def main(args: argparse.Namespace | None = None):
             except QuitGame:
                 trs80_print("Goodbye!", style=TRS80_WHITE)
                 break
+            except GameOver as game_over:
+                trs80_print(str(game_over), style=TRS80_WHITE)
+                trs80_print("It seems that you ran into a little trouble, didn't you?", style=TRS80_WHITE)
+                trs80_print("Well there is help. I could try to clone the remains but it will cost you points.", style=TRS80_WHITE)
+                attempt_clone = trs80_prompt("Shall I try? (y/n): ").strip().lower() in {"y", "yes"}
+
+                if not attempt_clone:
+                    trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
+                    recovery_mode = True
+                    continue
+
+                _apply_death_score_penalty(game, penalty=20)
+                if random.randint(1, 10) > 7:
+                    trs80_print("It seems that there wasn't enough to clone, but it was a good try.", style=TRS80_WHITE)
+                    trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
+                    recovery_mode = True
+                    continue
+
+                trs80_print("Well I'll be darned, it worked!!", style=TRS80_WHITE)
+                action_state.current_room = game.rooms[0] if game.rooms else None
+                if action_state.current_room is not None:
+                    render_current_room(action_state, clear=False)
+                    print()
+                recovery_mode = False
+                continue
             except TypeError:
                 trs80_print("That command needs more information.", style=TRS80_WHITE)
                 continue
+
+            if recovery_mode and verb_word in {"load", "restore"} and isinstance(result, str) and result.startswith("Game loaded from"):
+                recovery_mode = False
 
             if result:
                 trs80_print(result, style=TRS80_WHITE)

@@ -87,6 +87,30 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "eat_missing_string", None):
         payload["eat_missing_string"] = item.eat_missing_string
 
+    if getattr(item, "rubbable", False):
+        payload["rubbable"] = True
+
+    if getattr(item, "rubbed_name", None):
+        payload["rubbed_name"] = item.rubbed_name
+
+    if getattr(item, "rubbed_presence_string", None):
+        payload["rubbed_presence_string"] = item.rubbed_presence_string
+
+    if getattr(item, "rub_success_string", None):
+        payload["rub_success_string"] = item.rub_success_string
+
+    if getattr(item, "rub_repeat_string", None):
+        payload["rub_repeat_string"] = item.rub_repeat_string
+
+    if getattr(item, "rub_trigger_room", None):
+        payload["rub_trigger_room"] = item.rub_trigger_room
+
+    if getattr(item, "rub_minigame_tease", None):
+        payload["rub_minigame_tease"] = item.rub_minigame_tease
+
+    if getattr(item, "too_heavy_to_swim", False):
+        payload["too_heavy_to_swim"] = True
+
     behavior_ids = getattr(item, "explicit_behavior_ids", None)
     if behavior_ids:
         payload["behaviors"] = list(behavior_ids)
@@ -162,6 +186,14 @@ def _construct_item_from_spec(item_spec) -> "Item":
         edible=item_spec.get("edible", False),
         light_source=item_spec.get("light_source", False),
         is_lit=item_spec.get("is_lit", False),
+        rubbable=item_spec.get("rubbable", False),
+        rubbed_name=item_spec.get("rubbed_name"),
+        rubbed_presence_string=item_spec.get("rubbed_presence_string"),
+        rub_success_string=item_spec.get("rub_success_string"),
+        rub_repeat_string=item_spec.get("rub_repeat_string"),
+        rub_trigger_room=item_spec.get("rub_trigger_room"),
+        rub_minigame_tease=item_spec.get("rub_minigame_tease"),
+        too_heavy_to_swim=item_spec.get("too_heavy_to_swim", False),
         eat_refuse_string=item_spec.get("eat_refuse_string"),
         eat_success_string=item_spec.get("eat_success_string"),
         eat_missing_string=item_spec.get("eat_missing_string"),
@@ -431,6 +463,14 @@ class Item(Noun):
         edible=False,
         light_source=False,
         is_lit=False,
+        rubbable=False,
+        rubbed_name=None,
+        rubbed_presence_string=None,
+        rub_success_string=None,
+        rub_repeat_string=None,
+        rub_trigger_room=None,
+        rub_minigame_tease=None,
+        too_heavy_to_swim=False,
         eat_refuse_string=None,
         eat_success_string=None,
         eat_missing_string=None,
@@ -477,6 +517,14 @@ class Item(Noun):
         self.edible = bool(edible)
         self.light_source = bool(light_source)
         self.is_lit = bool(is_lit)
+        self.rubbable = bool(rubbable)
+        self.rubbed_name = str(rubbed_name).strip() if rubbed_name is not None and str(rubbed_name).strip() else None
+        self.rubbed_presence_string = rubbed_presence_string
+        self.rub_success_string = rub_success_string
+        self.rub_repeat_string = rub_repeat_string
+        self.rub_trigger_room = str(rub_trigger_room).strip() if rub_trigger_room is not None and str(rub_trigger_room).strip() else None
+        self.rub_minigame_tease = rub_minigame_tease
+        self.too_heavy_to_swim = bool(too_heavy_to_swim)
         self.eat_refuse_string = eat_refuse_string
         self.eat_success_string = eat_success_string
         self.eat_missing_string = eat_missing_string
@@ -535,9 +583,6 @@ class Item(Noun):
         return super().can_handle_verb(verb_name, *args, **kwargs)
 
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
-        if verb_name != "eat":
-            return super().handle_verb(verb_name, *args, **kwargs)
-
         dispatch_context = kwargs.get("dispatch_context")
 
         for handler in self.behavior_handlers:
@@ -722,13 +767,19 @@ class Room(Noun):
     all_rooms = []  # Class variable to track every room created
     DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
-    def __init__(self, name, description, visited=False, is_dark=False, dark_description=None):
+    def __init__(self, name, description, visited=False, is_dark=False, dark_description=None, swim_destination=None, discover_points=10):
         super().__init__()
         self.name = name
         self.description = description
         self.visited = bool(visited)
         self.is_dark = bool(is_dark)
         self.dark_description = dark_description or "It is too dark to see anything."
+        self.swim_destination = str(swim_destination).strip() if swim_destination is not None and str(swim_destination).strip() else None
+        try:
+            parsed_points = int(discover_points)
+        except (TypeError, ValueError):
+            parsed_points = 10
+        self.discover_points = max(0, parsed_points)
         self.items = []  # list[Item]
         self.boxes = []  # list[Box]
         self.connections = {}
@@ -829,6 +880,7 @@ class Game(Noun):
         self.boxes = []
         self.rooms = []
         self.current_player = None
+        self.score = 0
         Game._instance = self
     
     @classmethod
@@ -859,9 +911,16 @@ class Game(Noun):
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))
             rooms = _construct_rooms(data.get('rooms', []))
+            score_value = data.get('score', 0)
         else:
             boxes = _construct_boxes(data)
             rooms = []
+            score_value = 0
+
+        try:
+            self.score = max(0, int(score_value))
+        except (TypeError, ValueError):
+            self.score = 0
 
         self.set_world(boxes, rooms)
         return boxes, rooms
@@ -877,6 +936,7 @@ class Game(Noun):
             raise RuntimeError("Refusing to overwrite initial_state.json")
 
         payload = {
+            'score': int(getattr(self, 'score', 0)),
             'boxes': [],
             'rooms': []
         }
@@ -902,6 +962,9 @@ class Game(Noun):
             dark_description = getattr(room, 'dark_description', None)
             if dark_description and dark_description != "It is too dark to see anything.":
                 room_payload['dark_description'] = dark_description
+            if getattr(room, 'swim_destination', None):
+                room_payload['swim_destination'] = room.swim_destination
+            room_payload['discover_points'] = int(getattr(room, 'discover_points', 10))
 
             for box in room.boxes:
                 room_payload['boxes'].append(_serialize_box(box))
@@ -967,6 +1030,8 @@ def _construct_rooms(data):
             visited=entry.get("visited", False),
             is_dark=entry.get("is_dark", False),
             dark_description=entry.get("dark_description"),
+            swim_destination=entry.get("swim_destination"),
+            discover_points=entry.get("discover_points", 10),
         )
         # Add items to the room
         for item_spec in entry.get("items", []):

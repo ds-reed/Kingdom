@@ -4,6 +4,7 @@
         {
             "name": "Tower Cell",
             "description": "A cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "discover_points": 0,
             "items": [
                 {
                     "name": "an old wooden torch",
@@ -52,6 +53,16 @@
                             "noun_name": "key"
                         },
                         {
+                            "name": "a battered and dull brass lamp",
+                            "noun_name": "lamp",
+                            "rubbable": true,
+                            "rubbed_name": "a battered but shiny brass lamp",
+                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rub_repeat_string": "The lamp is already gleaming.",
+                            "rub_trigger_room": "Blank Chamber",
+                            "rub_minigame_tease": "The air fills with smoke. After it clears you cannot believe your eyes: a Genie has appeared before your very eyes. He mutters some words, 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly. This means (in magic Arabic), 'I will grant you one wish.'"
+                        },
+                        {
                             "name": "a cheap plastic lighter",
                             "noun_name": "lighter"
                         }
@@ -65,11 +76,12 @@
         {
             "name": "Blank Chamber",
             "description": "An oddly blank room with smooth stone walls. There is nothing here.",
+            "discover_points": 10,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
             "items": [
                 {
-                    "name": "a lit brass lantern",
+                    "name": "a lit silver lantern",
                     "noun_name": "lantern",
                     "light_source": true,
                     "is_lit": true
@@ -79,8 +91,35 @@
             "connections": {}
         },
         {
+            "name": "Colossal Cave",
+            "description": "A colossal cave opens before you, its jewel-studded walls shimmering in your torch light. A large crystal blue pool lies in the middle, and a massive gold bar rests near the water.",
+            "discover_points": 10,
+            "swim_destination": "Pool Ledge",
+            "items": [
+                {
+                    "name": "a large gold bar",
+                    "noun_name": "bar",
+                    "too_heavy_to_swim": true
+                }
+            ],
+            "boxes": [],
+            "connections": {
+                "east": "Blank Chamber"
+            }
+        },
+        {
+            "name": "Pool Ledge",
+            "description": "You stand on a narrow ledge across the pool.",
+            "discover_points": 10,
+            "swim_destination": "Colossal Cave",
+            "items": [],
+            "boxes": [],
+            "connections": {}
+        },
+        {
             "name": "Demo Landing",
             "description": "You emerge into Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
+            "discover_points": 10,
             "items": [
                 {
                     "name": "a bright red apple",
@@ -99,6 +138,7 @@
         {
             "name": "Whispering Grove",
             "description": "Tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
+            "discover_points": 10,
             "items": [],
             "boxes": [],
             "connections": {
@@ -109,6 +149,7 @@
         {
             "name": "Mirror Hall",
             "description": "A long hall of black glass reflects scenes that do not quite match your movements.",
+            "discover_points": 10,
             "items": [],
             "boxes": [],
             "connections": {
@@ -119,6 +160,7 @@
         {
             "name": "Clockwork Court",
             "description": "Bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
+            "discover_points": 10,
             "items": [],
             "boxes": [],
             "connections": {
@@ -129,6 +171,7 @@
         {
             "name": "Lantern Overlook",
             "description": "Hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
+            "discover_points": 10,
             "items": [],
             "boxes": [],
             "connections": {

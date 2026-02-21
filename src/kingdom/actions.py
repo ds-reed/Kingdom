@@ -18,6 +18,10 @@ class QuitGame(Exception):
     pass
 
 
+class GameOver(Exception):
+    pass
+
+
 ConfirmAction = Callable[[str], bool]
 PromptAction = Callable[[str], str]
 LegacyVerbSpec: TypeAlias = tuple[str, tuple[str, ...]]
@@ -34,14 +38,11 @@ LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
     ("unlock", ()),
     ("close", ()),
     ("turn", ()),
-    ("score", ()),
     ("wash", ()),
-    ("swim", ()),
     ("push", ("press",)),
     ("dial", ()),
     ("break", ("smash",)),
     ("drink", ()),
-    ("rub", ()),
     ("drag", ()),
     ("kill", ()),
     ("swing", ()),
@@ -104,6 +105,7 @@ def load_action(
     game: Game,
     default_save_path: Path,
     prompt_action: PromptAction | None,
+    state: GameActionState | None = None,
     *target_words: str,
     target: object | None = None,
 ) -> str:
@@ -113,6 +115,13 @@ def load_action(
     load_path = _prompt_for_path(prompt_action, "Load", default_save_path)
 
     game.load_world(load_path)
+
+    if state is not None:
+        state.current_room = game.rooms[0] if game.rooms else None
+        if state.current_room is not None:
+            render_current_room(state, clear=False)
+            print()
+
     return f"Game loaded from {load_path}"
 
 
@@ -240,6 +249,22 @@ def render_current_room(state: GameActionState, clear: bool = True) -> None:
     if room is None:
         return
 
+    if not bool(getattr(room, "visited", False)):
+        game = Game.get_instance()
+        current_score = getattr(game, "score", 0)
+        try:
+            current_score = int(current_score)
+        except (TypeError, ValueError):
+            current_score = 0
+
+        room_points = getattr(room, "discover_points", 10)
+        try:
+            room_points = int(room_points)
+        except (TypeError, ValueError):
+            room_points = 10
+
+        game.score = max(0, current_score + room_points)
+
     lines = _room_display_lines(room)
     trs80_clear_and_show_room(room.name, lines, hero_name=state.hero_name, clear=clear)
     room.visited = True
@@ -304,6 +329,35 @@ def climb_action(state: GameActionState, *target_words: str, target: object | No
         return "You can only climb up or down."
 
     return go_action(state, direction)
+
+
+def swim_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
+    if state.current_room is None:
+        return "There is nowhere to swim."
+
+    player = game.current_player
+    if player is None:
+        return "No hero is active yet."
+
+    heavy_item = next((item for item in player.sack.contents if getattr(item, "too_heavy_to_swim", False)), None)
+    if heavy_item is not None:
+        raise GameOver(
+            "The gold bar drags you under as you try to swim. You drown. GAME OVER."
+        )
+
+    destination_name = getattr(state.current_room, "swim_destination", None)
+    if not destination_name:
+        return "There is nowhere to swim across."
+
+    destination_room = _resolve_room_by_name(game, destination_name)
+    if destination_room is None:
+        return "There is nowhere to swim across."
+
+    state.current_room = destination_room
+    trs80_print("You swim across.", style=TRS80_WHITE)
+    render_current_room(state, clear=False)
+    print()
+    return ""
 
 
 def exit_action(
@@ -446,6 +500,16 @@ def inventory_action(game: Game) -> str:
 
     item_label = "item" if len(sack_items) == 1 else "items"
     return f"{player.name}'s sack contains ({len(sack_items)} {item_label}): {', '.join(sack_items)}"
+
+
+def score_action(game: Game) -> str:
+    score_value = getattr(game, "score", 0)
+    try:
+        normalized_score = int(score_value)
+    except (TypeError, ValueError):
+        normalized_score = 0
+    game.score = normalized_score
+    return f"Your score is {normalized_score}."
 
 
 def take_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
@@ -796,6 +860,125 @@ def light_action(*target_words: str, target: object | None = None, dispatch_cont
     return f"You light the {target_name}."
 
 
+def rub_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if target is None:
+        return "Rub what?"
+
+    if not isinstance(target, Item):
+        return "You can't rub that."
+
+    if not getattr(target, "rubbable", False):
+        return "You can't rub that."
+
+    target_name = target.get_noun_name()
+    transformed_name = getattr(target, "rubbed_name", None)
+    if transformed_name and target.name == transformed_name:
+        message = getattr(target, "rub_repeat_string", None) or f"The {target_name} is already shiny."
+    else:
+        if transformed_name:
+            target.name = transformed_name
+
+        transformed_presence = getattr(target, "rubbed_presence_string", None)
+        if transformed_presence is not None:
+            target.presence_string = transformed_presence
+
+        message = getattr(target, "rub_success_string", None) or f"You rub the {target_name}."
+
+    state = (dispatch_context or {}).get("state") if dispatch_context else None
+    current_room = getattr(state, "current_room", None)
+    trigger_room = getattr(target, "rub_trigger_room", None)
+
+    if current_room is not None and trigger_room and current_room.name == trigger_room:
+        djinni_present = any(getattr(item, "noun_name", None) == "djinni" for item in current_room.items)
+        if not djinni_present:
+            djinni_item = Item(
+                "a helpful Djinni",
+                pickupable=False,
+                noun_name="djinni",
+                presence_string="A helpful Djinni materializes in a swirl of sweet smoke.",
+            )
+            djinni_item.wish_exit_direction = "west"
+            djinni_item.wish_exit_destination = "Colossal Cave"
+            current_room.items.append(djinni_item)
+            tease = getattr(target, "rub_minigame_tease", None) or "The Djinni smiles and offers a small challenge."
+            return f"{message} {tease}"
+
+    return message
+
+
+def _find_room_djinni(dispatch_context: dict | None) -> tuple[Room | None, Item | None, Game | None]:
+    state = (dispatch_context or {}).get("state") if dispatch_context else None
+    game = (dispatch_context or {}).get("game") if dispatch_context else None
+    room = getattr(state, "current_room", None)
+    if room is None:
+        return None, None, game
+
+    for item in room.items:
+        if getattr(item, "noun_name", None) == "djinni":
+            return room, item, game
+
+    return room, None, game
+
+
+def _trigger_djinni_wish(dispatch_context: dict | None) -> str | None:
+    room, djinni, game = _find_room_djinni(dispatch_context)
+    if room is None or djinni is None:
+        return None
+
+    destination_name = getattr(djinni, "wish_exit_destination", None) or "Demo Landing"
+    destination_room = _resolve_room_by_name(game, destination_name)
+    direction = getattr(djinni, "wish_exit_direction", None) or "west"
+
+    reveal = (dispatch_context or {}).get("reveal_exit") if dispatch_context else None
+    if callable(reveal) and destination_room is not None:
+        reveal(room, direction, destination_room)
+
+    if djinni in room.items:
+        room.items.remove(djinni)
+
+    return (
+        "The Genie seems puzzled by your exotic language. Genies aren't omniscient, just omnipotent! "
+        "But seeing that you are at a dead end and wanting to be helpful, he places a doorway in the west wall and disappears."
+    )
+
+
+def make_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if not target_words:
+        return "Make what?"
+
+    if normalize_direction_token(target_words[0]) != "wish" and target_words[0].strip().lower() != "wish":
+        return "Make what?"
+
+    wish_result = _trigger_djinni_wish(dispatch_context)
+    if wish_result is not None:
+        return wish_result
+
+    return "Nothing happens."
+
+
+def say_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if not target_words:
+        return "Say what?"
+
+    wish_result = _trigger_djinni_wish(dispatch_context)
+    if wish_result is not None:
+        return wish_result
+
+    return f"You say, '{' '.join(target_words)}.'"
+
+
+def talk_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if target is None:
+        return "Talk to whom?"
+    return "They don't seem interested in talking."
+
+
+def ask_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if target is None:
+        return "Ask whom?"
+    return "They have no answer for you."
+
+
 def unlock_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
     if target is None:
         return "Unlock what?"
@@ -877,7 +1060,7 @@ def _build_core_verbs(
             return "You can't load that."
         if not _confirm("Load game?", confirm_action):
             return "Load cancelled."
-        return load_action(game, player_default_save_path, prompt_action, *words, target=target)
+        return load_action(game, player_default_save_path, prompt_action, state, *words, target=target)
 
     quit_verb = Verb("quit", confirmed_quit_action, synonyms=["q"])
     exit_verb = Verb(
@@ -890,14 +1073,21 @@ def _build_core_verbs(
         lambda direction: go_action(state, direction),
         synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"],
     )
+    swim_verb = Verb("swim", lambda *words, target=None: swim_action(state, game, *words, target=target))
     climb_verb = Verb("climb", lambda *words, target=None: climb_action(state, *words, target=target))
     save_verb = Verb("save", confirmed_save_action, synonyms=["write"])
     load_verb = Verb("load", confirmed_load_action, synonyms=["restore"])
     examine_verb = Verb("examine", lambda *words, target=None: examine_action(state, *words, target=target), synonyms=["inspect", "look"])
     inventory_verb = Verb("inventory", lambda: inventory_action(game), synonyms=["inven"])
+    score_verb = Verb("score", lambda: score_action(game))
     take_verb = Verb("take", lambda *words, target=None: take_action(state, game, *words, target=target), synonyms=["get"])
     drop_verb = Verb("drop", lambda *words, target=None: drop_action(state, game, *words, target=target))
     eat_verb = Verb("eat", lambda *words, target=None: eat_action(*words, target=target))
+    rub_verb = Verb("rub", lambda *words, target=None, dispatch_context=None: rub_action(*words, target=target, dispatch_context=dispatch_context))
+    talk_verb = Verb("talk", lambda *words, target=None, dispatch_context=None: talk_action(*words, target=target, dispatch_context=dispatch_context), synonyms=["speak"])
+    ask_verb = Verb("ask", lambda *words, target=None, dispatch_context=None: ask_action(*words, target=target, dispatch_context=dispatch_context), synonyms=["question"])
+    say_verb = Verb("say", lambda *words, target=None, dispatch_context=None: say_action(*words, target=target, dispatch_context=dispatch_context))
+    make_verb = Verb("make", lambda *words, target=None, dispatch_context=None: make_action(*words, target=target, dispatch_context=dispatch_context))
     light_verb = Verb("light", lambda *words, target=None, dispatch_context=None: light_action(*words, target=target, dispatch_context=dispatch_context))
     open_verb = Verb("open", lambda *words, target=None, dispatch_context=None: open_action(*words, target=target, dispatch_context=dispatch_context))
     close_verb = Verb("close", lambda *words, target=None, dispatch_context=None: close_action(*words, target=target, dispatch_context=dispatch_context))
@@ -907,14 +1097,21 @@ def _build_core_verbs(
         quit_verb,
         exit_verb,
         go_verb,
+        swim_verb,
         climb_verb,
         save_verb,
         load_verb,
         examine_verb,
         inventory_verb,
+        score_verb,
         take_verb,
         drop_verb,
         eat_verb,
+        rub_verb,
+        talk_verb,
+        ask_verb,
+        say_verb,
+        make_verb,
         light_verb,
         open_verb,
         close_verb,

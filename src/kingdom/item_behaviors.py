@@ -5,6 +5,7 @@ ItemBehaviorHandler = Callable[[object, str, tuple[str, ...], dict | None], str 
 _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
 _DEFAULT_ITEM_BEHAVIORS: dict[str, tuple[str, ...]] = {
     "fish": ("eat_fish",),
+    "djinni": ("talk_djinni",),
 }
 
 
@@ -85,3 +86,19 @@ def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispa
     )
 
     return "YOU BARELY GET THE FISH TO YOUR NOSE WHEN YOU VOMIT VIOLENTLY ON A NEARBY WALL."
+
+
+@register_item_behavior("talk_djinni")
+def talk_djinni_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: dict | None) -> str | None:
+    if verb_name == "talk":
+        return "The Djinni bows and smiles. 'Speak your wish clearly, traveler.'"
+
+    if verb_name == "ask":
+        topic = " ".join(str(part).strip() for part in args if str(part).strip()).strip()
+        if topic.lower().startswith("about "):
+            topic = topic[6:].strip()
+        if topic:
+            return f"The Djinni strokes his beard. 'About {topic}? First prove your wit, then we bargain.'"
+        return "Ask about what?"
+
+    return None

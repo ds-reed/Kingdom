@@ -1,93 +1,50 @@
-1. GUI
-    c) Future: sticky status/banner line pinned to top via ANSI cursor control (do not block scrollback during core development)
-    d) Stretch (long-term): use ANSI cursor control to rewrite live typed input to CAPS in TRS80 mode (while user is typing)
-4. New verbs
-    a) add rub (works on lamp)
-        i) in general, rubbing lamp changes its state to shiny
-        ii) in one room it causes a Djini to appear and he is a small minigame
+Kingdom TODO (Outstanding Only)
+================================
 
-5. decide how to connect mini-games to rooms via existing function handle during initialization
+1) Lighting polish
+    [ ] Add extinguish verb for light sources (`extinguish torch`, `put out torch`)
+    [ ] Decide whether lit non-torch items in inventory should illuminate (currently: lit torch only)
+    [ ] Add clear feedback in `look`/status when room is illuminated by carried torch
 
-# ======================================================================
-# TODO: VERB DISPATCH & NOUN INTERACTION REFACTOR (Clean Pattern Rollout)
-# ======================================================================
-#
-# Current State:
-#   - We have a working pattern emerging: actions take state + target + dispatch_context
-#   - Double dispatch via target.handle_verb / can_handle_verb is the goal
-#   - Some actions already use target, dispatch_context, or helpers
-#   - Goal: consistent, clean verb dispatch that scales to all legacy verbs
-#     without god-classes or massive if/else chains
-#
-# Guiding Principles (keep these in mind):
-#   - Verbs orchestrate (general checks, room constraints, fallbacks)
-#   - Nouns own specifics (refusals, custom outcomes, side effects)
-#   - dispatch_context carries shared helpers (reveal_exit, consume_item, etc.)
-#   - Parser resolves verb → target noun → verb.execute(state, target, ...)
-#   - Keep code readable — no deep nesting, use helpers liberally
-#
-# High-Level Steps (do in roughly this order):
-#
-# 1. Finalize DispatchContext typing & helpers
-#    - Define DispatchContext as TypedDict or dataclass
-#    - Ensure build_dispatch_context includes all needed helpers
-#    - Add type hints to actions using dispatch_context
-#
-# 2. Standardize action signatures
-#    - Most should be:
-#      def action(state: GameActionState, *args, target: TargetType = None,
-#                 dispatch_context: DispatchContext | None = None) -> str
-#    - Update go_action, inventory_action, xyzzy_action, etc. to accept target=None
-#    - Make sure all legacy stubs can follow this pattern
-#
-# 3. Implement Noun verb hooks (double dispatch foundation)
-#    - Add to Noun base:
-#      def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]
-#      def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None
-#    - Default: return True, None and None (allow + no custom result)
-#
-# 4. Migrate existing Item/Box/Room to use hooks
-#    - Item: take refusal (pickupable), eat (carrot special case)
-#    - Box: open/close, examine contents
-#    - Room: examine (rich desc), swim (room-specific refusal)
-#
-# 5. Update Verb.execute to use double dispatch
-#    - Check if target exists → ask target.can_handle_verb(self.verb, ...)
-#    - If refusal → return it or generic
-#    - If allowed → call target.handle_verb → use result if not None
-#    - Fallback to self.action(state, target, ...)
-#
-# 6. Refactor key actions to leverage pattern
-#    - take_action → use target if present, else search via matches_reference
-#    - drop_action → similar
-#    - eat_action → use consume_if_getable_and_present helper
-#    - open/close/unlock → use _toggle_open_state + side effects
-#
-# 7. Build/test simple parser loop
-#    - Input loop: trs80_prompt() → split → resolve verb → resolve target
-#    - Call verb.execute(state, target=target, dispatch_context=build_dispatch_context(...))
-#    - Print result → refresh room display
-#
-# 8. Add 2–3 more legacy verbs as full implementations
-#    - rub (lamp → genie)
-#    - climb (vertical direction fallback)
-#    - swing (rope state check)
-#    - Use dispatch_context for reveal_exit, etc.
-#
-# Priority Order (pick one chunk at a time):
-#   [ ] 1. DispatchContext typing + helpers
-#   [ ] 2. Standardize action signatures (add target/dispatch_context to all)
-#   [ ] 3. Add can_handle_verb / handle_verb to Noun
-#   [ ] 4. Migrate Item/Box/Room overrides
-#   [ ] 5. Update Verb.execute for double dispatch
-#   [ ] 6. Refactor take/drop/eat/open/close to use pattern
-#   [ ] 7. Simple parser loop (input → verb → execute → output)
-#   [ ] 8. Implement rub/climb/swing as test verbs
-#
-# Stretch Goals (after core dispatch works):
-#   - Noun synonyms / multi-word matching improvements
-#   - Verb preconditions (needs light, needs rope tied, etc.)
-#   - Minigame trigger via verb (e.g., > tap glass → room.minigame())
-#   - Command history / up-arrow recall
-#
-# ===================================================================================
+2) Verb/synonym safety
+    [ ] Add collision check so verb synonyms cannot silently shadow common nouns
+    [ ] Add quick startup warning/log entry for any verb/noun token conflicts
+
+3) Lamp/rub mini-feature
+    [ ] Add lamp item data and default "rub → shiny" state change
+    [ ] In one designated room, `rub lamp` should trigger Djinni appearance
+    [ ] Wire Djinni interaction as a small minigame hook
+
+4) Minigame integration
+    [ ] Standardize room/minigame initialization path
+    [ ] Define lightweight minigame contract (start, result, side effects)
+    [ ] Add one end-to-end sample minigame beyond placeholders
+
+5) Parser/UX improvements
+    [ ] Improve multi-word noun matching and ambiguity handling
+    [ ] Add command history / up-arrow recall
+    [ ] Keep TRS80 terminal-mode enhancements as optional future work (not core loop)
+
+6) Optional terminal enhancements (deferred)
+    [ ] Sticky status/banner line via ANSI cursor control
+    [ ] Live CAPS rewriting while typing in TRS80 mode
+
+7) Real content wiring (wait for canonical data file)
+    [ ] Replace temporary mechanics-test rooms/items with canonical world data
+    [ ] Re-map room/item IDs and noun aliases to final data-file naming
+    [ ] Re-validate trapdoor/lighting/Djinni/swim flows against canonical layout
+
+8) Gameplay guidance/scoring (deferred)
+    [ ] Add optional hint system hooks (data-driven, disabled by default)
+    [ ] Add scoring model and event hooks (treasures, deaths, milestones)
+    [ ] Add end-game summary output (score, major achievements, completion state)
+
+9) Next session priority: Wardens
+    [ ] Design warden entities, patrol behavior, and room placement in canonical data
+    [ ] Add warden interaction/encounter mechanics (detection, consequences, messaging)
+    [ ] Validate warden flow against existing movement, dark-room, and death/recovery systems
+
+10) After wardens: repository update
+    [ ] Review changed files and clean temporary/testing-only artifacts
+    [ ] Update docs/changelog notes for new mechanics
+    [ ] Commit and push to `master`
