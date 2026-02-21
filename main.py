@@ -14,6 +14,7 @@ sys.path.append("./src")
 
 from kingdom.models import Game, Player, ensure_direction_nouns, get_direction_nouns_for_available_exits
 from kingdom.actions import (
+    _derive_player_save_path,
     build_dispatch_context,
     GameActionState,
     build_verbs,
@@ -91,7 +92,8 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
             if candidate.matches_reference(noun_match.text):
                 canonical_direction = getattr(candidate, "canonical_direction", None)
                 if isinstance(canonical_direction, str):
-                    return go_action(state, canonical_direction)
+                    # Always call go_action, even if no exit exists, to get a meaningful response.
+                    return go_action(canonical_direction, dispatch_context=dispatch_context)
 
                 can_handle, refusal_message = candidate.can_handle_verb(
                     "",
@@ -106,6 +108,10 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
                 )
                 if handled_result is not None:
                     return handled_result
+    # If a direction noun was entered but not matched, try go_action directly.
+    for noun_match in parse_result.nouns:
+        if noun_match.text in DIRECTION_ALIASES or noun_match.text in Room.DIRECTIONS:
+            return go_action(noun_match.text, dispatch_context=dispatch_context)
     return None
 
 
@@ -273,6 +279,7 @@ def main(args: argparse.Namespace | None = None):
                     dispatch_context=build_dispatch_context(
                         action_state,
                         game,
+                        save_path=_derive_player_save_path(save_path, action_state.hero_name),
                         confirm_action=confirm_action,
                         prompt_action=trs80_prompt,
                     ),
