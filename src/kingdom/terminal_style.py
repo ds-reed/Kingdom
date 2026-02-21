@@ -4,6 +4,7 @@
 
 import os
 import sys
+from typing import Sequence
 
 # ANSI Escape Codes
 RESET = "\033[0m"
@@ -113,7 +114,8 @@ def trs80_prompt(prompt_text="> "):
 
 
 def trs80_clear_and_show_room(
-    room,
+    room_name: str,
+    content_lines: Sequence[str],
     score=0,
     moves=0,
     light_on=True,
@@ -126,19 +128,12 @@ def trs80_clear_and_show_room(
     if show_status is None:
         show_status = SHOW_STATUS_BANNER
     if show_status:
-        trs80_status_line(room.name, score, moves, light_on, hero_name=hero_name)
+        trs80_status_line(room_name, score, moves, light_on, hero_name=hero_name)
         print()
 
-    first_visit = not bool(getattr(room, "visited", False))
-
-    trs80_print(room.name.upper(), bold=True, style=TRS80_WHITE)
-    if first_visit:
-        trs80_print(room.description, style=TRS80_WHITE)
-
-    for obj in [*room.items, *room.boxes]:
-        trs80_print(obj.get_presence_text(), style=TRS80_WHITE)
-
-    room.visited = True
+    trs80_print(str(room_name).upper(), bold=True, style=TRS80_WHITE)
+    for line in content_lines:
+        trs80_print(line, style=TRS80_WHITE)
 
 
 if __name__ == "__main__":

@@ -3,24 +3,80 @@
     "rooms": [
         {
             "name": "Tower Cell",
-            "description": "A cramped stone cell at the top of a lonely tower. A heavy trap door is set into the floor, and a magic ladder hums with soft blue light.",
+            "description": "A cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
             "items": [
                 {
-                    "name": "a cheery orange carrot",
-                    "noun_name": "carrot",
-                    "edible": true,
-                    "eat_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH.",
-                    "eat_missing_string": "YOU HAVE NO CARROT! ARE YOU TRYING TO CONFUSE ME?"
+                    "name": "an old wooden torch",
+                    "noun_name": "torch",
+                    "light_source": true,
+                    "is_lit": false
                 },
                 {
-                    "name": "a suspicious looking fish",
-                    "noun_name": "fish"
+                    "name": "a rusty iron trapdoor",
+                    "noun_name": "trapdoor",
+                    "pickupable": false,
+                    "openable": true,
+                    "is_open": false,
+                    "lockable": true,
+                    "is_locked": true,
+                    "unlock_key": "key",
+                    "locked_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
+                    "open_exit_direction": "down",
+                    "open_exit_destination": "Blank Chamber",
+                    "close_hides_exit": true,
+                    "closed_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed.",
+                    "open_description": "A rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
             ],
-            "boxes": [],
+            "boxes": [
+                {
+                    "box_name": "a brown greasy lunch bag",
+                    "openable": true,
+                    "is_open": false,
+                    "open_description": "A brown greasy lunch bag sits here with its top folded open.",
+                    "closed_description": "A brown greasy lunch bag sits here with its top folded shut.",
+                    "items": [
+                        {
+                            "name": "a cheery orange carrot",
+                            "noun_name": "carrot",
+                            "edible": true,
+                            "eat_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH.",
+                            "eat_missing_string": "YOU HAVE NO CARROT! ARE YOU TRYING TO CONFUSE ME?"
+                        },
+                        {
+                            "name": "a suspicious looking fish",
+                            "noun_name": "fish"
+                        },
+                        {
+                            "name": "a small brass key",
+                            "noun_name": "key"
+                        },
+                        {
+                            "name": "a cheap plastic lighter",
+                            "noun_name": "lighter"
+                        }
+                    ]
+                }
+            ],
             "connections": {
                 "up": "Demo Landing"
             }
+        },
+        {
+            "name": "Blank Chamber",
+            "description": "An oddly blank room with smooth stone walls. There is nothing here.",
+            "is_dark": true,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "items": [
+                {
+                    "name": "a lit brass lantern",
+                    "noun_name": "lantern",
+                    "light_source": true,
+                    "is_lit": true
+                }
+            ],
+            "boxes": [],
+            "connections": {}
         },
         {
             "name": "Demo Landing",

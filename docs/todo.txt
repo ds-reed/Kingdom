@@ -1,214 +1,93 @@
 1. GUI
-    a) support modern and TRS80 terminal modes, with TRS80 the default
-    b) TRS80 MODE ONLY SUPPORTS ALL CAPS
-        i) if neccessary, try using ANSI codes to overwrite input characters with CAPITALS
     c) Future: sticky status/banner line pinned to top via ANSI cursor control (do not block scrollback during core development)
     d) Stretch (long-term): use ANSI cursor control to rewrite live typed input to CAPS in TRS80 mode (while user is typing)
-2. Decide on verb/noun interaction stucture to support modular addition of new nounds (rooms/boxes/items) and new verbs/actions
-    a) Some actions can only take place in certain rooms
-    b) Some actions are general and in a main verb block
-    c) Some actions can only affect certain nouns
-    d) Verbs or Nouns can provide refusal strings for actions on a given noun (who is the master?)
-3. General room capabilities
-    a) support a light vs dark state for room
-    b) some actions can switch state from dark to light and visa versa
-    c) some items can affect light vs dark state for room
 4. New verbs
-    a) add XYZZY (synonym PLUGH) - action is to print "Wrong program!"
-    b) add rub (works on lamp)
+    a) add rub (works on lamp)
         i) in general, rubbing lamp changes its state to shiny
         ii) in one room it causes a Djini to appear and he is a small minigame
-5. New noun
-    a) add the smelly fish
+
 5. decide how to connect mini-games to rooms via existing function handle during initialization
 
-
 # ======================================================================
-
-# ======================================================================
-# TODO: NOUN/VERB LEXICAL AMBIGUITY & COMMAND DISAMBIGUATION
+# TODO: VERB DISPATCH & NOUN INTERACTION REFACTOR (Clean Pattern Rollout)
 # ======================================================================
 #
-# Goal: Support words that can act as both verbs and nouns, with predictable
-#       parsing and command behavior.
+# Current State:
+#   - We have a working pattern emerging: actions take state + target + dispatch_context
+#   - Double dispatch via target.handle_verb / can_handle_verb is the goal
+#   - Some actions already use target, dispatch_context, or helpers
+#   - Goal: consistent, clean verb dispatch that scales to all legacy verbs
+#     without god-classes or massive if/else chains
 #
-# Examples:
-#   - "inventory" (verb)
-#   - "take inventory" (verb + noun)
-#   - "light light" (verb + noun)
+# Guiding Principles (keep these in mind):
+#   - Verbs orchestrate (general checks, room constraints, fallbacks)
+#   - Nouns own specifics (refusals, custom outcomes, side effects)
+#   - dispatch_context carries shared helpers (reveal_exit, consume_item, etc.)
+#   - Parser resolves verb → target noun → verb.execute(state, target, ...)
+#   - Keep code readable — no deep nesting, use helpers liberally
 #
-# Key Principles:
-#   - Prefer explicit verb-first command interpretation when a known verb is present.
-#   - Allow noun fallback when a token is ambiguous and no valid verb pattern fits.
-#   - Keep parser deterministic (same input => same parse decision).
-#   - Return clear clarification prompts when ambiguity cannot be resolved.
+# High-Level Steps (do in roughly this order):
 #
-# High-Level Steps:
+# 1. Finalize DispatchContext typing & helpers
+#    - Define DispatchContext as TypedDict or dataclass
+#    - Ensure build_dispatch_context includes all needed helpers
+#    - Add type hints to actions using dispatch_context
 #
-# 1. Define parser precedence rules for ambiguous tokens
-#    - verb + noun pattern takes priority when verb exists
-#    - noun-only interpretation allowed when no verb action matches
+# 2. Standardize action signatures
+#    - Most should be:
+#      def action(state: GameActionState, *args, target: TargetType = None,
+#                 dispatch_context: DispatchContext | None = None) -> str
+#    - Update go_action, inventory_action, xyzzy_action, etc. to accept target=None
+#    - Make sure all legacy stubs can follow this pattern
 #
-# 2. Add optional disambiguation prompt path
-#    - Example: "Did you mean inventory (verb) or inventory (item)?"
+# 3. Implement Noun verb hooks (double dispatch foundation)
+#    - Add to Noun base:
+#      def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]
+#      def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None
+#    - Default: return True, None and None (allow + no custom result)
 #
-# 3. Add phrase-level verb intent exceptions
-#    - Example: "take inventory" should resolve to verb=take, noun=inventory item
+# 4. Migrate existing Item/Box/Room to use hooks
+#    - Item: take refusal (pickupable), eat (carrot special case)
+#    - Box: open/close, examine contents
+#    - Room: examine (rich desc), swim (room-specific refusal)
 #
-# 4. Add targeted tests for ambiguity pairs
-#    - inventory / take inventory
-#    - light / light light
-#    - score (verb) vs score card (noun phrase)
+# 5. Update Verb.execute to use double dispatch
+#    - Check if target exists → ask target.can_handle_verb(self.verb, ...)
+#    - If refusal → return it or generic
+#    - If allowed → call target.handle_verb → use result if not None
+#    - Fallback to self.action(state, target, ...)
 #
-# Priority Order:
-#   [ ] Define and document ambiguity precedence rules
-#   [ ] Implement parser disambiguation hooks
-#   [ ] Add first ambiguity case: inventory as verb + noun
-#   [ ] Add second ambiguity case: light as verb + noun
-#   [ ] Add clarification prompt for unresolved ambiguity
-#   [ ] Improve direction refusal UX: for invalid/unavailable direction nouns, return friendly hint with valid exits
+# 6. Refactor key actions to leverage pattern
+#    - take_action → use target if present, else search via matches_reference
+#    - drop_action → similar
+#    - eat_action → use consume_if_getable_and_present helper
+#    - open/close/unlock → use _toggle_open_state + side effects
 #
-# ======================================================================
-# TODO: VERB-NOUN INTERACTION SYSTEM (Double Dispatch + Modular Extensions)
-# ======================================================================
+# 7. Build/test simple parser loop
+#    - Input loop: trs80_prompt() → split → resolve verb → resolve target
+#    - Call verb.execute(state, target=target, dispatch_context=build_dispatch_context(...))
+#    - Print result → refresh room display
 #
-# Goal: Create a clean, extensible way to handle verb + noun commands
-#       so new verbs, nouns, rooms, and custom behaviors can be added
-#       without rewriting core parser or game logic.
+# 8. Add 2–3 more legacy verbs as full implementations
+#    - rub (lamp → genie)
+#    - climb (vertical direction fallback)
+#    - swing (rope state check)
+#    - Use dispatch_context for reveal_exit, etc.
 #
-# Key Principles:
-#   - Nouns own their specific refusals and behaviors (double dispatch)
-#   - Verbs handle general logic, room constraints, and fallback
-#   - Parser resolves verb → target noun → verb.execute(state, target)
-#   - Refusals: nouns for specifics ("carrot screams"), verbs for generics
+# Priority Order (pick one chunk at a time):
+#   [ ] 1. DispatchContext typing + helpers
+#   [ ] 2. Standardize action signatures (add target/dispatch_context to all)
+#   [ ] 3. Add can_handle_verb / handle_verb to Noun
+#   [ ] 4. Migrate Item/Box/Room overrides
+#   [ ] 5. Update Verb.execute for double dispatch
+#   [ ] 6. Refactor take/drop/eat/open/close to use pattern
+#   [ ] 7. Simple parser loop (input → verb → execute → output)
+#   [ ] 8. Implement rub/climb/swing as test verbs
 #
-# High-Level Steps:
+# Stretch Goals (after core dispatch works):
+#   - Noun synonyms / multi-word matching improvements
+#   - Verb preconditions (needs light, needs rope tied, etc.)
+#   - Minigame trigger via verb (e.g., > tap glass → room.minigame())
+#   - Command history / up-arrow recall
 #
-# 1. Enhance Noun base class with verb interaction hooks
-#    - Add: can_handle_verb(verb_name, *args) → (bool, refusal_msg | None)
-#    - Add: handle_verb(verb_name, *args) → result_msg | None
-#    - Default: allow everything, return None (not handled)
-#
-# 2. Update Item, Box, Room to override these when needed
-#    Examples:
-#      - Item.take → check pickupable, return refuse_string
-#      - Item.eat (carrot) → return custom scream message
-#      - Room.swim → refuse unless in pool room
-#      - Room.examine → return rich description if targeted
-#
-# 3. Modify Verb.execute to support double dispatch
-#    Signature: execute(state: GameActionState, target: Noun | None, *args, **kwargs) → str
-#    Flow:
-#      - If no target: run general action (inventory, score, verbs, etc.)
-#      - If target:
-#          - Ask target.can_handle_verb(self.verb, *args)
-#          - If no → return refusal or generic "Can't {verb} that!"
-#          - If yes → call target.handle_verb(self.verb, *args)
-#          - If noun returns result → use it
-#          - Else fallback to verb's own action(state, target, ...)
-#
-# 4. Parser / command resolver
-#    - Split input → verb_token + rest_words
-#    - Find Verb by verb_token or synonym
-#    - If rest: search current room (items + boxes) for matching noun via matches_reference
-#    - Call verb.execute(state, target=noun, *rest_words)
-#    - Handle "no target" verbs separately (inventory, look, etc.)
-#
-# 5. Update existing actions to new signature
-#    - go_action, inventory_action, examine_action → accept target=None
-#    - take_action, drop_action, eat_action → accept target: Noun | None
-#    - For legacy stubs: keep as-is or migrate to noun.handle_verb when ready
-#
-# 6. JSON / serialization considerations
-#    - Add custom refusal strings or behaviors to Item/Box/Room JSON
-#    - e.g., "eat_refusal", "eat_result", or subclass name for special logic
-#
-# Priority Order (suggested):
-#   [ ] Add can_handle_verb & handle_verb to Noun base
-#   [ ] Override in Item (take refusal, eat carrot special case)
-#   [ ] Update Verb.execute to use double dispatch
-#   [ ] Refactor take_action / eat_action to use target Noun
-#   [ ] Build simple parser function (resolve_command)
-#   [ ] Test: > take carrot, > eat carrot, > swim (wrong room)
-#   [ ] Add room-specific verb checks (e.g., swim only in pool)
-#   [ ] Extend to legacy verbs (open, kick, etc.) as needed
-#
-# ======================================================================
-
-# ======================================================================
-# TODO: MINIGAME REGISTRY & DATA-DRIVEN ATTACHMENT (No Code in JSON)
-# ======================================================================
-#
-# Goal: Allow rooms to have custom minigames loaded from JSON by name,
-#       without embedding executable code in the JSON file.
-#
-# Key Principles:
-#   - All minigame functions live in code (minigames.py)
-#   - JSON only stores a string name (or null)
-#   - Use a decorator-based registry to map name → function
-#   - During room construction, look up name and attach via set_minigame()
-#
-# High-Level Steps:
-#
-# 1. Create minigames.py with registry and decorator
-#    - Define MINIGAMES: dict[str, Callable] = {}
-#    - Add @register_minigame("name") decorator
-#    - Register existing minigames (glass_melody, vending_kick, genie_wish, etc.)
-#
-# 2. Implement the decorator
-#    - def register_minigame(name: str):
-#        def decorator(func):
-#            MINIGAMES[name] = func
-#            return func
-#        return decorator
-#
-# 3. Add example minigames with decorator
-#    - @register_minigame("glass_melody")
-#      def glass_minigame(state, *args, **kwargs) -> str:
-#          ...
-#
-#    - @register_minigame("vending_kick")
-#      def vending_kick_minigame(state, *args, **kwargs) -> str:
-#          ...
-#
-#    - Add more as needed: rope_swing, bookshelf_rotate, victrola_smoke, etc.
-#
-# 4. Update _construct_rooms to attach minigame by name
-#    - Inside the room creation loop (after room = Room(...)):
-#        minigame_name = entry.get("minigame")
-#        if minigame_name:
-#            if minigame_name in MINIGAMES:
-#                room.set_minigame(MINIGAMES[minigame_name])
-#            else:
-#                print(f"Warning: Unknown minigame '{minigame_name}' in room '{room.name}'")
-#
-# 5. Update JSON room entries
-#    - Add "minigame": "glass_melody" (or null/omitted) to relevant rooms
-#    - Example:
-#      {
-#        "name": "Glass Room",
-#        "description": "...",
-#        "minigame": "glass_melody",
-#        ...
-#      }
-#
-# 6. Test loading & triggering
-#    - Load world → go to glass room
-#    - Trigger minigame (e.g., via > tap glass or room entry)
-#    - Verify correct function runs and returns expected result
-#
-# Priority Order:
-#   [ ] Create minigames.py with registry + decorator
-#   [ ] Register at least 1–2 example minigames (glass, vending)
-#   [ ] Insert lookup + set_minigame in _construct_rooms
-#   [ ] Add "minigame" field to one room in initial_state.json
-#   [ ] Test: load → navigate → trigger → see output
-#   [ ] Add more original minigames (genie wish, rope swing, etc.)
-#
-# Stretch Goals:
-#   - Minigames that take parameters (e.g., "wish_text" for genie)
-#   - Room-level minigame trigger conditions (on enter, on verb, etc.)
-#   - Fallback message if minigame name missing/unknown
-#   - Export registered names for debugging/validation
-#
-# ======================================================================
+# ===================================================================================

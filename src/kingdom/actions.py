@@ -3,9 +3,9 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
-from kingdom.models import Game, Item, Room, Verb
+from kingdom.models import Box, Game, Item, Room, Verb
 from kingdom.parser import normalize_direction_token
-from kingdom.terminal_style import trs80_clear_and_show_room
+from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
 
 
 @dataclass
@@ -34,7 +34,6 @@ LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
     ("unlock", ()),
     ("close", ()),
     ("turn", ()),
-    ("light", ("torch",)),
     ("score", ()),
     ("wash", ()),
     ("swim", ()),
@@ -128,9 +127,155 @@ def go_action(state: GameActionState, direction: str) -> str:
         return f"You can't go {canonical_direction} from here."
 
     state.current_room = next_room
-    trs80_clear_and_show_room(state.current_room, hero_name=state.hero_name, clear=False)
+    trs80_print(f"You go {canonical_direction}.", style=TRS80_WHITE)
+    render_current_room(state, clear=False)
     print()
-    return f"You go {canonical_direction}."
+    return ""
+
+
+def xyzzy_action(state: GameActionState, game: Game) -> str:
+    destination = next((room for room in game.rooms if room.name.lower() == "tower cell"), None)
+    if destination is None:
+        return "Nothing happens."
+
+    state.current_room = destination
+    player = game.current_player
+    if player is not None:
+        player.current_room = destination
+
+    trs80_print("You utter XYZZY.", style=TRS80_WHITE)
+    render_current_room(state, clear=False)
+    print()
+    return ""
+
+
+_DIRECTION_ORDER = {"up": 0, "down": 1, "north": 2, "south": 3, "east": 4, "west": 5}
+_VERTICAL_DIRECTION_LABELS = {"up": "above", "down": "below"}
+_LOOK_INSIDE_TOKENS = {"inside", "in"}
+
+
+def _order_directions(directions: Sequence[str]) -> list[str]:
+    return sorted(directions, key=lambda direction: _DIRECTION_ORDER.get(direction, 99))
+
+
+def _join_with_and(parts: Sequence[str]) -> str:
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+    return f"{', '.join(parts[:-1])}, and {parts[-1]}"
+
+
+def _direction_choice_label(direction: str) -> str:
+    return _VERTICAL_DIRECTION_LABELS.get(direction, direction)
+
+
+def _direction_phrase(direction: str) -> str:
+    if direction in _VERTICAL_DIRECTION_LABELS:
+        return _VERTICAL_DIRECTION_LABELS[direction]
+    return f"to the {direction}"
+
+
+def _format_exit_choices(directions: Sequence[str]) -> list[str]:
+    ordered = _order_directions(directions)
+    return [_direction_choice_label(direction) for direction in ordered]
+
+
+def _build_visible_exits_text(directions: Sequence[str]) -> str:
+    ordered = _order_directions(directions)
+    if not ordered:
+        return "There are no visible exits."
+
+    vertical = [direction for direction in ordered if direction in _VERTICAL_DIRECTION_LABELS]
+    horizontal = [direction for direction in ordered if direction not in _VERTICAL_DIRECTION_LABELS]
+
+    phrases: list[str] = []
+    if vertical:
+        phrases.append(_join_with_and([_direction_phrase(direction) for direction in vertical]))
+    if horizontal:
+        phrases.append(_join_with_and([_direction_phrase(direction) for direction in horizontal]))
+
+    if len(ordered) == 1:
+        return f"There is an exit {phrases[0]}."
+
+    return f"There are exits {_join_with_and(phrases)}."
+
+
+def _is_dark_room(room: Room) -> bool:
+    if not bool(getattr(room, "is_dark", False)):
+        return False
+
+    has_lit_source = getattr(room, "has_lit_light_source", None)
+    if callable(has_lit_source) and has_lit_source():
+        return False
+
+    player = Game.get_instance().current_player
+    if player is not None:
+        for item in player.sack.contents:
+            if item.get_noun_name() == "torch" and getattr(item, "is_lit", False):
+                return False
+
+    return True
+
+
+def _dark_room_message(room: Room) -> str:
+    return getattr(room, "dark_description", None) or "It is too dark to see anything."
+
+
+def _room_display_lines(room: Room) -> list[str]:
+    if _is_dark_room(room):
+        return [_dark_room_message(room)]
+
+    lines: list[str] = []
+    if not bool(getattr(room, "visited", False)):
+        lines.append(room.description)
+    lines.extend(obj.get_presence_text() for obj in [*room.items, *room.boxes])
+    return lines
+
+
+def render_current_room(state: GameActionState, clear: bool = True) -> None:
+    room = state.current_room
+    if room is None:
+        return
+
+    lines = _room_display_lines(room)
+    trs80_clear_and_show_room(room.name, lines, hero_name=state.hero_name, clear=clear)
+    room.visited = True
+
+
+def _describe_box_contents(box: Box) -> str:
+    if box.openable and not box.is_open:
+        return f"The {box.get_noun_name()} is closed."
+    if not box.contents:
+        return f"The {box.get_noun_name()} is empty."
+    visible_contents = ", ".join(item.name for item in box.contents)
+    return f"Inside the {box.get_noun_name()} you see: {visible_contents}."
+
+
+def _build_take_sources(room: Room) -> list[tuple[str, list[Item]]]:
+    sources: list[tuple[str, list[Item]]] = [(room.name, room.items)]
+    sources.extend(
+        (box.box_name, box.contents)
+        for box in room.boxes
+        if not box.openable or box.is_open
+    )
+    return sources
+
+
+def _closed_room_boxes(room: Room) -> list[Box]:
+    return [box for box in room.boxes if box.openable and not box.is_open]
+
+
+def _move_item_to_sack(item: Item, player) -> None:
+    item.current_box = player.sack
+    player.sack.contents.append(item)
+
+
+def _drop_item_to_room(item: Item, room: Room) -> None:
+    item.current_box = None
+    room.items.append(item)
 
 
 def climb_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
@@ -185,10 +330,11 @@ def exit_action(
         if len(exits) == 1:
             return go_action(state, exits[0])
 
+        displayed_exits = _format_exit_choices(exits)
         if prompt_action is None:
-            return f"Which direction do you want to exit? ({', '.join(exits)})"
+            return f"Which direction do you want to exit? ({', '.join(displayed_exits)})"
 
-        chosen_raw = prompt_action(f"Which direction? ({', '.join(exits)}): ").strip().lower()
+        chosen_raw = prompt_action(f"Which direction? ({', '.join(displayed_exits)}): ").strip().lower()
         if not chosen_raw:
             return "Exit cancelled."
         return go_action(state, chosen_raw)
@@ -207,32 +353,58 @@ def exit_action(
 
 
 def _describe_room(room: Room) -> str:
+    if _is_dark_room(room):
+        return f"You examine {room.name} carefully. {_dark_room_message(room)}"
+
     exits = room.available_directions()
     visible_text = [obj.get_presence_text() for obj in [*room.items, *room.boxes]]
-    if not exits:
-        exits_text = "There are no visible exits."
-    elif len(exits) == 1:
-        exits_text = f"There is an exit to the {exits[0]}."
-    else:
-        exits_text = f"There are exits to the {', '.join(exits[:-1])} and {exits[-1]}."
+    exits_text = _build_visible_exits_text(exits)
     if visible_text:
         return f"You examine {room.name} carefully. {' '.join(visible_text)} {exits_text}"
     return f"You examine {room.name} carefully. {exits_text}"
 
 
-def examine_action(state: GameActionState, *target_words: str) -> str:
+def examine_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
     if state.current_room is None:
         return "There is nothing to examine."
 
     if not target_words:
         return _describe_room(state.current_room)
 
+    if target is not None:
+        if isinstance(target, Room):
+            return _describe_room(state.current_room)
+
+        if _is_dark_room(state.current_room):
+            return _dark_room_message(state.current_room)
+
+        if isinstance(target, Box):
+            return _describe_box_contents(target)
+
+        if isinstance(target, Item):
+            return f"You examine {target.get_name()} carefully."
+
     target_name = " ".join(target_words).strip().lower()
+
+    if target_name in _LOOK_INSIDE_TOKENS:
+        open_boxes = [
+            box for box in state.current_room.boxes
+            if not box.openable or box.is_open
+        ]
+        if not open_boxes:
+            return "There are no open containers to look inside."
+        return " ".join(_describe_box_contents(box) for box in open_boxes)
+
     if target_name in {"room", state.current_room.name.lower()}:
         return _describe_room(state.current_room)
 
+    if _is_dark_room(state.current_room):
+        return _dark_room_message(state.current_room)
+
     for obj in [*state.current_room.items, *state.current_room.boxes]:
         if obj.matches_reference(target_name):
+            if isinstance(obj, Box):
+                return _describe_box_contents(obj)
             return f"You examine {obj.get_name()} carefully."
 
     return f"You don't see {target_name} here."
@@ -242,6 +414,8 @@ def verbs_action(verbs: Mapping[str, object]) -> str:
     canonical_verbs: dict[str, Verb] = {}
     for verb in verbs.values():
         if isinstance(verb, Verb):
+            if getattr(verb, "hidden", False):
+                continue
             canonical_verbs.setdefault(verb.verb, verb)
 
     parts: list[str] = []
@@ -282,8 +456,8 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
     if player is None:
         return "No hero is active yet."
 
-    sources = [(state.current_room.name, state.current_room.items)]
-    sources.extend((box.box_name, box.contents) for box in state.current_room.boxes)
+    sources = _build_take_sources(state.current_room)
+    closed_boxes = _closed_room_boxes(state.current_room)
 
     if target is not None:
         if not isinstance(target, Item):
@@ -295,9 +469,12 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
         for container_name, contents in sources:
             if target in contents:
                 contents.remove(target)
-                player.sack.contents.append(target)
-                target.current_box = player.sack
+                _move_item_to_sack(target, player)
                 return f"{player.name} takes {target.name} from {container_name}."
+
+        for box in closed_boxes:
+            if target in box.contents:
+                return f"The {box.get_noun_name()} is closed."
 
         return f"You don't see {target.get_noun_name()} here."
 
@@ -307,6 +484,28 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
     target_name = " ".join(target_words).strip().lower()
     if not target_name:
         return "Take what?"
+
+    if target_name == "all":
+        picked_up: list[str] = []
+
+        for container_name, contents in sources:
+            for item in list(contents):
+                if not item.pickupable:
+                    continue
+                if player.sack.capacity is not None and len(player.sack.contents) >= player.sack.capacity:
+                    if not picked_up:
+                        return f"{player.name}'s sack is full (max {player.sack.capacity} items)!"
+                    item_word = "item" if len(picked_up) == 1 else "items"
+                    return f"{player.name} takes {len(picked_up)} {item_word}: {', '.join(picked_up)}."
+                contents.remove(item)
+                _move_item_to_sack(item, player)
+                picked_up.append(item.name)
+
+        if not picked_up:
+            return "There is nothing here you can take."
+
+        item_word = "item" if len(picked_up) == 1 else "items"
+        return f"{player.name} takes {len(picked_up)} {item_word}: {', '.join(picked_up)}."
 
     found_item = None
     found_contents = None
@@ -323,6 +522,10 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
             break
 
     if found_item is None or found_contents is None:
+        for box in closed_boxes:
+            for item in box.contents:
+                if item.matches_reference(target_name):
+                    return f"The {box.get_noun_name()} is closed."
         return f"You don't see {target_name} here."
 
     if not found_item.pickupable:
@@ -332,8 +535,7 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
         return f"{player.name}'s sack is full (max {player.sack.capacity} items)!"
 
     found_contents.remove(found_item)
-    player.sack.contents.append(found_item)
-    found_item.current_box = player.sack
+    _move_item_to_sack(found_item, player)
     return f"{player.name} takes {found_item.name} from {found_container_name}."
 
 
@@ -352,8 +554,7 @@ def drop_action(state: GameActionState, game: Game, *target_words: str, target: 
             return f"{player.name} doesn't have {target.get_noun_name()}!"
 
         player.sack.contents.remove(target)
-        state.current_room.items.append(target)
-        target.current_box = None
+        _drop_item_to_room(target, state.current_room)
         return f"{player.name} drops {target.name}."
 
     if not target_words:
@@ -363,11 +564,23 @@ def drop_action(state: GameActionState, game: Game, *target_words: str, target: 
     if not target_name:
         return "Drop what?"
 
+    if target_name == "all":
+        if not player.sack.contents:
+            return f"{player.name}'s sack is empty."
+
+        dropped_names: list[str] = []
+        for item in list(player.sack.contents):
+            player.sack.contents.remove(item)
+            _drop_item_to_room(item, state.current_room)
+            dropped_names.append(item.name)
+
+        item_word = "item" if len(dropped_names) == 1 else "items"
+        return f"{player.name} drops {len(dropped_names)} {item_word}: {', '.join(dropped_names)}."
+
     for item in player.sack.contents:
         if item.matches_reference(target_name):
             player.sack.contents.remove(item)
-            state.current_room.items.append(item)
-            item.current_box = None
+            _drop_item_to_room(item, state.current_room)
             return f"{player.name} drops {item.name}."
 
     return f"{player.name} doesn't have {target_name}!"
@@ -416,11 +629,38 @@ def consume_if_getable_and_present(item: object, dispatch_context: dict | None, 
     return True, None
 
 
+def reveal_exit(room: Room, direction: str, destination: Room) -> bool:
+    if not isinstance(room, Room) or not isinstance(destination, Room):
+        return False
+
+    canonical_direction = normalize_direction_token(direction)
+    existing = room.get_connection(canonical_direction)
+    if existing is destination:
+        return False
+
+    room.connect_room(canonical_direction, destination)
+    return True
+
+
+def hide_exit(room: Room, direction: str) -> bool:
+    if not isinstance(room, Room):
+        return False
+
+    canonical_direction = normalize_direction_token(direction)
+    if room.get_connection(canonical_direction) is None:
+        return False
+
+    room.connections.pop(canonical_direction, None)
+    return True
+
+
 def build_dispatch_context(state: GameActionState, game: Game) -> dict:
     return {
         "state": state,
         "game": game,
         "move_direction": lambda direction: go_action(state, direction),
+        "reveal_exit": reveal_exit,
+        "hide_exit": hide_exit,
         "consume_if_getable_and_present": consume_if_getable_and_present,
         "is_present_in_known_containers": is_present_in_known_containers,
     }
@@ -445,6 +685,145 @@ def eat_action(*target_words: str, target: object | None = None, dispatch_contex
         return error_message or target.eat_refuse_string or default_refuse
 
     return target.eat_success_string or default_success
+
+
+def _resolve_room_by_name(game: object | None, room_name: str | None) -> Room | None:
+    if game is None or not room_name:
+        return None
+    for room in getattr(game, "rooms", []):
+        if getattr(room, "name", None) == room_name:
+            return room
+    return None
+
+
+def _apply_open_close_exit_side_effect(target: object, desired_open: bool, dispatch_context: dict | None) -> None:
+    if not isinstance(target, Item):
+        return
+
+    direction = getattr(target, "open_exit_direction", None)
+    if not direction:
+        return
+
+    state = (dispatch_context or {}).get("state") if dispatch_context else None
+    current_room = getattr(state, "current_room", None)
+    if current_room is None:
+        return
+
+    if desired_open:
+        destination_name = getattr(target, "open_exit_destination", None)
+        destination_room = _resolve_room_by_name((dispatch_context or {}).get("game"), destination_name)
+        reveal = (dispatch_context or {}).get("reveal_exit") if dispatch_context else None
+        if callable(reveal) and destination_room is not None:
+            reveal(current_room, direction, destination_room)
+        return
+
+    if not getattr(target, "close_hides_exit", False):
+        return
+
+    hide = (dispatch_context or {}).get("hide_exit") if dispatch_context else None
+    if callable(hide):
+        hide(current_room, direction)
+
+
+def _toggle_open_state(target: object, desired_open: bool, dispatch_context: dict | None = None) -> str:
+    verb_word = "open" if desired_open else "close"
+    current = "open" if desired_open else "closed"
+
+    if target is None:
+        return f"{verb_word.capitalize()} what?"
+
+    if not isinstance(target, (Item, Box)):
+        return f"You can't {verb_word} that."
+
+    if not getattr(target, "openable", False):
+        return f"You can't {verb_word} that."
+
+    if desired_open and getattr(target, "lockable", False) and getattr(target, "is_locked", False):
+        target_name = target.get_noun_name()
+        return f"The {target_name} is locked."
+
+    if bool(getattr(target, "is_open", False)) == desired_open:
+        return f"It's already {current}."
+
+    target.is_open = desired_open
+    _apply_open_close_exit_side_effect(target, desired_open, dispatch_context)
+    target_name = target.get_noun_name()
+    return f"You {verb_word} the {target_name}."
+
+
+def _player_has_key(dispatch_context: dict | None, key_name: str | None) -> bool:
+    return _player_has_item(dispatch_context, key_name)
+
+
+def _player_has_item(dispatch_context: dict | None, item_name: str | None) -> bool:
+    if not item_name:
+        return False
+
+    game = (dispatch_context or {}).get("game") if dispatch_context else None
+    player = getattr(game, "current_player", None) if game is not None else None
+    if player is None:
+        return False
+
+    item_token = str(item_name).strip().lower()
+    if not item_token:
+        return False
+
+    for item in getattr(player.sack, "contents", []):
+        matches_reference = getattr(item, "matches_reference", None)
+        if callable(matches_reference) and matches_reference(item_token):
+            return True
+    return False
+
+
+def light_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if target is None:
+        return "Light what?"
+
+    if not isinstance(target, Item):
+        return "You can't light that."
+
+    if not getattr(target, "light_source", False):
+        return "You can't light that."
+
+    target_name = target.get_noun_name()
+    if getattr(target, "is_lit", False):
+        return f"The {target_name} is already lit."
+
+    if not _player_has_item(dispatch_context, "lighter"):
+        return "You need a lighter."
+
+    target.is_lit = True
+    return f"You light the {target_name}."
+
+
+def unlock_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    if target is None:
+        return "Unlock what?"
+
+    if not isinstance(target, (Item, Box)):
+        return "You can't unlock that."
+
+    if not getattr(target, "lockable", False):
+        return "You can't unlock that."
+
+    if not getattr(target, "is_locked", False):
+        return "It's already unlocked."
+
+    key_name = getattr(target, "unlock_key", None)
+    if key_name and not _player_has_key(dispatch_context, key_name):
+        return f"You need the {key_name}."
+
+    target.is_locked = False
+    target_name = target.get_noun_name()
+    return f"You unlock the {target_name}."
+
+
+def open_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    return _toggle_open_state(target, desired_open=True, dispatch_context=dispatch_context)
+
+
+def close_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+    return _toggle_open_state(target, desired_open=False, dispatch_context=dispatch_context)
 
 
 def _register_aliases(verb_lookup: dict[str, Verb], verb: Verb) -> None:
@@ -514,11 +893,16 @@ def _build_core_verbs(
     climb_verb = Verb("climb", lambda *words, target=None: climb_action(state, *words, target=target))
     save_verb = Verb("save", confirmed_save_action, synonyms=["write"])
     load_verb = Verb("load", confirmed_load_action, synonyms=["restore"])
-    examine_verb = Verb("examine", lambda *words: examine_action(state, *words), synonyms=["inspect", "look"])
+    examine_verb = Verb("examine", lambda *words, target=None: examine_action(state, *words, target=target), synonyms=["inspect", "look"])
     inventory_verb = Verb("inventory", lambda: inventory_action(game), synonyms=["inven"])
     take_verb = Verb("take", lambda *words, target=None: take_action(state, game, *words, target=target), synonyms=["get"])
     drop_verb = Verb("drop", lambda *words, target=None: drop_action(state, game, *words, target=target))
     eat_verb = Verb("eat", lambda *words, target=None: eat_action(*words, target=target))
+    light_verb = Verb("light", lambda *words, target=None, dispatch_context=None: light_action(*words, target=target, dispatch_context=dispatch_context))
+    open_verb = Verb("open", lambda *words, target=None, dispatch_context=None: open_action(*words, target=target, dispatch_context=dispatch_context))
+    close_verb = Verb("close", lambda *words, target=None, dispatch_context=None: close_action(*words, target=target, dispatch_context=dispatch_context))
+    unlock_verb = Verb("unlock", lambda *words, target=None, dispatch_context=None: unlock_action(*words, target=target, dispatch_context=dispatch_context))
+    xyzzy_verb = Verb("xyzzy", lambda: xyzzy_action(state, game), synonyms=["plugh"], hidden=True)
     return [
         quit_verb,
         exit_verb,
@@ -531,6 +915,11 @@ def _build_core_verbs(
         take_verb,
         drop_verb,
         eat_verb,
+        light_verb,
+        open_verb,
+        close_verb,
+        unlock_verb,
+        xyzzy_verb,
     ]
 
 

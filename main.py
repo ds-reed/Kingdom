@@ -17,12 +17,12 @@ from kingdom.actions import (
     GameActionState,
     build_verbs,
     QuitGame,
+    render_current_room,
 )
 from kingdom.parser import parse_command, resolve_command
 from kingdom.utilities import start_session_logging, stop_session_logging
 from kingdom.terminal_style import (
     clear_screen,
-    trs80_clear_and_show_room,
     trs80_print,
     trs80_prompt,
     TRS80_WHITE,
@@ -51,8 +51,9 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
             yield item
         for box in state.current_room.boxes:
             yield box
-            for item in box.contents:
-                yield item
+            if not box.openable or box.is_open:
+                for item in box.contents:
+                    yield item
 
     player = game.current_player
     if player is not None:
@@ -194,11 +195,12 @@ def main(args: argparse.Namespace | None = None):
         if game.rooms:
             clear_screen()
             current_room = game.rooms[0]
-            trs80_clear_and_show_room(current_room, hero_name=hero_name)
-            print()
         else:
             current_room = None
         action_state = GameActionState(current_room=current_room, hero_name=hero_name)
+        if current_room is not None:
+            render_current_room(action_state, clear=False)
+            print()
 
         verbs = build_verbs(
             action_state,

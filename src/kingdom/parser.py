@@ -14,6 +14,8 @@ DIRECTION_ALIASES = {
     "w": "west",
     "u": "up",
     "d": "down",
+    "above": "up",
+    "below": "down",
 }
 
 @dataclass(frozen=True)
