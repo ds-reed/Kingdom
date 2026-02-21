@@ -1,10 +1,28 @@
+"""Action dispatch model for verb handlers.
+
+Commands are parsed into `(verb, target_words)` and routed through
+`Verb.execute`. Resolution follows this order:
+- A noun target may intercept via target-specific behavior.
+- Otherwise, the verb's registered handler executes.
+
+Handler contract:
+- Most handlers accept `*target_words`, optional `target`, and optional
+    `ctx` / `dispatch_context`.
+- Runtime collaborators are carried through `DispatchContext`
+    (`game`, `state`, save path, and UI callbacks).
+- Handlers should rely on context rather than module-level globals.
+
+This keeps verb wiring simple, supports synonym aliasing, and allows gradual
+signature migration without breaking command behavior.
+"""
+
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
 from kingdom.dispatch_context import DispatchContext
-from kingdom.models import Box, Game, Item, Player, Room, Verb
+from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
 
@@ -48,7 +66,7 @@ LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
 
 def quit_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -92,7 +110,7 @@ def _is_game_command_target(target_words: tuple[str, ...], target: object | None
 
 def save_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -121,7 +139,7 @@ def save_action(
 
 def load_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -175,7 +193,7 @@ def _go_with_state(state: GameActionState, direction: str) -> str:
 
 def go_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -387,7 +405,7 @@ def _require_player_for_action(game: Game) -> Player | str:
 
 def climb_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -425,7 +443,7 @@ def climb_action(
 
 def swim_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -484,7 +502,7 @@ def swim_action(
 
 def exit_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -546,7 +564,7 @@ def _describe_room(room: Room) -> str:
 
 def examine_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -627,7 +645,7 @@ def legacy_stub_action(verb_name: str, *args: str) -> str:
 
 def inventory_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -650,7 +668,7 @@ def inventory_action(
 
 def score_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -670,7 +688,7 @@ def score_action(
 
 def take_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -774,7 +792,7 @@ def take_action(
 
 def drop_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
@@ -918,7 +936,7 @@ def build_dispatch_context(
 
 def eat_action(
     *target_words: str,
-    target: object | None = None,
+    target: Noun | None = None,
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
