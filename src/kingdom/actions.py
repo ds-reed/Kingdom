@@ -46,7 +46,16 @@ LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
     ("tie", ()),
 )
 
-def quit_action() -> None:
+def quit_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
+    if not _confirm("Are you sure you want to quit?", confirm_action):
+        return "Quit cancelled."
     raise QuitGame()
 
 
@@ -82,14 +91,27 @@ def _is_game_command_target(target_words: tuple[str, ...], target: object | None
 
 
 def save_action(
-    game: Game,
-    default_save_path: Path,
-    prompt_action: PromptAction | None,
     *target_words: str,
     target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
 ) -> str:
+    active_ctx = ctx or dispatch_context
+    game = active_ctx.game if active_ctx is not None else None
+    default_save_path = active_ctx.save_path if active_ctx is not None else None
+    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
+    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
+
+    if game is None:
+        return "No game is active yet."
+    if default_save_path is None:
+        return "No save path is configured."
+
     if not _is_game_command_target(target_words, target):
         return "You can't save that."
+
+    if not _confirm("Save game?", confirm_action):
+        return "Save cancelled."
 
     save_path = _prompt_for_path(prompt_action, "Save", default_save_path)
 
@@ -98,15 +120,28 @@ def save_action(
 
 
 def load_action(
-    game: Game,
-    default_save_path: Path,
-    prompt_action: PromptAction | None,
-    state: GameActionState | None = None,
     *target_words: str,
     target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
 ) -> str:
+    active_ctx = ctx or dispatch_context
+    game = active_ctx.game if active_ctx is not None else None
+    default_save_path = active_ctx.save_path if active_ctx is not None else None
+    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
+    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
+    state = active_ctx.state if active_ctx is not None else None
+
+    if game is None:
+        return "No game is active yet."
+    if default_save_path is None:
+        return "No save path is configured."
+
     if not _is_game_command_target(target_words, target):
         return "You can't load that."
+
+    if not _confirm("Load game?", confirm_action):
+        return "Load cancelled."
 
     load_path = _prompt_for_path(prompt_action, "Load", default_save_path)
 
@@ -121,7 +156,7 @@ def load_action(
     return f"Game loaded from {load_path}"
 
 
-def go_action(state: GameActionState, direction: str) -> str:
+def _go_with_state(state: GameActionState, direction: str) -> str:
     if state.current_room is None:
         return "There is nowhere to go."
 
@@ -138,7 +173,44 @@ def go_action(state: GameActionState, direction: str) -> str:
     return ""
 
 
-def xyzzy_action(state: GameActionState, game: Game) -> str:
+def go_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    if state is None:
+        return "There is nowhere to go."
+
+    direction: str | None = None
+    if target is not None:
+        direction = getattr(target, "canonical_direction", None)
+        if direction is None and hasattr(target, "get_noun_name"):
+            direction = normalize_direction_token(target.get_noun_name())
+
+    if direction is None and target_words:
+        direction = normalize_direction_token(target_words[0])
+
+    if not direction:
+        return "Go where?"
+
+    return _go_with_state(state, direction)
+
+
+def xyzzy_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    game = active_ctx.game if active_ctx is not None else None
+    if state is None or game is None:
+        return "Nothing happens."
+
     destination = next((room for room in game.rooms if room.name.lower() == "tower cell"), None)
     if destination is None:
         return "Nothing happens."
@@ -313,7 +385,17 @@ def _require_player_for_action(game: Game) -> Player | str:
     return game.require_player(return_error=True)
 
 
-def climb_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
+def climb_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    if state is None:
+        return "There is nowhere to climb."
+
     if state.current_room is None:
         return "There is nowhere to climb."
 
@@ -330,7 +412,7 @@ def climb_action(state: GameActionState, *target_words: str, target: object | No
     if direction is None:
         vertical_exits = [d for d in state.current_room.available_directions(visible_only=True) if d in {"up", "down"}]
         if len(vertical_exits) == 1:
-            return go_action(state, vertical_exits[0])
+            return _go_with_state(state, vertical_exits[0])
         if not vertical_exits:
             return "There is nothing here to climb."
         return "Climb where? Up or down?"
@@ -338,10 +420,23 @@ def climb_action(state: GameActionState, *target_words: str, target: object | No
     if direction not in {"up", "down"}:
         return "You can only climb up or down."
 
-    return go_action(state, direction)
+    return _go_with_state(state, direction)
 
 
-def swim_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
+def swim_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    game = active_ctx.game if active_ctx is not None else None
+    if state is None:
+        return "There is nowhere to swim."
+    if game is None:
+        return "No game is active yet."
+
     if state.current_room is None:
         return "There is nowhere to swim."
 
@@ -371,7 +466,7 @@ def swim_action(state: GameActionState, game: Game, *target_words: str, target: 
 
         if state.current_room.get_connection(requested_direction) is None:
             return f"You can't go {requested_direction} from here."
-        return go_action(state, requested_direction)
+        return _go_with_state(state, requested_direction)
 
     if requested_direction is not None and state.current_room.get_connection(requested_direction) is None:
         return f"You can't go {requested_direction} from here."
@@ -388,16 +483,21 @@ def swim_action(state: GameActionState, game: Game, *target_words: str, target: 
 
 
 def exit_action(
-    state: GameActionState,
-    confirm_action: ConfirmAction | None,
-    prompt_action: PromptAction | None,
     *target_words: str,
     target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
 ) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
+    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
+
+    if state is None:
+        return "There is nowhere to exit from."
+
     if not target_words and target is None:
-        if not _confirm("Are you sure you want to quit?", confirm_action):
-            return "Quit cancelled."
-        quit_action()
+        return quit_action(dispatch_context=active_ctx)
 
     target_text = " ".join(target_words).strip().lower()
 
@@ -409,7 +509,7 @@ def exit_action(
         if not exits:
             return "There are no visible exits from here."
         if len(exits) == 1:
-            return go_action(state, exits[0])
+            return _go_with_state(state, exits[0])
 
         displayed_exits = _format_exit_choices(exits)
         if prompt_action is None:
@@ -418,17 +518,15 @@ def exit_action(
         chosen_raw = prompt_action(f"Which direction? ({', '.join(displayed_exits)}): ").strip().lower()
         if not chosen_raw:
             return "Exit cancelled."
-        return go_action(state, chosen_raw)
+        return _go_with_state(state, chosen_raw)
 
     if target_text in {"game", "program"}:
-        if not _confirm("Are you sure you want to quit?", confirm_action):
-            return "Quit cancelled."
-        quit_action()
+        return quit_action(dispatch_context=active_ctx)
 
     if target_words:
         maybe_direction = normalize_direction_token(target_words[0])
         if maybe_direction in Room.DIRECTIONS:
-            return go_action(state, maybe_direction)
+            return _go_with_state(state, maybe_direction)
 
     return "Exit where?"
 
@@ -446,7 +544,17 @@ def _describe_room(room: Room) -> str:
     return f"{long_description} {exits_text}"
 
 
-def examine_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
+def examine_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    if state is None:
+        return "There is nothing to examine."
+
     if state.current_room is None:
         return "There is nothing to examine."
 
@@ -517,7 +625,17 @@ def legacy_stub_action(verb_name: str, *args: str) -> str:
     return f"'{verb_name}' is recognized but not implemented yet."
 
 
-def inventory_action(game: Game) -> str:
+def inventory_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    game = active_ctx.game if active_ctx is not None else None
+    if game is None:
+        return "No game is active yet."
+
     player = _require_player_for_action(game)
     if isinstance(player, str):
         return player
@@ -530,7 +648,17 @@ def inventory_action(game: Game) -> str:
     return f"{player.name}'s sack contains ({len(sack_items)} {item_label}): {', '.join(sack_items)}"
 
 
-def score_action(game: Game) -> str:
+def score_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    game = active_ctx.game if active_ctx is not None else None
+    if game is None:
+        return "No game is active yet."
+
     score_value = getattr(game, "score", 0)
     try:
         normalized_score = int(score_value)
@@ -540,7 +668,20 @@ def score_action(game: Game) -> str:
     return f"Your score is {normalized_score}."
 
 
-def take_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
+def take_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    game = active_ctx.game if active_ctx is not None else None
+    if state is None:
+        return "There is nothing to take here."
+    if game is None:
+        return "No game is active yet."
+
     if state.current_room is None:
         return "There is nothing to take here."
 
@@ -631,7 +772,20 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
     return f"{player.name} takes {found_item.name} from {found_container_name}."
 
 
-def drop_action(state: GameActionState, game: Game, *target_words: str, target: object | None = None) -> str:
+def drop_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
+    active_ctx = ctx or dispatch_context
+    state = active_ctx.state if active_ctx is not None else None
+    game = active_ctx.game if active_ctx is not None else None
+    if state is None:
+        return "There is nowhere to drop anything."
+    if game is None:
+        return "No game is active yet."
+
     if state.current_room is None:
         return "There is nowhere to drop anything."
 
@@ -749,20 +903,28 @@ def hide_exit(room: Room, direction: str) -> bool:
 def build_dispatch_context(
     state: GameActionState,
     game: Game,
+    save_path: Path | None = None,
     confirm_action: ConfirmAction | None = None,
     prompt_action: PromptAction | None = None,
 ) -> DispatchContext:
     return DispatchContext(
         state=state,
         game=game,
+        save_path=save_path,
         confirm_callback=confirm_action,
         prompt_callback=prompt_action,
     )
 
 
-def eat_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
+def eat_action(
+    *target_words: str,
+    target: object | None = None,
+    ctx: DispatchContext | None = None,
+    dispatch_context: DispatchContext | None = None,
+) -> str:
     default_refuse = "You can't eat that."
     default_success = "YUM! TASTES GOOD."
+    active_ctx = ctx or dispatch_context
 
     if target is None:
         return "Eat what?"
@@ -774,7 +936,7 @@ def eat_action(*target_words: str, target: object | None = None, dispatch_contex
         return target.eat_refuse_string or default_refuse
 
     missing_message = target.eat_missing_string or default_refuse
-    consumed, error_message = consume_if_getable_and_present(target, dispatch_context, missing_message)
+    consumed, error_message = consume_if_getable_and_present(target, active_ctx, missing_message)
     if not consumed:
         return error_message or target.eat_refuse_string or default_refuse
 
@@ -1098,59 +1260,38 @@ def _build_core_verbs(
     confirm_action: ConfirmAction | None,
     prompt_action: PromptAction | None,
 ) -> list[Verb]:
-    player_default_save_path = _derive_player_save_path(default_save_path, state.hero_name)
-
-    def confirmed_quit_action() -> str | None:
-        if not _confirm("Are you sure you want to quit?", confirm_action):
-            return "Quit cancelled."
-        quit_action()
-
-    def confirmed_save_action(*words: str, target: object | None = None) -> str:
-        if not _is_game_command_target(words, target):
-            return "You can't save that."
-        if not _confirm("Save game?", confirm_action):
-            return "Save cancelled."
-        return save_action(game, player_default_save_path, prompt_action, *words, target=target)
-
-    def confirmed_load_action(*words: str, target: object | None = None) -> str:
-        if not _is_game_command_target(words, target):
-            return "You can't load that."
-        if not _confirm("Load game?", confirm_action):
-            return "Load cancelled."
-        return load_action(game, player_default_save_path, prompt_action, state, *words, target=target)
-
-    quit_verb = Verb("quit", confirmed_quit_action, synonyms=["q"])
+    quit_verb = Verb("quit", quit_action, synonyms=["q"])
     exit_verb = Verb(
         "exit",
-        lambda *words, target=None: exit_action(state, confirm_action, prompt_action, *words, target=target),
+        exit_action,
         synonyms=["leave"],
     )
     go_verb = Verb(
         "go",
-        lambda direction: go_action(state, direction),
+        go_action,
         synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"],
     )
-    swim_verb = Verb("swim", lambda *words, target=None: swim_action(state, game, *words, target=target))
-    climb_verb = Verb("climb", lambda *words, target=None: climb_action(state, *words, target=target))
-    save_verb = Verb("save", confirmed_save_action, synonyms=["write"])
-    load_verb = Verb("load", confirmed_load_action, synonyms=["restore"])
-    examine_verb = Verb("examine", lambda *words, target=None: examine_action(state, *words, target=target), synonyms=["inspect", "look"])
-    inventory_verb = Verb("inventory", lambda: inventory_action(game), synonyms=["inven"])
-    score_verb = Verb("score", lambda: score_action(game))
-    take_verb = Verb("take", lambda *words, target=None: take_action(state, game, *words, target=target), synonyms=["get"])
-    drop_verb = Verb("drop", lambda *words, target=None: drop_action(state, game, *words, target=target))
-    eat_verb = Verb("eat", lambda *words, target=None: eat_action(*words, target=target))
-    rub_verb = Verb("rub", lambda *words, target=None, dispatch_context=None: rub_action(*words, target=target, dispatch_context=dispatch_context))
-    talk_verb = Verb("talk", lambda *words, target=None, dispatch_context=None: talk_action(*words, target=target, dispatch_context=dispatch_context), synonyms=["speak"])
-    ask_verb = Verb("ask", lambda *words, target=None, dispatch_context=None: ask_action(*words, target=target, dispatch_context=dispatch_context), synonyms=["question"])
-    say_verb = Verb("say", lambda *words, target=None, dispatch_context=None: say_action(*words, target=target, dispatch_context=dispatch_context))
-    make_verb = Verb("make", lambda *words, target=None, dispatch_context=None: make_action(*words, target=target, dispatch_context=dispatch_context))
-    light_verb = Verb("light", lambda *words, target=None, dispatch_context=None: light_action(*words, target=target, dispatch_context=dispatch_context))
-    insert_verb = Verb("insert", lambda *words, target=None, dispatch_context=None: insert_action(*words, target=target, dispatch_context=dispatch_context))
-    open_verb = Verb("open", lambda *words, target=None, dispatch_context=None: open_action(*words, target=target, dispatch_context=dispatch_context))
-    close_verb = Verb("close", lambda *words, target=None, dispatch_context=None: close_action(*words, target=target, dispatch_context=dispatch_context))
-    unlock_verb = Verb("unlock", lambda *words, target=None, dispatch_context=None: unlock_action(*words, target=target, dispatch_context=dispatch_context))
-    xyzzy_verb = Verb("xyzzy", lambda: xyzzy_action(state, game), synonyms=["plugh"], hidden=True)
+    swim_verb = Verb("swim", swim_action)
+    climb_verb = Verb("climb", climb_action)
+    save_verb = Verb("save", save_action, synonyms=["write"])
+    load_verb = Verb("load", load_action, synonyms=["restore"])
+    examine_verb = Verb("examine", examine_action, synonyms=["inspect", "look"])
+    inventory_verb = Verb("inventory", inventory_action, synonyms=["inven"])
+    score_verb = Verb("score", score_action)
+    take_verb = Verb("take", take_action, synonyms=["get"])
+    drop_verb = Verb("drop", drop_action)
+    eat_verb = Verb("eat", eat_action)
+    rub_verb = Verb("rub", rub_action)
+    talk_verb = Verb("talk", talk_action, synonyms=["speak"])
+    ask_verb = Verb("ask", ask_action, synonyms=["question"])
+    say_verb = Verb("say", say_action)
+    make_verb = Verb("make", make_action)
+    light_verb = Verb("light", light_action)
+    insert_verb = Verb("insert", insert_action)
+    open_verb = Verb("open", open_action)
+    close_verb = Verb("close", close_action)
+    unlock_verb = Verb("unlock", unlock_action)
+    xyzzy_verb = Verb("xyzzy", xyzzy_action, synonyms=["plugh"], hidden=True)
     return [
         quit_verb,
         exit_verb,
