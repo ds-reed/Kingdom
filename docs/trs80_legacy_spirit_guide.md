@@ -11,14 +11,14 @@ Goal: preserve the spirit of early home computing adventure design (puzzle flavo
 
 ## Legacy Verb Corpus (as declared in source)
 
+
 From `Castle_1.BAS` DATA tables:
 
-- movement/core: GO, WALK, LOOK, SLIDE, GET, TAKE, DROP, THROW, INVENTORY, INVEN
-- interaction: READ, OPEN, KICK, KNOCK, INSERT, SHOOT, CLIMB, QUIT, UNLOCK, CLOSE
-- puzzle/system: TURN, RUN, LIGHT, SCORE, WASH, SWIM, PUSH, DIAL, EAT
-- action/edge: SMASH, BREAK, TORCH, DRINK, RUB, DRAG, SAVE, SKIP, KILL, PRESS
-- traversal rope: SWING, UNTIE, TIE
-
+ movement/core: GO, WALK, LOOK, SLIDE, GET, TAKE, DROP, THROW, INVENTORY, INVEN
+ interaction: READ, OPEN, KICK, KNOCK, INSERT, SHOOT, CLIMB, QUIT, UNLOCK, CLOSE
+ puzzle/system: TURN, RUN, LIGHT, SCORE, WASH, SWIM, PUSH, DIAL, EAT
+ action/edge: SMASH, BREAK, DRINK, RUB, DRAG, SAVE, SKIP, KILL, PRESS
+ traversal rope: SWING, UNTIE, TIE
 ## What the Old Game Did Well (Worth Keeping)
 
 - Strong command personality (specific prompts like “READ WHAT?”, “INSERT IT INTO WHAT?”)

@@ -20,6 +20,7 @@ Guideline:
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -35,5 +36,6 @@ PromptCallback = Callable[[str], str]
 class DispatchContext:
     game: "Game | None" = None
     state: "GameActionState | None" = None
+    save_path: Path | None = None
     confirm_callback: ConfirmCallback | None = None
     prompt_callback: PromptCallback | None = None

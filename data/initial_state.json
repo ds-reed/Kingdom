@@ -10,16 +10,16 @@
                 {
                     "name": "an old wooden torch",
                     "noun_name": "torch",
-                    "light_source": true,
+                    "is_lightable": true,
                     "is_lit": false
                 },
                 {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
                     "pickupable": false,
-                    "openable": true,
+                    "is_openable": true,
                     "is_open": false,
-                    "lockable": true,
+                    "is_lockable": true,
                     "is_locked": true,
                     "unlock_key": "key",
                     "locked_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
@@ -33,7 +33,7 @@
             "boxes": [
                 {
                     "box_name": "a brown greasy lunch bag",
-                    "openable": true,
+                    "is_openable": true,
                     "is_open": false,
                     "open_description": "A brown greasy lunch bag sits here with its top unfolded open.",
                     "closed_description": "A brown greasy lunch bag sits here with its top folded shut.",

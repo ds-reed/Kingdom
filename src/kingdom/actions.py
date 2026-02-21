@@ -26,6 +26,22 @@ from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
 
+from kingdom.state_changing_verbs import StateChangingVerbHandler
+state_changer = StateChangingVerbHandler()
+
+
+def adapt_state_changer(method):
+    """
+    Temporary adapter: wraps a StateChangingVerbHandler method so it matches
+    the Verb handler signature used by the dispatch system.
+
+    Remove this once all verb handlers share a unified signature.
+    """
+    def handler(*args, target=None, ctx=None, dispatch_context=None, **kwargs):
+        context = dispatch_context or ctx
+        return method(context, target)
+    return handler
+
 
 @dataclass
 class GameActionState:
@@ -302,7 +318,7 @@ def _is_dark_room(room: Room) -> bool:
     if not bool(getattr(room, "is_dark", False)):
         return False
 
-    has_lit_source = getattr(room, "has_lit_light_source", None)
+    has_lit_source = getattr(room, "has_lit_is_lightable", None)
     if callable(has_lit_source) and has_lit_source():
         return False
 
@@ -357,7 +373,7 @@ def render_current_room(state: GameActionState, clear: bool = True) -> None:
 
 
 def _describe_box_contents(box: Box) -> str:
-    if box.openable and not box.is_open:
+    if box.is_openable and not box.is_open:
         return f"The {box.get_noun_name()} is closed."
     if not box.contents:
         return f"The {box.get_noun_name()} is empty."
@@ -370,13 +386,13 @@ def _build_take_sources(room: Room) -> list[tuple[str, list[Item]]]:
     sources.extend(
         (box.box_name, box.contents)
         for box in room.boxes
-        if not box.openable or box.is_open
+        if not box.is_openable or box.is_open
     )
     return sources
 
 
 def _closed_room_boxes(room: Room) -> list[Box]:
-    return [box for box in room.boxes if box.openable and not box.is_open]
+    return [box for box in room.boxes if box.is_openable and not box.is_open]
 
 
 def _move_item_to_sack(item: Item, player) -> None:
@@ -597,7 +613,7 @@ def examine_action(
     if target_name in _LOOK_INSIDE_TOKENS:
         open_boxes = [
             box for box in state.current_room.boxes
-            if not box.openable or box.is_open
+            if not box.is_openable or box.is_open
         ]
         if not open_boxes:
             return "There are no open containers to look inside."
@@ -996,32 +1012,6 @@ def _apply_open_close_exit_side_effect(target: object, desired_open: bool, dispa
     hide_exit(current_room, direction)
 
 
-def _toggle_open_state(target: object, desired_open: bool, dispatch_context: DispatchContext | None = None) -> str:
-    verb_word = "open" if desired_open else "close"
-    current = "open" if desired_open else "closed"
-
-    if target is None:
-        return f"{verb_word.capitalize()} what?"
-
-    if not isinstance(target, (Item, Box)):
-        return f"You can't {verb_word} that."
-
-    if not getattr(target, "openable", False):
-        return f"You can't {verb_word} that."
-
-    if desired_open and getattr(target, "lockable", False) and getattr(target, "is_locked", False):
-        target_name = target.get_noun_name()
-        return f"The {target_name} is locked."
-
-    if bool(getattr(target, "is_open", False)) == desired_open:
-        return f"It's already {current}."
-
-    target.is_open = desired_open
-    _apply_open_close_exit_side_effect(target, desired_open, dispatch_context)
-    target_name = target.get_noun_name()
-    return f"You {verb_word} the {target_name}."
-
-
 def _player_has_key(dispatch_context: DispatchContext | None, key_name: str | None) -> bool:
     return _player_has_item(dispatch_context, key_name)
 
@@ -1044,27 +1034,6 @@ def _player_has_item(dispatch_context: DispatchContext | None, item_name: str | 
         if callable(matches_reference) and matches_reference(item_token):
             return True
     return False
-
-
-def light_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if target is None:
-        return "Light what?"
-
-    if not isinstance(target, Item):
-        return "You can't light that."
-
-    if not getattr(target, "light_source", False):
-        return "You can't light that."
-
-    target_name = target.get_noun_name()
-    if getattr(target, "is_lit", False):
-        return f"The {target_name} is already lit."
-
-    if not _player_has_item(dispatch_context, "lighter"):
-        return "You need a lighter."
-
-    target.is_lit = True
-    return f"You light the {target_name}."
 
 
 def rub_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
@@ -1212,38 +1181,8 @@ def ask_action(*target_words: str, target: object | None = None, dispatch_contex
     return "They have no answer for you."
 
 
-def unlock_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if target is None:
-        return "Unlock what?"
-
-    if not isinstance(target, (Item, Box)):
-        return "You can't unlock that."
-
-    if not getattr(target, "lockable", False):
-        return "You can't unlock that."
-
-    if not getattr(target, "is_locked", False):
-        return "It's already unlocked."
-
-    key_name = getattr(target, "unlock_key", None)
-    if key_name and not _player_has_key(dispatch_context, key_name):
-        return f"You need the {key_name}."
-
-    target.is_locked = False
-    target_name = target.get_noun_name()
-    return f"You unlock the {target_name}."
-
-
 def insert_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     return unlock_action(*target_words, target=target, dispatch_context=dispatch_context)
-
-
-def open_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    return _toggle_open_state(target, desired_open=True, dispatch_context=dispatch_context)
-
-
-def close_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    return _toggle_open_state(target, desired_open=False, dispatch_context=dispatch_context)
 
 
 def _register_aliases(verb_lookup: dict[str, Verb], verb: Verb) -> None:
@@ -1304,11 +1243,17 @@ def _build_core_verbs(
     ask_verb = Verb("ask", ask_action, synonyms=["question"])
     say_verb = Verb("say", say_action)
     make_verb = Verb("make", make_action)
-    light_verb = Verb("light", light_action)
+    light_verb = Verb("light", adapt_state_changer(state_changer.light))
+    # light_verb = Verb("light", state_changer.light)   # todo: refactor test and re-enable direct use of state_changer method
+    extinguish_verb = Verb("extinguish", adapt_state_changer(state_changer.extinguish))
+    # extinguish_verb = Verb("extinguish", state_changer.extinguish)   # todo: refactor test and re-enable direct use of state_changer method
     insert_verb = Verb("insert", insert_action)
-    open_verb = Verb("open", open_action)
-    close_verb = Verb("close", close_action)
-    unlock_verb = Verb("unlock", unlock_action)
+    open_verb = Verb("open", adapt_state_changer(state_changer.open))
+    # open_verb = Verb("open", state_changer.open)   # todo: refactor test and re-enable direct use of state_changer method
+    close_verb = Verb("close", adapt_state_changer(state_changer.close))
+    # close_verb = Verb("close", state_changer.close)   # todo: refactor test and re-enable direct use of state_changer method
+    unlock_verb = Verb("unlock", adapt_state_changer(state_changer.unlock))
+    # unlock_verb = Verb("unlock", state_changer.unlock)   # todo: refactor test and re-enable direct use of state_changer method
     xyzzy_verb = Verb("xyzzy", xyzzy_action, synonyms=["plugh"], hidden=True)
     return [
         quit_verb,
@@ -1330,6 +1275,7 @@ def _build_core_verbs(
         say_verb,
         make_verb,
         light_verb,
+        extinguish_verb,
         insert_verb,
         open_verb,
         close_verb,

@@ -55,7 +55,7 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
             yield item
         for box in state.current_room.boxes:
             yield box
-            if not box.openable or box.is_open:
+            if not box.is_openable or box.is_open:
                 for item in box.contents:
                     yield item
 

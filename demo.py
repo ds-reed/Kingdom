@@ -5,11 +5,11 @@ import sys
 sys.path.append("./src")
 
 from kingdom.models import Game
-from kingdom.actions import GameActionState, QuitGame, build_verbs
+from kingdom.actions import GameActionState, QuitGame, build_dispatch_context, build_verbs
 from kingdom.parser import resolve_command
 
 
-def _run_command(verbs, command):
+def _run_command(verbs, command, dispatch_context=None):
     resolved_command = resolve_command(command, known_verbs=verbs.keys())
     if resolved_command is None:
         return "UNKNOWN"
@@ -22,7 +22,7 @@ def _run_command(verbs, command):
         return "UNKNOWN"
 
     try:
-        return verb.execute(*args)
+        return verb.execute(*args, dispatch_context=dispatch_context)
     except QuitGame:
         return "QUIT"
     except TypeError:
@@ -49,32 +49,33 @@ def demo():
 
     action_state = GameActionState(current_room=game.rooms[0] if game.rooms else None)
     verbs = build_verbs(action_state, game, demo_save_path, confirm_action=lambda _prompt: True)
+    dispatch_context = build_dispatch_context(action_state, game, save_path=demo_save_path)
 
     _expect(set(["go", "save", "load", "examine", "verbs", "quit"]).issubset(verbs.keys()), "Core verbs are registered")
 
-    verbs_result = _run_command(verbs, "verbs")
+    verbs_result = _run_command(verbs, "verbs", dispatch_context=dispatch_context)
     _expect("Available verbs:" in verbs_result, "verbs command returns listing")
 
-    examine_result = _run_command(verbs, "examine")
+    examine_result = _run_command(verbs, "examine", dispatch_context=dispatch_context)
     _expect(isinstance(examine_result, str) and len(examine_result.strip()) > 0, "examine command describes current room")
 
-    go_result = _run_command(verbs, "go up")
+    go_result = _run_command(verbs, "go up", dispatch_context=dispatch_context)
     _expect(go_result == "", "go command moves to connected room")
 
-    short_dir_result = _run_command(verbs, "n")
+    short_dir_result = _run_command(verbs, "n", dispatch_context=dispatch_context)
     _expect(short_dir_result in {"", "UNKNOWN"}, "single-letter directions are handled")
 
-    save_result = _run_command(verbs, "save")
+    save_result = _run_command(verbs, "save", dispatch_context=dispatch_context)
     _expect("Game saved to" in save_result, "save command writes demo save file")
     _expect(demo_save_path.exists(), "Demo save file exists")
 
-    load_result = _run_command(verbs, "load")
+    load_result = _run_command(verbs, "load", dispatch_context=dispatch_context)
     _expect("Game loaded from" in load_result, "load command restores from demo save file")
 
-    unknown_result = _run_command(verbs, "dance")
+    unknown_result = _run_command(verbs, "dance", dispatch_context=dispatch_context)
     _expect(unknown_result == "UNKNOWN", "Unknown commands are detected")
 
-    quit_result = _run_command(verbs, "quit")
+    quit_result = _run_command(verbs, "quit", dispatch_context=dispatch_context)
     _expect(quit_result == "QUIT", "quit command returns QUIT sentinel")
 
     print("\nAll demo smoke tests passed.")

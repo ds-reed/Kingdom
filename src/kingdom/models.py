@@ -42,8 +42,8 @@ def _serialize_item(item: "Item") -> dict:
     if item.presence_string:
         payload["presence_string"] = item.presence_string
 
-    if getattr(item, "openable", False):
-        payload["openable"] = True
+    if getattr(item, "is_openable", False):
+        payload["is_openable"] = True
 
     if getattr(item, "is_open", False):
         payload["is_open"] = True
@@ -63,8 +63,8 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "close_hides_exit", False):
         payload["close_hides_exit"] = True
 
-    if getattr(item, "lockable", False):
-        payload["lockable"] = True
+    if getattr(item, "is_lockable", False):
+        payload["is_lockable"] = True
 
     if getattr(item, "is_locked", False):
         payload["is_locked"] = True
@@ -78,8 +78,8 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "edible", False):
         payload["edible"] = True
 
-    if getattr(item, "light_source", False):
-        payload["light_source"] = True
+    if getattr(item, "is_lightable", False):
+        payload["is_lightable"] = True
 
     if getattr(item, "is_lit", False):
         payload["is_lit"] = True
@@ -133,8 +133,8 @@ def _serialize_box(box: "Box") -> dict:
     if box.presence_string:
         payload["presence_string"] = box.presence_string
 
-    if getattr(box, "openable", False):
-        payload["openable"] = True
+    if getattr(box, "is_openable", False):
+        payload["is_openable"] = True
 
     if getattr(box, "is_open", False):
         payload["is_open"] = True
@@ -145,8 +145,8 @@ def _serialize_box(box: "Box") -> dict:
     if getattr(box, "closed_description", None):
         payload["closed_description"] = box.closed_description
 
-    if getattr(box, "lockable", False):
-        payload["lockable"] = True
+    if getattr(box, "is_lockable", False):
+        payload["is_lockable"] = True
 
     if getattr(box, "is_locked", False):
         payload["is_locked"] = True
@@ -178,19 +178,19 @@ def _construct_item_from_spec(item_spec) -> "Item":
         refuse_string=refuse_string,
         presence_string=presence_string,
         noun_name=item_spec.get("noun_name"),
-        openable=item_spec.get("openable", False),
+        is_openable=item_spec.get("is_openable", False),
         is_open=item_spec.get("is_open", False),
         open_description=item_spec.get("open_description"),
         closed_description=item_spec.get("closed_description"),
         open_exit_direction=item_spec.get("open_exit_direction"),
         open_exit_destination=item_spec.get("open_exit_destination"),
         close_hides_exit=item_spec.get("close_hides_exit", False),
-        lockable=item_spec.get("lockable", False),
+        is_lockable=item_spec.get("is_lockable", False),
         is_locked=item_spec.get("is_locked", False),
         unlock_key=item_spec.get("unlock_key"),
         locked_description=item_spec.get("locked_description"),
         edible=item_spec.get("edible", False),
-        light_source=item_spec.get("light_source", False),
+        is_lightable=item_spec.get("is_lightable", False),
         is_lit=item_spec.get("is_lit", False),
         rubbable=item_spec.get("rubbable", False),
         rubbed_name=item_spec.get("rubbed_name"),
@@ -467,19 +467,19 @@ class Item(Noun):
         refuse_string=None,
         presence_string=None,
         noun_name=None,
-        openable=False,
+        is_openable=False,
         is_open=False,
         open_description=None,
         closed_description=None,
         open_exit_direction=None,
         open_exit_destination=None,
         close_hides_exit=False,
-        lockable=False,
+        is_lockable=False,
         is_locked=False,
         unlock_key=None,
         locked_description=None,
         edible=False,
-        light_source=False,
+        is_lightable=False,
         is_lit=False,
         rubbable=False,
         rubbed_name=None,
@@ -509,7 +509,7 @@ class Item(Noun):
         self.pickupable = pickupable
         self.refuse_string = refuse_string or f"You can't pick up {self.name}"
         self.presence_string = presence_string
-        self.openable = bool(openable)
+        self.is_openable = bool(is_openable)
         self.is_open = bool(is_open)
         self.open_description = open_description
         self.closed_description = closed_description
@@ -524,7 +524,7 @@ class Item(Noun):
             else None
         )
         self.close_hides_exit = bool(close_hides_exit)
-        self.lockable = bool(lockable)
+        self.is_lockable = bool(is_lockable)
         self.is_locked = bool(is_locked)
         self.unlock_key = (
             str(unlock_key).strip().lower()
@@ -533,7 +533,7 @@ class Item(Noun):
         )
         self.locked_description = locked_description
         self.edible = bool(edible)
-        self.light_source = bool(light_source)
+        self.is_lightable = bool(is_lightable)
         self.is_lit = bool(is_lit)
         self.rubbable = bool(rubbable)
         self.rubbed_name = str(rubbed_name).strip() if rubbed_name is not None and str(rubbed_name).strip() else None
@@ -549,9 +549,9 @@ class Item(Noun):
         Item.all_items.append(self)
 
     def get_presence_text(self):
-        if self.lockable and self.is_locked and self.locked_description:
+        if self.is_lockable and self.is_locked and self.locked_description:
             return self.locked_description
-        if self.openable:
+        if self.is_openable:
             if self.is_open and self.open_description:
                 return self.open_description
             if not self.is_open and self.closed_description:
@@ -623,11 +623,11 @@ class Box(Noun):
         box_name,
         capacity=None,
         presence_string=None,
-        openable=False,
+        is_openable=False,
         is_open=False,
         open_description=None,
         closed_description=None,
-        lockable=False,
+        is_lockable=False,
         is_locked=False,
         unlock_key=None,
         locked_description=None,
@@ -638,11 +638,11 @@ class Box(Noun):
         self.contents = []
         self.capacity = capacity  # None = unlimited
         self.presence_string = presence_string
-        self.openable = bool(openable)
+        self.is_openable = bool(is_openable)
         self.is_open = bool(is_open)
         self.open_description = open_description
         self.closed_description = closed_description
-        self.lockable = bool(lockable)
+        self.is_lockable = bool(is_lockable)
         self.is_locked = bool(is_locked)
         self.unlock_key = (
             str(unlock_key).strip().lower()
@@ -653,9 +653,9 @@ class Box(Noun):
         Box.all_boxes.append(self)
 
     def get_presence_text(self):
-        if self.lockable and self.is_locked and self.locked_description:
+        if self.is_lockable and self.is_locked and self.locked_description:
             return self.locked_description
-        if self.openable:
+        if self.is_openable:
             if self.is_open and self.open_description:
                 return self.open_description
             if not self.is_open and self.closed_description:
@@ -868,16 +868,16 @@ class Room(Noun):
             return directions
         return [direction for direction in directions if direction not in self.hidden_directions]
 
-    def has_lit_light_source(self):
+    def has_lit_is_lightable(self):
         for item in self.items:
-            if getattr(item, "light_source", False) and getattr(item, "is_lit", False):
+            if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                 return True
 
         for box in self.boxes:
-            if box.openable and not box.is_open:
+            if box.is_openable and not box.is_open:
                 continue
             for item in box.contents:
-                if getattr(item, "light_source", False) and getattr(item, "is_lit", False):
+                if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                     return True
 
         return False
@@ -1062,11 +1062,11 @@ def _construct_boxes(data):
         new_box = Box(
             entry["box_name"],
             presence_string=entry.get("presence_string"),
-            openable=entry.get("openable", False),
+            is_openable=entry.get("is_openable", False),
             is_open=entry.get("is_open", False),
             open_description=entry.get("open_description"),
             closed_description=entry.get("closed_description"),
-            lockable=entry.get("lockable", False),
+            is_lockable=entry.get("is_lockable", False),
             is_locked=entry.get("is_locked", False),
             unlock_key=entry.get("unlock_key"),
             locked_description=entry.get("locked_description"),
@@ -1104,11 +1104,11 @@ def _construct_rooms(data):
             box = Box(
                 box_data.get("box_name"),
                 presence_string=box_data.get("presence_string"),
-                openable=box_data.get("openable", False),
+                is_openable=box_data.get("is_openable", False),
                 is_open=box_data.get("is_open", False),
                 open_description=box_data.get("open_description"),
                 closed_description=box_data.get("closed_description"),
-                lockable=box_data.get("lockable", False),
+                is_lockable=box_data.get("is_lockable", False),
                 is_locked=box_data.get("is_locked", False),
                 unlock_key=box_data.get("unlock_key"),
                 locked_description=box_data.get("locked_description"),
