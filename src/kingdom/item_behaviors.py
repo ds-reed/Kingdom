@@ -1,11 +1,12 @@
 from typing import Callable
 
-ItemBehaviorHandler = Callable[[object, str, tuple[str, ...], dict | None], str | None]
+from kingdom.dispatch_context import DispatchContext
+
+ItemBehaviorHandler = Callable[[object, str, tuple[str, ...], DispatchContext | None], str | None]
 
 _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
 _DEFAULT_ITEM_BEHAVIORS: dict[str, tuple[str, ...]] = {
     "fish": ("eat_fish",),
-    "djinni": ("talk_djinni",),
 }
 
 
@@ -34,11 +35,11 @@ def get_default_item_behavior_ids(noun_name: str | None) -> tuple[str, ...]:
     return _DEFAULT_ITEM_BEHAVIORS.get(str(noun_name).strip().lower(), ())
 
 
-def _spawn_room_item(dispatch_context: dict | None, *, name: str, noun_name: str, pickupable: bool, presence_string: str, refuse_string: str) -> None:
-    if not dispatch_context:
+def _spawn_room_item(dispatch_context: DispatchContext | None, *, name: str, noun_name: str, pickupable: bool, presence_string: str, refuse_string: str) -> None:
+    if dispatch_context is None:
         return
 
-    state = dispatch_context.get("state")
+    state = dispatch_context.state
     room = getattr(state, "current_room", None)
     if room is None:
         return
@@ -62,18 +63,18 @@ def _spawn_room_item(dispatch_context: dict | None, *, name: str, noun_name: str
 
 
 @register_item_behavior("eat_fish")
-def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: dict | None) -> str | None:
+def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: DispatchContext | None) -> str | None:
     if verb_name != "eat":
         return None
-
-    is_present = (dispatch_context or {}).get("is_present_in_known_containers") if dispatch_context else None
-    if not callable(is_present):
-        return "I don't understand that command."
 
     if not getattr(item, "pickupable", True):
         return "You can't eat that."
 
-    if not is_present(item, dispatch_context):
+    remove_method = getattr(item, "_remove_from_known_containers", None)
+    if not callable(remove_method):
+        return "I don't understand that command."
+
+    if not remove_method(dispatch_context=dispatch_context):
         return "YOU HAVE NO FISH!"
 
     _spawn_room_item(
@@ -87,18 +88,3 @@ def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispa
 
     return "YOU BARELY GET THE FISH TO YOUR NOSE WHEN YOU VOMIT VIOLENTLY ON A NEARBY WALL."
 
-
-@register_item_behavior("talk_djinni")
-def talk_djinni_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: dict | None) -> str | None:
-    if verb_name == "talk":
-        return "The Djinni bows and smiles. 'Speak your wish clearly, traveler.'"
-
-    if verb_name == "ask":
-        topic = " ".join(str(part).strip() for part in args if str(part).strip()).strip()
-        if topic.lower().startswith("about "):
-            topic = topic[6:].strip()
-        if topic:
-            return f"The Djinni strokes his beard. 'About {topic}? First prove your wit, then we bargain.'"
-        return "Ask about what?"
-
-    return None

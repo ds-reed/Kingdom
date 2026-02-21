@@ -19,6 +19,7 @@ from kingdom.actions import (
     build_verbs,
     GameOver,
     QuitGame,
+    go_action,
     render_current_room,
 )
 from kingdom.parser import parse_command, resolve_command
@@ -88,6 +89,10 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
     for noun_match in parse_result.nouns:
         for candidate in local_candidates:
             if candidate.matches_reference(noun_match.text):
+                canonical_direction = getattr(candidate, "canonical_direction", None)
+                if isinstance(canonical_direction, str):
+                    return go_action(state, canonical_direction)
+
                 can_handle, refusal_message = candidate.can_handle_verb(
                     "",
                     dispatch_context=dispatch_context,
@@ -240,8 +245,9 @@ def main(args: argparse.Namespace | None = None):
             )
             if resolved_command is None:
                 implicit_result = _try_implicit_noun_action(game, action_state, command)
-                if implicit_result:
-                    trs80_print(implicit_result, style=TRS80_WHITE)
+                if implicit_result is not None:
+                    if implicit_result:
+                        trs80_print(implicit_result, style=TRS80_WHITE)
                     continue
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
                 continue
@@ -263,7 +269,12 @@ def main(args: argparse.Namespace | None = None):
                 result = verb.execute(
                     *args,
                     target=target_noun,
-                    dispatch_context=build_dispatch_context(action_state, game),
+                    dispatch_context=build_dispatch_context(
+                        action_state,
+                        game,
+                        confirm_action=confirm_action,
+                        prompt_action=trs80_prompt,
+                    ),
                 )
             except QuitGame:
                 trs80_print("Goodbye!", style=TRS80_WHITE)

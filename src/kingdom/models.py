@@ -3,6 +3,7 @@ import inspect
 from pathlib import Path
 from typing import Iterable
 
+from kingdom.dispatch_context import DispatchContext
 from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
 
 
@@ -333,7 +334,7 @@ class Verb(Noun):
     def all_names(self):
         return (self.verb, *self.synonyms)
     
-    def execute(self, *args, target=None, dispatch_context: dict | None = None, **kwargs):
+    def execute(self, *args, target=None, dispatch_context: DispatchContext | None = None, **kwargs):
         """Execute this verb with optional noun double-dispatch."""
         if target is not None:
             can_handle, refusal_message = target.can_handle_verb(
@@ -391,8 +392,8 @@ class DirectionNoun(Noun):
         if verb_name != "":
             return super().can_handle_verb(verb_name, *args, **kwargs)
 
-        dispatch_context = kwargs.get("dispatch_context") or {}
-        state = dispatch_context.get("state")
+        dispatch_context = kwargs.get("dispatch_context")
+        state = dispatch_context.state if isinstance(dispatch_context, DispatchContext) else None
         current_room = getattr(state, "current_room", None)
         if current_room is None:
             return False, "There is nowhere to go."
@@ -406,11 +407,18 @@ class DirectionNoun(Noun):
         if verb_name != "":
             return super().handle_verb(verb_name, *args, **kwargs)
 
-        dispatch_context = kwargs.get("dispatch_context") or {}
-        move_direction = dispatch_context.get("move_direction")
-        if callable(move_direction):
-            return move_direction(self.canonical_direction)
-        return None
+        dispatch_context = kwargs.get("dispatch_context")
+        state = dispatch_context.state if isinstance(dispatch_context, DispatchContext) else None
+        current_room = getattr(state, "current_room", None)
+        if current_room is None:
+            return "There is nowhere to go."
+
+        destination = current_room.get_connection(self.canonical_direction)
+        if destination is None:
+            return f"You can't go {self.canonical_direction} from here."
+
+        state.current_room = destination
+        return f"You go {self.canonical_direction}."
 
 
 def ensure_direction_nouns() -> dict[str, DirectionNoun]:
@@ -542,7 +550,7 @@ class Item(Noun):
             return self.presence_string
         return f"There is {self.name} here."
 
-    def _remove_from_known_containers(self, dispatch_context: dict | None = None) -> bool:
+    def _remove_from_known_containers(self, dispatch_context: DispatchContext | None = None) -> bool:
         if self.current_box is not None:
             if self in self.current_box.contents:
                 self.current_box.contents.remove(self)
@@ -550,11 +558,11 @@ class Item(Noun):
                 return True
             self.current_box = None
 
-        if not dispatch_context:
+        if dispatch_context is None:
             return False
 
-        state = dispatch_context.get("state")
-        game = dispatch_context.get("game")
+        state = dispatch_context.state
+        game = dispatch_context.game
 
         if state is not None and getattr(state, "current_room", None) is not None:
             room = state.current_room

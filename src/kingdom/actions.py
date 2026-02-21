@@ -3,6 +3,7 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
+from kingdom.dispatch_context import DispatchContext
 from kingdom.models import Box, Game, Item, Player, Room, Verb
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
@@ -677,15 +678,15 @@ def drop_action(state: GameActionState, game: Game, *target_words: str, target: 
     return f"{player.name} doesn't have {target_name}!"
 
 
-def is_present_in_known_containers(item: object, dispatch_context: dict | None) -> bool:
+def is_present_in_known_containers(item: object, dispatch_context: DispatchContext | None) -> bool:
     current_box = getattr(item, "current_box", None)
     if current_box is not None and item in getattr(current_box, "contents", []):
         return True
 
-    if not dispatch_context:
+    if dispatch_context is None:
         return False
 
-    state = dispatch_context.get("state")
+    state = dispatch_context.state
     room = getattr(state, "current_room", None) if state is not None else None
     if room is not None:
         if item in getattr(room, "items", []):
@@ -694,7 +695,7 @@ def is_present_in_known_containers(item: object, dispatch_context: dict | None) 
             if item in getattr(box, "contents", []):
                 return True
 
-    game = dispatch_context.get("game")
+    game = dispatch_context.game
     player = _active_player_or_none(game)
     if player is not None and item in getattr(player.sack, "contents", []):
         return True
@@ -702,7 +703,7 @@ def is_present_in_known_containers(item: object, dispatch_context: dict | None) 
     return False
 
 
-def consume_if_getable_and_present(item: object, dispatch_context: dict | None, missing_message: str) -> tuple[bool, str | None]:
+def consume_if_getable_and_present(item: object, dispatch_context: DispatchContext | None, missing_message: str) -> tuple[bool, str | None]:
     if not getattr(item, "pickupable", True):
         return False, "You can't eat that."
 
@@ -745,19 +746,21 @@ def hide_exit(room: Room, direction: str) -> bool:
     return bool(room.set_exit_visibility(canonical_direction, visible=False))
 
 
-def build_dispatch_context(state: GameActionState, game: Game) -> dict:
-    return {
-        "state": state,
-        "game": game,
-        "move_direction": lambda direction: go_action(state, direction),
-        "reveal_exit": reveal_exit,
-        "hide_exit": hide_exit,
-        "consume_if_getable_and_present": consume_if_getable_and_present,
-        "is_present_in_known_containers": is_present_in_known_containers,
-    }
+def build_dispatch_context(
+    state: GameActionState,
+    game: Game,
+    confirm_action: ConfirmAction | None = None,
+    prompt_action: PromptAction | None = None,
+) -> DispatchContext:
+    return DispatchContext(
+        state=state,
+        game=game,
+        confirm_callback=confirm_action,
+        prompt_callback=prompt_action,
+    )
 
 
-def eat_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def eat_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     default_refuse = "You can't eat that."
     default_success = "YUM! TASTES GOOD."
 
@@ -787,7 +790,7 @@ def _resolve_room_by_name(game: object | None, room_name: str | None) -> Room | 
     return None
 
 
-def _apply_open_close_exit_side_effect(target: object, desired_open: bool, dispatch_context: dict | None) -> None:
+def _apply_open_close_exit_side_effect(target: object, desired_open: bool, dispatch_context: DispatchContext | None) -> None:
     if not isinstance(target, Item):
         return
 
@@ -795,28 +798,25 @@ def _apply_open_close_exit_side_effect(target: object, desired_open: bool, dispa
     if not direction:
         return
 
-    state = (dispatch_context or {}).get("state") if dispatch_context else None
+    state = dispatch_context.state if dispatch_context is not None else None
     current_room = getattr(state, "current_room", None)
     if current_room is None:
         return
 
     if desired_open:
         destination_name = getattr(target, "open_exit_destination", None)
-        destination_room = _resolve_room_by_name((dispatch_context or {}).get("game"), destination_name)
-        reveal = (dispatch_context or {}).get("reveal_exit") if dispatch_context else None
-        if callable(reveal) and destination_room is not None:
-            reveal(current_room, direction, destination_room)
+        destination_room = _resolve_room_by_name(dispatch_context.game if dispatch_context is not None else None, destination_name)
+        if destination_room is not None:
+            reveal_exit(current_room, direction, destination_room)
         return
 
     if not getattr(target, "close_hides_exit", False):
         return
 
-    hide = (dispatch_context or {}).get("hide_exit") if dispatch_context else None
-    if callable(hide):
-        hide(current_room, direction)
+    hide_exit(current_room, direction)
 
 
-def _toggle_open_state(target: object, desired_open: bool, dispatch_context: dict | None = None) -> str:
+def _toggle_open_state(target: object, desired_open: bool, dispatch_context: DispatchContext | None = None) -> str:
     verb_word = "open" if desired_open else "close"
     current = "open" if desired_open else "closed"
 
@@ -842,15 +842,15 @@ def _toggle_open_state(target: object, desired_open: bool, dispatch_context: dic
     return f"You {verb_word} the {target_name}."
 
 
-def _player_has_key(dispatch_context: dict | None, key_name: str | None) -> bool:
+def _player_has_key(dispatch_context: DispatchContext | None, key_name: str | None) -> bool:
     return _player_has_item(dispatch_context, key_name)
 
 
-def _player_has_item(dispatch_context: dict | None, item_name: str | None) -> bool:
+def _player_has_item(dispatch_context: DispatchContext | None, item_name: str | None) -> bool:
     if not item_name:
         return False
 
-    game = (dispatch_context or {}).get("game") if dispatch_context else None
+    game = dispatch_context.game if dispatch_context is not None else None
     player = _active_player_or_none(game)
     if player is None:
         return False
@@ -866,7 +866,7 @@ def _player_has_item(dispatch_context: dict | None, item_name: str | None) -> bo
     return False
 
 
-def light_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def light_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if target is None:
         return "Light what?"
 
@@ -887,7 +887,7 @@ def light_action(*target_words: str, target: object | None = None, dispatch_cont
     return f"You light the {target_name}."
 
 
-def rub_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def rub_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if target is None:
         return "Rub what?"
 
@@ -911,7 +911,7 @@ def rub_action(*target_words: str, target: object | None = None, dispatch_contex
 
         message = getattr(target, "rub_success_string", None) or f"You rub the {target_name}."
 
-    state = (dispatch_context or {}).get("state") if dispatch_context else None
+    state = dispatch_context.state if dispatch_context is not None else None
     current_room = getattr(state, "current_room", None)
     trigger_room = getattr(target, "rub_trigger_room", None)
 
@@ -933,9 +933,9 @@ def rub_action(*target_words: str, target: object | None = None, dispatch_contex
     return message
 
 
-def _find_room_djinni(dispatch_context: dict | None) -> tuple[Room | None, Item | None, Game | None]:
-    state = (dispatch_context or {}).get("state") if dispatch_context else None
-    game = (dispatch_context or {}).get("game") if dispatch_context else None
+def _find_room_djinni(dispatch_context: DispatchContext | None) -> tuple[Room | None, Item | None, Game | None]:
+    state = dispatch_context.state if dispatch_context is not None else None
+    game = dispatch_context.game if dispatch_context is not None else None
     room = getattr(state, "current_room", None)
     if room is None:
         return None, None, game
@@ -947,7 +947,7 @@ def _find_room_djinni(dispatch_context: dict | None) -> tuple[Room | None, Item 
     return room, None, game
 
 
-def _trigger_djinni_wish(dispatch_context: dict | None) -> str | None:
+def _trigger_djinni_wish(dispatch_context: DispatchContext | None) -> str | None:
     room, djinni, game = _find_room_djinni(dispatch_context)
     if room is None or djinni is None:
         return None
@@ -956,9 +956,8 @@ def _trigger_djinni_wish(dispatch_context: dict | None) -> str | None:
     destination_room = _resolve_room_by_name(game, destination_name)
     direction = getattr(djinni, "wish_exit_direction", None) or "west"
 
-    reveal = (dispatch_context or {}).get("reveal_exit") if dispatch_context else None
-    if callable(reveal) and destination_room is not None:
-        reveal(room, direction, destination_room)
+    if destination_room is not None:
+        reveal_exit(room, direction, destination_room)
 
     if djinni in room.items:
         room.items.remove(djinni)
@@ -969,7 +968,22 @@ def _trigger_djinni_wish(dispatch_context: dict | None) -> str | None:
     )
 
 
-def make_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def _is_djinni_target(target: object | None) -> bool:
+    if target is None:
+        return False
+
+    noun_name = getattr(target, "noun_name", None)
+    if isinstance(noun_name, str) and noun_name.strip().lower() == "djinni":
+        return True
+
+    matches_reference = getattr(target, "matches_reference", None)
+    if callable(matches_reference):
+        return bool(matches_reference("djinni"))
+
+    return False
+
+
+def make_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if not target_words:
         return "Make what?"
 
@@ -983,7 +997,7 @@ def make_action(*target_words: str, target: object | None = None, dispatch_conte
     return "Nothing happens."
 
 
-def say_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def say_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if not target_words:
         return "Say what?"
 
@@ -994,19 +1008,31 @@ def say_action(*target_words: str, target: object | None = None, dispatch_contex
     return f"You say, '{' '.join(target_words)}.'"
 
 
-def talk_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def talk_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if target is None:
         return "Talk to whom?"
+
+    if _is_djinni_target(target):
+        wish_result = _trigger_djinni_wish(dispatch_context)
+        if wish_result is not None:
+            return wish_result
+
     return "They don't seem interested in talking."
 
 
-def ask_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def ask_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if target is None:
         return "Ask whom?"
+
+    if _is_djinni_target(target):
+        wish_result = _trigger_djinni_wish(dispatch_context)
+        if wish_result is not None:
+            return wish_result
+
     return "They have no answer for you."
 
 
-def unlock_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def unlock_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     if target is None:
         return "Unlock what?"
 
@@ -1028,15 +1054,15 @@ def unlock_action(*target_words: str, target: object | None = None, dispatch_con
     return f"You unlock the {target_name}."
 
 
-def insert_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def insert_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     return unlock_action(*target_words, target=target, dispatch_context=dispatch_context)
 
 
-def open_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def open_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     return _toggle_open_state(target, desired_open=True, dispatch_context=dispatch_context)
 
 
-def close_action(*target_words: str, target: object | None = None, dispatch_context: dict | None = None) -> str:
+def close_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     return _toggle_open_state(target, desired_open=False, dispatch_context=dispatch_context)
 
 
