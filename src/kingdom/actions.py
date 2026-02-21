@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
-from kingdom.models import Box, Game, Item, Room, Verb
+from kingdom.models import Box, Game, Item, Player, Room, Verb
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
 
@@ -143,7 +143,7 @@ def xyzzy_action(state: GameActionState, game: Game) -> str:
         return "Nothing happens."
 
     state.current_room = destination
-    player = game.current_player
+    player = _active_player_or_none(game)
     if player is not None:
         player.current_room = destination
 
@@ -215,7 +215,7 @@ def _is_dark_room(room: Room) -> bool:
     if callable(has_lit_source) and has_lit_source():
         return False
 
-    player = Game.get_instance().current_player
+    player = _active_player_or_none(Game.get_instance())
     if player is not None:
         for item in player.sack.contents:
             if item.get_noun_name() == "torch" and getattr(item, "is_lit", False):
@@ -298,6 +298,20 @@ def _drop_item_to_room(item: Item, room: Room) -> None:
     room.items.append(item)
 
 
+def _active_player_or_none(game: Game | None) -> Player | None:
+    if game is None:
+        return None
+
+    player = game.require_player(return_error=True)
+    if isinstance(player, str):
+        return None
+    return player
+
+
+def _require_player_for_action(game: Game) -> Player | str:
+    return game.require_player(return_error=True)
+
+
 def climb_action(state: GameActionState, *target_words: str, target: object | None = None) -> str:
     if state.current_room is None:
         return "There is nowhere to climb."
@@ -339,9 +353,9 @@ def swim_action(state: GameActionState, game: Game, *target_words: str, target: 
     if requested_direction is None and target_words:
         requested_direction = normalize_direction_token(target_words[0])
 
-    player = game.current_player
-    if player is None:
-        return "No hero is active yet."
+    player = _require_player_for_action(game)
+    if isinstance(player, str):
+        return player
 
     heavy_item = next((item for item in player.sack.contents if getattr(item, "too_heavy_to_swim", False)), None)
     if heavy_item is not None:
@@ -503,9 +517,9 @@ def legacy_stub_action(verb_name: str, *args: str) -> str:
 
 
 def inventory_action(game: Game) -> str:
-    player = game.current_player
-    if player is None:
-        return "No hero is active yet."
+    player = _require_player_for_action(game)
+    if isinstance(player, str):
+        return player
 
     sack_items = [item.name for item in player.sack.contents]
     if not sack_items:
@@ -529,9 +543,9 @@ def take_action(state: GameActionState, game: Game, *target_words: str, target: 
     if state.current_room is None:
         return "There is nothing to take here."
 
-    player = game.current_player
-    if player is None:
-        return "No hero is active yet."
+    player = _require_player_for_action(game)
+    if isinstance(player, str):
+        return player
 
     sources = _build_take_sources(state.current_room)
     closed_boxes = _closed_room_boxes(state.current_room)
@@ -620,9 +634,9 @@ def drop_action(state: GameActionState, game: Game, *target_words: str, target: 
     if state.current_room is None:
         return "There is nowhere to drop anything."
 
-    player = game.current_player
-    if player is None:
-        return "No hero is active yet."
+    player = _require_player_for_action(game)
+    if isinstance(player, str):
+        return player
 
     if target is not None:
         if not isinstance(target, Item):
@@ -681,7 +695,7 @@ def is_present_in_known_containers(item: object, dispatch_context: dict | None) 
                 return True
 
     game = dispatch_context.get("game")
-    player = getattr(game, "current_player", None) if game is not None else None
+    player = _active_player_or_none(game)
     if player is not None and item in getattr(player.sack, "contents", []):
         return True
 
@@ -837,7 +851,7 @@ def _player_has_item(dispatch_context: dict | None, item_name: str | None) -> bo
         return False
 
     game = (dispatch_context or {}).get("game") if dispatch_context else None
-    player = getattr(game, "current_player", None) if game is not None else None
+    player = _active_player_or_none(game)
     if player is None:
         return False
 

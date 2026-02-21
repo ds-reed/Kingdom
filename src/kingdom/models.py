@@ -568,8 +568,8 @@ class Item(Noun):
                     return True
 
         if game is not None:
-            player = getattr(game, "current_player", None)
-            if player is not None and self in player.sack.contents:
+            player = game.require_player(return_error=True)
+            if not isinstance(player, str) and self in player.sack.contents:
                 player.sack.contents.remove(self)
                 return True
 
@@ -923,6 +923,22 @@ class Game(Noun):
     def set_current_player(self, player):
         """Set the current player character."""
         self.current_player = player
+
+    def require_player(self, missing_message: str = "No hero is active yet.", return_error: bool = False) -> "Player | str":
+        """Return current player or report a meaningful missing-player condition.
+
+        Args:
+            missing_message: Message used when no active player exists.
+            return_error: When True, return missing_message instead of raising.
+        """
+        player = self.current_player
+        if player is not None:
+            return player
+
+        if return_error:
+            return missing_message
+
+        raise RuntimeError(missing_message)
     
     def get_all_nouns(self):
         """Get all nouns in the game world (boxes, items, rooms, players, etc)."""

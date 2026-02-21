@@ -57,8 +57,8 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
                 for item in box.contents:
                     yield item
 
-    player = game.current_player
-    if player is not None:
+    player = game.require_player(return_error=True)
+    if not isinstance(player, str):
         for item in player.sack.contents:
             yield item
 
