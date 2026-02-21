@@ -1,3 +1,8 @@
+"""Core game models and world state.
+
+Defines Noun, Item, Box, Room, Player, Game, and related helpers.
+Handles world loading, serialization, and runtime entity management.
+"""
 import json
 import inspect
 from pathlib import Path
@@ -428,7 +433,12 @@ def ensure_direction_nouns() -> dict[str, DirectionNoun]:
 
     for canonical, aliases in DIRECTION_ALIASES.items():
         _DIRECTION_NOUNS_BY_CANONICAL[canonical] = []
-        for reference_name in (canonical, *aliases):
+        all_names = set([canonical])
+        if isinstance(aliases, (list, tuple, set)):
+            all_names.update(aliases)
+        elif isinstance(aliases, str):
+            all_names.add(aliases)
+        for reference_name in all_names:
             direction_noun = DirectionNoun(reference_name, canonical)
             _DIRECTION_NOUNS_BY_REFERENCE[reference_name] = direction_noun
             _DIRECTION_NOUNS_BY_CANONICAL[canonical].append(direction_noun)

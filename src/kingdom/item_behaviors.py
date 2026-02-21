@@ -1,3 +1,8 @@
+"""Item behavior registry and dispatch.
+
+Defines item-specific behavior handlers, registration decorators, and lookup utilities.
+Used for dynamic item actions (e.g., eat fish) and custom item logic.
+"""
 from typing import Callable
 
 from kingdom.dispatch_context import DispatchContext

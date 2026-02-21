@@ -1,3 +1,8 @@
+"""Session logging and stream utilities.
+
+Provides TeeStream for multi-stream output and session log management helpers.
+Used for logging game sessions and managing terminal output.
+"""
 from datetime import datetime
 from pathlib import Path
 from typing import TextIO

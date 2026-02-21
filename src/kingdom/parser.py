@@ -1,3 +1,8 @@
+"""Command parsing and tokenization.
+
+Handles user input parsing, direction alias normalization, and command resolution.
+Defines ParseMatch, ParseResult, and ResolvedCommand dataclasses.
+"""
 from dataclasses import dataclass
 import re
 from typing import Iterable
