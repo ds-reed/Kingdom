@@ -13,6 +13,7 @@ import sys
 sys.path.append("./src")
 
 from kingdom.models import Game, Player, ensure_direction_nouns, get_direction_nouns_for_available_exits
+
 from kingdom.actions import (
     _derive_player_save_path,
     build_dispatch_context,
@@ -20,9 +21,8 @@ from kingdom.actions import (
     build_verbs,
     GameOver,
     QuitGame,
-    go_action,
-    render_current_room,
 )
+  
 from kingdom.parser import parse_command, resolve_command
 from kingdom.utilities import start_session_logging, stop_session_logging
 from kingdom.terminal_style import (
@@ -33,8 +33,13 @@ from kingdom.terminal_style import (
     TERMINAL_MODE_TRS80,
     TERMINAL_MODE_MODERN,
 )
+from kingdom.render import render_current_room
 import kingdom.terminal_style as terminal_style
 
+# Movement verb handler and adapter for implicit noun actions. Remove when fully integrated.
+from kingdom.movement_verbs import MovementVerbHandler
+from kingdom.actions import adapt_movement
+movement = MovementVerbHandler()
 
 def iter_known_noun_names(game: Game):
     for noun in game.get_all_nouns():
@@ -93,8 +98,7 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
                 canonical_direction = getattr(candidate, "canonical_direction", None)
                 if isinstance(canonical_direction, str):
                     # Always call go_action, even if no exit exists, to get a meaningful response.
-                    return go_action(canonical_direction, dispatch_context=dispatch_context)
-
+                     return adapt_movement(movement.go)(canonical_direction,dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
                 can_handle, refusal_message = candidate.can_handle_verb(
                     "",
                     dispatch_context=dispatch_context,
@@ -111,7 +115,7 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
     # If a direction noun was entered but not matched, try go_action directly.
     for noun_match in parse_result.nouns:
         if noun_match.text in DIRECTION_ALIASES or noun_match.text in Room.DIRECTIONS:
-            return go_action(noun_match.text, dispatch_context=dispatch_context)
+            return adapt_movement(movement.go)(noun_match.text, dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
     return None
 
 

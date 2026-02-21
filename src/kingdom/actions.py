@@ -25,9 +25,24 @@ from kingdom.dispatch_context import DispatchContext
 from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
+from kingdom.render import render_current_room  
+
+from kingdom.render import (
+    _describe_room,
+    _describe_box_contents,
+    _is_dark_room,
+    _dark_room_message,
+    _build_visible_exits_text,
+    _format_exit_choices,
+)     #temporary until render logic is fully decoupled from actions
+
+
 
 from kingdom.state_changing_verbs import StateChangingVerbHandler
 state_changer = StateChangingVerbHandler()
+
+from kingdom.movement_verbs import MovementVerbHandler
+movement = MovementVerbHandler()
 
 
 def adapt_state_changer(method):
@@ -40,6 +55,16 @@ def adapt_state_changer(method):
     def handler(*args, target=None, ctx=None, dispatch_context=None, **kwargs):
         context = dispatch_context or ctx
         return method(context, target)
+    return handler
+
+def adapt_movement(method):
+    """
+    Temporary adapter: wraps MovementVerbHandler methods to match
+    the Verb handler signature.
+    """
+    def handler(*target_words, target=None, ctx=None, dispatch_context=None, **kwargs):
+        context = dispatch_context or ctx
+        return method(context, target, target_words)
     return handler
 
 
@@ -190,47 +215,47 @@ def load_action(
     return f"Game loaded from {load_path}"
 
 
-def _go_with_state(state: GameActionState, direction: str) -> str:
-    if state.current_room is None:
-        return "There is nowhere to go."
+#def _go_with_state(state: GameActionState, direction: str) -> str:
+#    if state.current_room is None:
+#        return "There is nowhere to go."
+#
+#    canonical_direction = normalize_direction_token(direction)
+#
+#    next_room = state.current_room.get_connection(canonical_direction)
+#    if next_room is None:
+#        return f"You can't go {canonical_direction} from here."
+#
+#    state.current_room = next_room
+#    trs80_print(f"You go {canonical_direction}.", style=TRS80_WHITE)
+#    render_current_room(state, clear=False)
+#    print()
+#    return ""
 
-    canonical_direction = normalize_direction_token(direction)
 
-    next_room = state.current_room.get_connection(canonical_direction)
-    if next_room is None:
-        return f"You can't go {canonical_direction} from here."
-
-    state.current_room = next_room
-    trs80_print(f"You go {canonical_direction}.", style=TRS80_WHITE)
-    render_current_room(state, clear=False)
-    print()
-    return ""
-
-
-def go_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    active_ctx = ctx or dispatch_context
-    state = active_ctx.state if active_ctx is not None else None
-    if state is None:
-        return "There is nowhere to go."
-
-    direction: str | None = None
-    if target is not None:
-        direction = getattr(target, "canonical_direction", None)
-        if direction is None and hasattr(target, "get_noun_name"):
-            direction = normalize_direction_token(target.get_noun_name())
-
-    if direction is None and target_words:
-        direction = normalize_direction_token(target_words[0])
-
-    if not direction:
-        return "Go where?"
-
-    return _go_with_state(state, direction)
+#def go_action(
+#    *target_words: str,
+#    target: Noun | None = None,
+#    ctx: DispatchContext | None = None,
+#    dispatch_context: DispatchContext | None = None,
+#) -> str:
+#    active_ctx = ctx or dispatch_context
+#    state = active_ctx.state if active_ctx is not None else None
+#    if state is None:
+#        return "There is nowhere to go."
+#
+#    direction: str | None = None
+#    if target is not None:
+#        direction = getattr(target, "canonical_direction", None)
+#        if direction is None and hasattr(target, "get_noun_name"):
+#            direction = normalize_direction_token(target.get_noun_name())
+#
+#    if direction is None and target_words:
+#        direction = normalize_direction_token(target_words[0])
+#
+#    if not direction:
+#        return "Go where?"
+#
+#    return _go_with_state(state, direction)
 
 
 def xyzzy_action(
@@ -260,116 +285,62 @@ def xyzzy_action(
     return ""
 
 
-_DIRECTION_ORDER = {"up": 0, "down": 1, "north": 2, "south": 3, "east": 4, "west": 5}
-_VERTICAL_DIRECTION_LABELS = {"up": "above", "down": "below"}
+# _DIRECTION_ORDER = {"up": 0, "down": 1, "north": 2, "south": 3, "east": 4, "west": 5}
+# _VERTICAL_DIRECTION_LABELS = {"up": "above", "down": "below"}
+
 _LOOK_INSIDE_TOKENS = {"inside", "in"}
 
 
-def _order_directions(directions: Sequence[str]) -> list[str]:
-    return sorted(directions, key=lambda direction: _DIRECTION_ORDER.get(direction, 99))
+# def _order_directions(directions: Sequence[str]) -> list[str]:
+#     return sorted(directions, key=lambda direction: _DIRECTION_ORDER.get(direction, 99))
 
 
-def _join_with_and(parts: Sequence[str]) -> str:
-    if not parts:
-        return ""
-    if len(parts) == 1:
-        return parts[0]
-    if len(parts) == 2:
-        return f"{parts[0]} and {parts[1]}"
-    return f"{', '.join(parts[:-1])}, and {parts[-1]}"
+# def _join_with_and(parts: Sequence[str]) -> str:
+#     if not parts:
+#         return ""
+#     if len(parts) == 1:
+#         return parts[0]
+#     if len(parts) == 2:
+#         return f"{parts[0]} and {parts[1]}"
+#     return f"{', '.join(parts[:-1])}, and {parts[-1]}"
 
 
-def _direction_choice_label(direction: str) -> str:
-    return _VERTICAL_DIRECTION_LABELS.get(direction, direction)
+# def _direction_choice_label(direction: str) -> str:
+#     return _VERTICAL_DIRECTION_LABELS.get(direction, direction)
 
 
-def _direction_phrase(direction: str) -> str:
-    if direction in _VERTICAL_DIRECTION_LABELS:
-        return _VERTICAL_DIRECTION_LABELS[direction]
-    return f"to the {direction}"
+# def _direction_phrase(direction: str) -> str:
+#     if direction in _VERTICAL_DIRECTION_LABELS:
+#         return _VERTICAL_DIRECTION_LABELS[direction]
+#     return f"to the {direction}"
 
 
-def _format_exit_choices(directions: Sequence[str]) -> list[str]:
-    ordered = _order_directions(directions)
-    return [_direction_choice_label(direction) for direction in ordered]
+# def _format_exit_choices(directions: Sequence[str]) -> list[str]:
+#     ordered = _order_directions(directions)
+#     return [_direction_choice_label(direction) for direction in ordered]
 
 
-def _build_visible_exits_text(directions: Sequence[str]) -> str:
-    ordered = _order_directions(directions)
-    if not ordered:
-        return "There are no visible exits."
-
-    vertical = [direction for direction in ordered if direction in _VERTICAL_DIRECTION_LABELS]
-    horizontal = [direction for direction in ordered if direction not in _VERTICAL_DIRECTION_LABELS]
-
-    phrases: list[str] = []
-    if vertical:
-        phrases.append(_join_with_and([_direction_phrase(direction) for direction in vertical]))
-    if horizontal:
-        phrases.append(_join_with_and([_direction_phrase(direction) for direction in horizontal]))
-
-    if len(ordered) == 1:
-        return f"There is an exit {phrases[0]}."
-
-    return f"There are exits {_join_with_and(phrases)}."
-
-
-def _is_dark_room(room: Room) -> bool:
-    if not bool(getattr(room, "is_dark", False)):
-        return False
-
-    has_lit_source = getattr(room, "has_lit_is_lightable", None)
-    if callable(has_lit_source) and has_lit_source():
-        return False
-
-    player = _active_player_or_none(Game.get_instance())
-    if player is not None:
-        for item in player.sack.contents:
-            if item.get_noun_name() == "torch" and getattr(item, "is_lit", False):
-                return False
-
-    return True
+# def _build_visible_exits_text(directions: Sequence[str]) -> str:
+#     ordered = _order_directions(directions)
+#     if not ordered:
+#         return "There are no visible exits."
+#
+#     vertical = [direction for direction in ordered if direction in _VERTICAL_DIRECTION_LABELS]
+#     horizontal = [direction for direction in ordered if direction not in _VERTICAL_DIRECTION_LABELS]
+#
+#     phrases: list[str] = []
+#     if vertical:
+#         phrases.append(_join_with_and([_direction_phrase(direction) for direction in vertical]))
+#     if horizontal:
+#         phrases.append(_join_with_and([_direction_phrase(direction) for direction in horizontal]))
+#
+#     if len(ordered) == 1:
+#         return f"There is an exit {phrases[0]}."
+#
+#     return f"There are exits {_join_with_and(phrases)}."
 
 
-def _dark_room_message(room: Room) -> str:
-    return getattr(room, "dark_description", None) or "It is too dark to see anything."
 
-
-def _room_display_lines(room: Room) -> list[str]:
-    if _is_dark_room(room):
-        return [_dark_room_message(room)]
-
-    lines: list[str] = []
-    if not bool(getattr(room, "visited", False)):
-        lines.append(room.description)
-    lines.extend(obj.get_presence_text() for obj in [*room.items, *room.boxes])
-    return lines
-
-
-def render_current_room(state: GameActionState, clear: bool = True) -> None:
-    room = state.current_room
-    if room is None:
-        return
-
-    if not bool(getattr(room, "visited", False)):
-        game = Game.get_instance()
-        current_score = getattr(game, "score", 0)
-        try:
-            current_score = int(current_score)
-        except (TypeError, ValueError):
-            current_score = 0
-
-        room_points = getattr(room, "discover_points", 10)
-        try:
-            room_points = int(room_points)
-        except (TypeError, ValueError):
-            room_points = 10
-
-        game.score = max(0, current_score + room_points)
-
-    lines = _room_display_lines(room)
-    trs80_clear_and_show_room(room.name, lines, hero_name=state.hero_name, clear=clear)
-    room.visited = True
 
 
 def _describe_box_contents(box: Box) -> str:
@@ -1223,11 +1194,9 @@ def _build_core_verbs(
         exit_action,
         synonyms=["leave"],
     )
-    go_verb = Verb(
-        "go",
-        go_action,
-        synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"],
-    )
+
+    go_verb = Verb("go", adapt_movement(movement.go), synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"])
+# go_verb = Verb("go", movement.go, synonyms=["move", "walk", "run", "skip", "slide", "head", "jog", "travel"])   # todo: refactor test and re-enable direct use of movement method
     swim_verb = Verb("swim", swim_action)
     climb_verb = Verb("climb", climb_action)
     save_verb = Verb("save", save_action, synonyms=["write"])

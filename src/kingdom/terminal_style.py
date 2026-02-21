@@ -154,7 +154,3 @@ if __name__ == "__main__":
         style=TRS80_WHITE,
     )
 
-    print()
-    trs80_print("Type commands like: LOOK, NORTH, TAKE KEY", style=TRS80_WHITE)
-    trs80_print("there is a cheery orange carrot here.", style=TRS80_WHITE)
-    trs80_print("A silver goblet is on the floor.", style=TRS80_WHITE)
