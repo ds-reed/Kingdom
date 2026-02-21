@@ -234,6 +234,7 @@ def main(args: argparse.Namespace | None = None):
         recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "verbs", "help", "commands"}
 
         while True:
+            print()
             command = trs80_prompt("Enter command: ")
             if not command:
                 continue

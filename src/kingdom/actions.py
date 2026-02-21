@@ -963,7 +963,7 @@ def _trigger_djinni_wish(dispatch_context: DispatchContext | None) -> str | None
         room.items.remove(djinni)
 
     return (
-        "The Genie seems puzzled by your exotic language. Genies aren't omniscient, just omnipotent! "
+        "The Djinni seems puzzled by your exotic language. Djinn aren't omniscient, just omnipotent! "
         "But seeing that you are at a dead end and wanting to be helpful, he places a doorway in the west wall and disappears."
     )
 
