@@ -266,11 +266,60 @@ class Noun:
         return True, None
 
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
-        """Optionally handle a verb directly on this noun.
+        dispatch_context = kwargs.get("dispatch_context")
 
-        Return a string when handled; return None to fall back to verb action.
-        """
+        # ⭐ 1. OPEN logic (doors, trapdoors, portals)
+        if verb_name == "open" and self.is_openable and not self.is_open:
+            self.is_open = True
+
+            direction = self.open_exit_direction
+            destination = self.open_exit_destination
+
+            if direction and destination:
+                room = dispatch_context.state.current_room
+                game = dispatch_context.game
+
+                for r in game.rooms:
+                    if r.name.lower() == destination.lower():
+                        room.connections[direction] = r
+
+                        # ⭐ Add reverse exit
+                        reverse = {
+                            "north": "south",
+                            "south": "north",
+                            "east": "west",
+                            "west": "east",
+                            "up": "down",
+                            "down": "up",
+                        }.get(direction)
+
+                        if reverse:
+                            r.connections[reverse] = room
+
+                        break
+
+            return self.open_description or f"You open the {self.get_noun_name()}."
+
+        
+
+        # ⭐ 2. CLOSE logic (hide exits)
+        if verb_name == "close" and self.is_openable and self.is_open:
+            self.is_open = False
+
+            if self.close_hides_exit and self.open_exit_direction:
+                room = dispatch_context.state.current_room
+                room.connections.pop(self.open_exit_direction, None)
+
+            return self.closed_description or f"You close the {self.get_noun_name()}."
+
+        # ⭐ 3. Behavior handlers
+        for handler in getattr(self, "behavior_handlers", []):
+            handled_result = handler(self, verb_name, args, dispatch_context)
+            if handled_result is not None:
+                return handled_result
+
         return None
+
 
 class Verb(Noun):
     """A verb paired with an action function.
@@ -631,6 +680,9 @@ class Box(Noun):
         is_locked=False,
         unlock_key=None,
         locked_description=None,
+        open_exit_direction=None,
+        open_exit_destination=None,
+        close_hides_exit=False
     ):
         super().__init__()
         self.name = box_name  # Noun uses 'name'
@@ -650,6 +702,17 @@ class Box(Noun):
             else None
         )
         self.locked_description = locked_description
+        self.open_exit_direction = (
+            str(open_exit_direction).strip().lower()
+            if open_exit_direction is not None and str(open_exit_direction).strip()
+            else None
+        )
+        self.open_exit_destination = (
+            str(open_exit_destination).strip()
+            if open_exit_destination is not None and str(open_exit_destination).strip()
+            else None
+        )
+        self.close_hides_exit = bool(close_hides_exit)
         Box.all_boxes.append(self)
 
     def get_presence_text(self):
@@ -665,70 +728,30 @@ class Box(Noun):
         return f"There is {self.box_name} here."
 
     def add_item(self, item, announce=True):
-        """The King claims an item. If it's in another box, he seizes it."""
         if self.capacity is not None and len(self.contents) >= self.capacity:
             if announce:
-                print(f"KING {self.box_name}: The box is full!")
+                print(f" {self.box_name}:  box is full!")
             return
 
         if item.current_box == self:
             if announce:
-                print(f"KING {self.box_name}: I already own {item.name}!")
+                print(f" {self.box_name}: I already own {item.name}!")
             return
 
         # Handle the move logic (Seizing from another box)
         if item.current_box is not None:
             if announce:
-                print(f"KING {self.box_name}: Seizing {item.name} from {item.current_box.box_name}!")
+                print(f" {self.box_name}: Seizing {item.name} from {item.current_box.box_name}!")
             item.current_box.contents.remove(item)
 
         # Update states
         self.contents.append(item)
         item.current_box = self
         if announce:
-            print(f"KING {self.box_name}: {item.name} has been added to the treasury.")
+            print(f" {self.box_name}: {item.name} has been added to the treasury.")
 
     def __repr__(self):
         return f"Box({self.box_name}, contents={self.contents})"
-
-class Robber:
-    def __init__(self, name):
-        self.name = name
-        # Composition: The Robber HAS a Box (his sack)
-        self.sack = Box(f"{name}'s Sack")
-
-    def steal(self, from_container, item):
-        """The robber takes a specific item object from a box or room."""
-        # Determine which type of container we're dealing with
-        if isinstance(from_container, Box):
-            contents = from_container.contents
-            container_name = from_container.box_name
-        elif isinstance(from_container, Room):
-            contents = from_container.items
-            container_name = from_container.name
-        else:
-            raise TypeError("from_container must be a Box or Room")
-
-        assert item in contents, f"{item.name} isn't even in {container_name}!"
-
-        # Check if item is pickupable
-        if not item.pickupable:
-            print(f"!!! {self.name} tries to steal from {container_name}...")
-            print(f"{item.refuse_string}")
-            return
-
-        print(f"!!! {self.name} sneaks into {container_name}...")
-        contents.remove(item)
-        self.sack.add_item(item)
-
-        # The 'Careless' part: 50% chance to break it during the theft
-        import random
-        if random.random() > 0.5:
-            self.break_item(item)
-
-    def break_item(self, item):
-        item.is_broken = True
-        print(f"CRACK! {self.name} was careless and broke {item.name}!")
 
 
 class Player:
@@ -791,7 +814,7 @@ class Room(Noun):
         self.description = description
         self.visited = bool(visited)
         self.is_dark = bool(is_dark)
-        self.dark_description = dark_description or "It is too dark to see anything."
+        self.dark_description = dark_description or None
         self.swim_destination = str(swim_destination).strip() if swim_destination is not None and str(swim_destination).strip() else None
         try:
             parsed_points = int(discover_points)
@@ -962,17 +985,28 @@ class Game(Noun):
         """Get all nouns in the game world (boxes, items, rooms, players, etc)."""
         return Noun.all_nouns
 
-    def setup_world(self, filepath):
-        """Load and construct world state from a JSON file."""
-        with open(filepath, 'r') as file:
-            data = json.load(file)
+    def setup_world(self, source):
+        """ Build the world from either: 
+            - a filepath (Path), or 
+            - a pre-loaded JSON dict """ 
+        if isinstance(source, (str, Path)): 
+            with open(source, 'r') as file: 
+                data = json.load(file) 
+        elif isinstance(source, dict): 
+            data = source 
+        else: 
+            raise TypeError("setup_world expects a filepath or a dict")
+# clear existing world state before loading new one
+        Room.all_rooms.clear()
+        Box.all_boxes.clear()
+        Item.all_items.clear()
+        Noun.all_nouns.clear()           # ← important if parser uses this
 
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))
             rooms = _construct_rooms(data.get('rooms', []))
             score_value = data.get('score', 0)
         else:
-            boxes = _construct_boxes(data)
             rooms = []
             score_value = 0
 
@@ -985,8 +1019,27 @@ class Game(Noun):
         return boxes, rooms
 
     def load_world(self, filepath):
-        """Load previously saved world state from a JSON file."""
-        return self.setup_world(filepath)
+        with open(filepath, 'r') as file:
+            data = json.load(file)
+
+        # --- 1. Peel off the player block ---
+        player_data = data.pop("player", None)
+
+        # --- 2. Create the Player (empty sack) ---
+        if player_data:
+            player = Player(player_data.get("name", "Hero"))
+        else:
+            player = Player("Hero")
+
+        self.current_player = player
+
+        self.setup_world(data)
+
+        if player_data:
+            for item_json in player_data.get("inventory", []):
+                item = _construct_item_from_spec(item_json)
+                player.sack.add_item(item, announce=False)
+
 
     def save_world(self, filepath):
         """Save current world state to JSON."""
@@ -996,12 +1049,9 @@ class Game(Noun):
 
         payload = {
             'score': int(getattr(self, 'score', 0)),
-            'boxes': [],
+            'player': { 'name': self.current_player.name, 'inventory': [_serialize_item(item)  for item in self.current_player.sack.contents]} if self.current_player else None,
             'rooms': []
         }
-
-        for box in self.boxes:
-            payload['boxes'].append(_serialize_box(box))
 
         for room in self.rooms:
             room_payload = {
@@ -1012,22 +1062,13 @@ class Game(Noun):
                 'boxes': [],
                 'connections': {
                     direction: destination.name
-                    for direction, destination in room.connections.items()
-                },
+                    for direction, destination in room.connections.items()},
+                'hidden_directions': list(room.hidden_directions),
+                'is_dark': room.is_dark,
+                'dark_description': room.dark_description,
+                'swim_destination': room.swim_destination,
+                'discover_points': room.discover_points,
             }
-
-            hidden_exits = [direction for direction in sorted(getattr(room, 'hidden_directions', set())) if direction in room.connections]
-            if hidden_exits:
-                room_payload['hidden_exits'] = hidden_exits
-
-            if getattr(room, 'is_dark', False):
-                room_payload['is_dark'] = True
-            dark_description = getattr(room, 'dark_description', None)
-            if dark_description and dark_description != "It is too dark to see anything.":
-                room_payload['dark_description'] = dark_description
-            if getattr(room, 'swim_destination', None):
-                room_payload['swim_destination'] = room.swim_destination
-            room_payload['discover_points'] = int(getattr(room, 'discover_points', 10))
 
             for box in room.boxes:
                 room_payload['boxes'].append(_serialize_box(box))
@@ -1095,7 +1136,7 @@ def _construct_rooms(data):
             dark_description=entry.get("dark_description"),
             swim_destination=entry.get("swim_destination"),
             discover_points=entry.get("discover_points", 10),
-        )
+        )        
         # Add items to the room
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))

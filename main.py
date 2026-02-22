@@ -13,6 +13,7 @@ import sys
 sys.path.append("./src")
 
 from kingdom.models import Game, Player, ensure_direction_nouns, get_direction_nouns_for_available_exits
+from kingdom.parser import DIRECTION_ALIASES  #needed for implicit noun action handling, remove when implicts are refactored
 
 from kingdom.actions import (
     _derive_player_save_path,

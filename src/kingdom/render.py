@@ -128,9 +128,40 @@ def _describe_box_contents(box: Box) -> str:
 # Dark room helpers
 # ---------------------------------------------------------------------------
 
-def _is_dark_room(room: Room) -> bool:
-    return bool(getattr(room, "is_dark", False))
 
+def _is_dark_room(room: Room) -> bool:
+    """
+    Return True if the room is effectively dark (requires light but none present/lit).
+    """
+    if not getattr(room, "is_dark", False):
+        return False
+
+    # Prefer room method if it exists (best place for custom per-room logic)
+    has_lit_source = getattr(room, "has_lit_light_source", None)
+    if callable(has_lit_source) and has_lit_source():
+        return False
+
+    # Fallback: scan room items and open boxes
+    for item in getattr(room, "items", []):
+        if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+            return False
+
+    for box in getattr(room, "boxes", []):
+        if getattr(box, "is_openable", False) and not getattr(box, "is_open", False):
+            continue
+        for item in getattr(box, "contents", []):
+            if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+                return False
+
+    # Player inventory (carried lights illuminate the room)
+    game = Game.get_instance()
+    player = game.current_player
+    if player is not None:
+        for item in getattr(player.sack, "contents", []):
+            if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+                return False
+
+    return True
 
 def _dark_room_message(room: Room) -> str:
     return getattr(room, "dark_description", "It is pitch black. You can't see a thing.")
