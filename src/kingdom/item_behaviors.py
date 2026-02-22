@@ -3,11 +3,14 @@
 Defines item-specific behavior handlers, registration decorators, and lookup utilities.
 Used for dynamic item actions (e.g., eat fish) and custom item logic.
 """
+
 from typing import Callable
 
-from kingdom.dispatch_context import DispatchContext
+ItemBehaviorHandler = Callable[
+    [object, str, tuple[str, ...], "DispatchContext | None"],
+    str | None
+]
 
-ItemBehaviorHandler = Callable[[object, str, tuple[str, ...], DispatchContext | None], str | None]
 
 _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
 _DEFAULT_ITEM_BEHAVIORS: dict[str, tuple[str, ...]] = {
@@ -40,7 +43,7 @@ def get_default_item_behavior_ids(noun_name: str | None) -> tuple[str, ...]:
     return _DEFAULT_ITEM_BEHAVIORS.get(str(noun_name).strip().lower(), ())
 
 
-def _spawn_room_item(dispatch_context: DispatchContext | None, *, name: str, noun_name: str, pickupable: bool, presence_string: str, refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, pickupable: bool, presence_string: str, refuse_string: str) -> None:
     if dispatch_context is None:
         return
 
@@ -68,7 +71,9 @@ def _spawn_room_item(dispatch_context: DispatchContext | None, *, name: str, nou
 
 
 @register_item_behavior("eat_fish")
-def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: DispatchContext | None) -> str | None:
+def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispatch_context: "DispatchContext | None") -> str | None:
+    ...
+
     if verb_name != "eat":
         return None
 

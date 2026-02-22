@@ -15,12 +15,9 @@ sys.path.append("./src")
 from kingdom.models import Game, Player, ensure_direction_nouns, get_direction_nouns_for_available_exits
 from kingdom.parser import DIRECTION_ALIASES  #needed for implicit noun action handling, remove when implicts are refactored
 
-from kingdom.actions import (
-    _derive_player_save_path,
+from kingdom.models import (
     build_dispatch_context,
     GameActionState,
-    build_verbs,
-    GameOver,
     QuitGame,
 )
   
@@ -34,13 +31,15 @@ from kingdom.terminal_style import (
     TERMINAL_MODE_TRS80,
     TERMINAL_MODE_MODERN,
 )
-from kingdom.render import render_current_room
+from kingdom.UI import render_current_room, UI
 import kingdom.terminal_style as terminal_style
 
-# Movement verb handler and adapter for implicit noun actions. Remove when fully integrated.
-from kingdom.movement_verbs import MovementVerbHandler
-from kingdom.actions import adapt_movement
+# Movement verb handler and adapter for implicit noun actions. Remove cleaed up singletons 
+from kingdom.movement_verbs import MovementVerbHandler,   GameOver   #move game over definition to models  
+from kingdom.actions import adapt_method
 movement = MovementVerbHandler()
+
+from kingdom.actions import build_verbs
 
 def iter_known_noun_names(game: Game):
     for noun in game.get_all_nouns():
@@ -85,12 +84,10 @@ def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -
     return None
 
 
-def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: str) -> str | None:
+def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: str, dispatch_context: "DispatchContext") -> str | None:
     parse_result = parse_command(raw_command, known_verbs=[], known_nouns=iter_known_noun_names(game))
     if not parse_result.nouns:
         return None
-
-    dispatch_context = build_dispatch_context(state, game)
 
     local_candidates = list(_iter_local_target_candidates(game, state))
     for noun_match in parse_result.nouns:
@@ -99,7 +96,7 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
                 canonical_direction = getattr(candidate, "canonical_direction", None)
                 if isinstance(canonical_direction, str):
                     # Always call go_action, even if no exit exists, to get a meaningful response.
-                     return adapt_movement(movement.go)(canonical_direction,dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
+                     return adapt_method(movement.go)(canonical_direction,dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
                 can_handle, refusal_message = candidate.can_handle_verb(
                     "",
                     dispatch_context=dispatch_context,
@@ -116,7 +113,7 @@ def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: s
     # If a direction noun was entered but not matched, try go_action directly.
     for noun_match in parse_result.nouns:
         if noun_match.text in DIRECTION_ALIASES or noun_match.text in Room.DIRECTIONS:
-            return adapt_movement(movement.go)(noun_match.text, dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
+            return adapt_method(movement.go)(noun_match.text, dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
     return None
 
 
@@ -203,13 +200,13 @@ def main(args: argparse.Namespace | None = None):
 
     base_dir = Path(__file__).parent
     data_path = base_dir / "data" / "initial_state.json"
-    save_path = base_dir / "data" / "working_state.json"
     log_file, log_path, original_stdout, original_stderr = start_session_logging(base_dir)
 
     try:
         trs80_print(f"Logging to {log_path}", style=TRS80_WHITE)
         trs80_print("Welcome to Kingdom.", style=TRS80_WHITE, bold=True)
 
+        # Build the game
         game = Game.get_instance()
         _ensure_score(game)
 
@@ -221,9 +218,15 @@ def main(args: argparse.Namespace | None = None):
         game.set_current_player(Player(hero_name))
         trs80_print(f"Welcome, {hero_name}.", style=TRS80_WHITE)
 
-        def confirm_action(prompt_text: str) -> bool:
+        save_path = base_dir / "data" / f"{hero_name}-save.json"
+        load_path = base_dir / "data" / f"{hero_name}-save.json"
+
+        def confirm_action(prompt_text: str, *args, **kwargs) -> bool:
             reply = trs80_prompt(f"{prompt_text} (y/n): ").strip().lower()
             return reply in {"y", "yes"}
+        
+        def prompt_callback(prompt_text: str, *args, **kwargs) -> str:
+            return trs80_prompt(prompt_text)
 
         if game.rooms:
             clear_screen()
@@ -231,6 +234,22 @@ def main(args: argparse.Namespace | None = None):
         else:
             current_room = None
         action_state = GameActionState(current_room=current_room, hero_name=hero_name)
+
+        dispatch_context = build_dispatch_context(game=game, state=action_state)
+
+
+        # Build the UI
+        ui = UI(
+            confirm=confirm_action,
+            prompt=prompt_callback,
+            render=render_current_room,
+            save_path=save_path,
+            load_path=load_path,
+            game=game,
+        )
+
+        # Attach UI to context
+        dispatch_context.ui = ui
         if current_room is not None:
             render_current_room(action_state, clear=False)
             print()
@@ -243,7 +262,7 @@ def main(args: argparse.Namespace | None = None):
             prompt_action=trs80_prompt,
         )
         recovery_mode = False
-        recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "verbs", "help", "commands"}
+        recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "help", "commands"}
 
         while True:
             print()
@@ -257,11 +276,11 @@ def main(args: argparse.Namespace | None = None):
                 known_nouns=iter_known_noun_names(game),
             )
             if resolved_command is None:
-                implicit_result = _try_implicit_noun_action(game, action_state, command)
-                if implicit_result is not None:
-                    if implicit_result:
-                        trs80_print(implicit_result, style=TRS80_WHITE)
-                    continue
+   #             implicit_result = _try_implicit_noun_action(game, action_state, command, dispatch_context)
+   #             if implicit_result is not None:
+   #                 if implicit_result:
+   #                     trs80_print(implicit_result, style=TRS80_WHITE)
+   #                 continue
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
                 continue
 
@@ -282,13 +301,7 @@ def main(args: argparse.Namespace | None = None):
                 result = verb.execute(
                     *args,
                     target=target_noun,
-                    dispatch_context=build_dispatch_context(
-                        action_state,
-                        game,
-                        save_path=_derive_player_save_path(save_path, action_state.hero_name),
-                        confirm_action=confirm_action,
-                        prompt_action=trs80_prompt,
-                    ),
+                    dispatch_context=dispatch_context,
                 )
             except QuitGame:
                 trs80_print("Goodbye!", style=TRS80_WHITE)
@@ -318,9 +331,14 @@ def main(args: argparse.Namespace | None = None):
                     print()
                 recovery_mode = False
                 continue
-            except TypeError:
-                trs80_print("That command needs more information.", style=TRS80_WHITE)
+ #           except TypeError:
+ #               trs80_print("That command needs more information.", style=TRS80_WHITE)
+ #               continue
+            except TypeError as e:
+                trs80_print(f"TypeError: {e}", style=TRS80_WHITE)
                 continue
+
+
 
             if recovery_mode and verb_word in {"load", "restore"} and isinstance(result, str) and result.startswith("Game loaded from"):
                 recovery_mode = False

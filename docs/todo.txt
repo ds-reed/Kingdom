@@ -3,14 +3,14 @@ Kingdom TODO (Outstanding Only)
 
 
 1) Next session priority: Fix issues from testing
-    [ ] Cave was only giving short description so no mention of the pool after first entry 
-    [ ] Look should always show long description. (is this a general issue?)   
-    [ ] minor - room description for cave includes gold bar. Gold bar is a movable object
-    [ ] --mode modern should not use all caps
+    [x] Cave was only giving short description so no mention of the pool after first entry 
+    [x] Look should always show long description. (is this a general issue?)   
+    [x] minor - room description for cave includes gold bar. Gold bar is a movable object
+    [x] --mode modern should not use all caps
 
 2) Next session priority: Improve game play mechanics issues turned up in tests
-    [ ] important - some directions are hidden and should not be seen by "look" or room descriptions
-    [ ] The pool in the cave shouldn't be shown as an exit even though it is.
+    [x] important - some directions are hidden and should not be seen by "look" or room descriptions
+    [x]The pool in the cave shouldn't be shown as an exit even though it is.
     [ ] Paper bag should be carriable in inventory. Need to enhance box class
     [ ] think about how to handle inferred nouns more generally. unlock the only unlockable for example
 
@@ -24,9 +24,8 @@ Kingdom TODO (Outstanding Only)
     [ ] Validate warden flow against existing movement, dark-room, and death/recovery systems
 
 5) Lighting polish
-    [ ] Add extinguish verb for light sources (`extinguish torch`, `put out torch`)
-    [ ] Decide whether lit non-torch items in inventory should illuminate (currently: lit torch only)
-    [ ] Add clear feedback in `look`/status when room is illuminated by carried torch
+    [x] Add extinguish verb for light sources (`extinguish torch`, `put out torch`)
+    [x] Decide whether lit non-torch items in inventory should illuminate (currently: lit torch only)
 
 6) Minigame integration
     [ ] Standardize room/minigame initialization path
@@ -36,7 +35,6 @@ Kingdom TODO (Outstanding Only)
 7) Parser/UX improvements
     [ ] Improve multi-word noun matching and ambiguity handling
     [ ] Add command history / up-arrow recall
-    [ ] Keep TRS80 terminal-mode enhancements as optional future work (not core loop)
 
 8) Optional terminal enhancements (deferred)
     [ ] Sticky status/banner line via ANSI cursor control
@@ -79,5 +77,103 @@ Kingdom TODO (Outstanding Only)
     [ ] swing: traversal verb like swim (rope/chasm), can use hidden exit pathing
     [ ] untie/tie: rope state transitions controlling traversal and puzzle state
 
-14) Long-term tooling (deferred)
-    [ ] Build a world editor program for creating/editing/validating Kingdom world JSON files
+
+
+
+
+## TODO — Make `Verb` a First‑Class Class (Decouple from `Noun`)
+
+### 🎯 Goal
+Refactor `Verb` so it no longer inherits from `Noun`, and instead becomes its own clean, minimal command type.
+
+---
+
+### ✅ 1. Create a new lightweight base class
+Introduce a `NamedSymbol` (or similar) that provides:
+- `name`
+- `synonyms`
+- `all_names()`
+- `matches_reference()`
+- basic normalization helpers
+
+This replaces the parts of `Noun` that `Verb` actually uses.
+
+---
+
+### ✅ 2. Update `Verb` to inherit from `NamedSymbol` instead of `Noun`
+`Verb` should explicitly define:
+- `__init__`
+- `all_names`
+- `_detect_target_support`
+- `_detect_dispatch_context_support`
+- `execute`
+- `__repr__`
+
+These are the only pieces `Verb` truly needs.
+
+---
+
+### 🧹 3. Remove inherited world‑entity behavior from `Verb`
+Ensure `Verb` no longer inherits:
+- `get_presence_text`
+- open/close logic
+- lock/unlock logic
+- behavior handlers
+- room‑connection logic
+- `all_nouns` registry
+
+These belong only to world objects.
+
+---
+
+### 🔧 4. Update parser/dispatcher to use `NamedSymbol` for matching
+Verify that:
+- verb lookup uses `Verb.all_names()`
+- noun lookup uses `Noun.matches_reference()`
+- no code assumes verbs are in `Noun.all_nouns`
+
+---
+
+### 🧪 5. Test the double‑dispatch path
+Confirm that:
+- `Verb.execute()` still calls `target.can_handle_verb` correctly
+- verbs themselves are never treated as targets
+- movement/state‑changing/game‑state adapters still receive the right parameters
+
+---
+
+### ⚠️ Potential Gotchas / Side Effects
+
+- **Parser assumptions:**  
+  Some parts of the parser may assume verbs and nouns share a base class.  
+  Look for any code that iterates over `Noun.all_nouns` or checks `isinstance(x, Noun)`.
+
+- **Legacy verbs:**  
+  `_build_legacy_stub_verbs` may rely on verbs being nouns.  
+  Check how synonyms and lookup tables are built.
+
+- **DirectionNoun interactions:**  
+  Movement verbs rely on direction nouns being matchable.  
+  Ensure verb matching still works cleanly after the split.
+
+- **Help system:**  
+  If help lists verbs by scanning `Noun.all_nouns`, it will need updating.
+
+- **World loading:**  
+  `Game.setup_world()` clears `Noun.all_nouns`.  
+  After the split, verbs must not be wiped out during world loads.
+
+- **Behavior handlers:**  
+  Items and boxes use `handle_verb` extensively.  
+  Ensure verbs never accidentally fall into world‑object behavior paths.
+
+---
+
+### 📝 Notes for Future‑Dave
+- This refactor will *simplify* the mental model:  
+  **Noun = world object**  
+  **Verb = command**  
+  **NamedSymbol = shared parser identity layer**
+- The engine becomes more rediscoverable and easier to extend.
+- No need to rush — this can be done incrementally.
+

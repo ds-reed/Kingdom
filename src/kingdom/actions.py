@@ -15,19 +15,28 @@ Handler contract:
 This keeps verb wiring simple, supports synonym aliasing, and allows gradual
 signature migration without breaking command behavior.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping, Sequence, TypeAlias
 
-from kingdom.dispatch_context import DispatchContext
-from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun
+from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun, DispatchContext, QuitGame
 from kingdom.parser import normalize_direction_token
-from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
-from kingdom.render import render_current_room  
 
-from kingdom.render import (
+from kingdom.state_changing_verbs import StateChangingVerbHandler
+state_changer = StateChangingVerbHandler()
+
+from kingdom.movement_verbs import MovementVerbHandler
+movement = MovementVerbHandler()
+
+from kingdom.game_state_verbs import GameStateVerbHandler
+game_verb = GameStateVerbHandler()
+
+from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
+
+from kingdom.UI import (
     _describe_room,
     _describe_box_contents,
     _is_dark_room,
@@ -37,50 +46,13 @@ from kingdom.render import (
 )     #temporary until render logic is fully decoupled from actions
 
 
+# temporary adapters to match new handler method signatures to Verb.execute contract - Remove after refactoring is complete
+def adapt_method(method):
 
-from kingdom.state_changing_verbs import StateChangingVerbHandler
-state_changer = StateChangingVerbHandler()
-
-from kingdom.movement_verbs import MovementVerbHandler
-movement = MovementVerbHandler()
-
-
-def adapt_state_changer(method):
-    """
-    Temporary adapter: wraps a StateChangingVerbHandler method so it matches
-    the Verb handler signature used by the dispatch system.
-
-    Remove this once all verb handlers share a unified signature.
-    """
-    def handler(*args, target=None, ctx=None, dispatch_context=None, **kwargs):
-        context = dispatch_context or ctx
-        return method(context, target)
+    def handler(*words, target=None, ctx=None, dispatch_context=None, **kwargs):
+        context = dispatch_context 
+        return method(context, target, list(words))
     return handler
-
-def adapt_movement(method):
-    """
-    Temporary adapter: wraps MovementVerbHandler methods to match
-    the Verb handler signature.
-    """
-    def handler(*target_words, target=None, ctx=None, dispatch_context=None, **kwargs):
-        context = dispatch_context or ctx
-        return method(context, target, target_words)
-    return handler
-
-
-@dataclass
-class GameActionState:
-    current_room: Room | None = None
-    hero_name: str | None = None
-
-
-class QuitGame(Exception):
-    pass
-
-
-class GameOver(Exception):
-    pass
-
 
 ConfirmAction = Callable[[str], bool]
 PromptAction = Callable[[str], str]
@@ -111,10 +83,10 @@ def quit_action(
     ctx: DispatchContext | None = None,
     dispatch_context: DispatchContext | None = None,
 ) -> str:
-    active_ctx = ctx or dispatch_context
-    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
-    if not _confirm("Are you sure you want to quit?", confirm_action):
-        return "Quit cancelled."
+  #  active_ctx = ctx or dispatch_context
+ #   confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
+ #   if not _confirm("Are you sure you want to quit?", confirm_action):
+  #      return "Quit cancelled."
     raise QuitGame()
 
 
@@ -149,33 +121,7 @@ def _is_game_command_target(target_words: tuple[str, ...], target: object | None
     return isinstance(target, Game) or not normalized_words or normalized_words == ["game"]
 
 
-def save_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    active_ctx = ctx or dispatch_context
-    game = active_ctx.game if active_ctx is not None else None
-    default_save_path = active_ctx.save_path if active_ctx is not None else None
-    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
-    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
 
-    if game is None:
-        return "No game is active yet."
-    if default_save_path is None:
-        return "No save path is configured."
-
-    if not _is_game_command_target(target_words, target):
-        return "You can't save that."
-
-    if not _confirm("Save game?", confirm_action):
-        return "Save cancelled."
-
-    save_path = _prompt_for_path(prompt_action, "Save", default_save_path)
-
-    game.save_world(save_path)
-    return f"Game saved to {save_path}"
 
 
 def load_action(
@@ -392,25 +338,6 @@ def examine_action(
     return f"You don't see {target_name} here."
 
 
-def verbs_action(verbs: Mapping[str, object]) -> str:
-    canonical_verbs: dict[str, Verb] = {}
-    for verb in verbs.values():
-        if isinstance(verb, Verb):
-            if getattr(verb, "hidden", False):
-                continue
-            canonical_verbs.setdefault(verb.verb, verb)
-
-    parts: list[str] = []
-    for name in sorted(canonical_verbs.keys()):
-        verb = canonical_verbs[name]
-        if verb.synonyms:
-            parts.append(f"{name} ({', '.join(verb.synonyms)})")
-        else:
-            parts.append(name)
-
-    return f"Available verbs: {', '.join(parts)}"
-
-
 def legacy_stub_action(verb_name: str, *args: str) -> str:
     if args:
         return f"'{verb_name}' is recognized but not implemented yet. ({' '.join(args)})"
@@ -438,26 +365,6 @@ def inventory_action(
 
     item_label = "item" if len(sack_items) == 1 else "items"
     return f"{player.name}'s sack contains ({len(sack_items)} {item_label}): {', '.join(sack_items)}"
-
-
-def score_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    active_ctx = ctx or dispatch_context
-    game = active_ctx.game if active_ctx is not None else None
-    if game is None:
-        return "No game is active yet."
-
-    score_value = getattr(game, "score", 0)
-    try:
-        normalized_score = int(score_value)
-    except (TypeError, ValueError):
-        normalized_score = 0
-    game.score = normalized_score
-    return f"Your score is {normalized_score}."
 
 
 def take_action(
@@ -690,22 +597,6 @@ def hide_exit(room: Room, direction: str) -> bool:
         return False
 
     return bool(room.set_exit_visibility(canonical_direction, visible=False))
-
-
-def build_dispatch_context(
-    state: GameActionState,
-    game: Game,
-    save_path: Path | None = None,
-    confirm_action: ConfirmAction | None = None,
-    prompt_action: PromptAction | None = None,
-) -> DispatchContext:
-    return DispatchContext(
-        state=state,
-        game=game,
-        save_path=save_path,
-        confirm_callback=confirm_action,
-        prompt_callback=prompt_action,
-    )
 
 
 def eat_action(
@@ -969,7 +860,7 @@ def _confirm(prompt_text: str, confirm_action: ConfirmAction | None) -> bool:
 
 
 def _build_core_verbs(
-    state: GameActionState,
+    state: "GameActionState",
     game: Game,
     default_save_path: Path,
     confirm_action: ConfirmAction | None,
@@ -983,33 +874,39 @@ def _build_core_verbs(
     )
 
 #--------------- movement verbs ------------------------------
-    go_verb = Verb("go", adapt_movement(movement.go), synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"]) # todo: refactor test and re-enable direct use of movement method
+    go_verb = Verb("go", adapt_method(movement.go), synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"]) # todo: refactor test and re-enable direct use of movement method
     # go_verb = Verb("go", movement.go, synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"])   
-    swim_verb = Verb("swim", adapt_movement(movement.swim)) # todo: refactor test and re-enable direct use of movement method 
-    #   swim_verb = Verb("swim", swim_action)
-    climb_verb = Verb("climb", adapt_movement(movement.climb), synonyms=["scale", "ascend", "descend"]) # todo: refactor test and re-enable direct use of movement method
-    # climb_verb = Verb("climb", climb_action)
-    teleport_verb = Verb("teleport", adapt_movement(movement.teleport), synonyms=["goto"], hidden=True) # todo: refactor test and re-enable direct use of state_changer method
-    # teleport_verb = Verb("teleport", teleport_action, synonyms=["goto"], hidden=True)
+    swim_verb = Verb("swim", adapt_method(movement.swim)) # todo: refactor test and re-enable direct use of movement method 
+    #   swim_verb = Verb("swim", movement.swim)
+    climb_verb = Verb("climb", adapt_method(movement.climb), synonyms=["scale", "ascend", "descend"]) # todo: refactor test and re-enable direct use of movement method
+    # climb_verb = Verb("climb", movement.climb, synonyms=["scale", "ascend", "descend"])
+    teleport_verb = Verb("teleport", adapt_method(movement.teleport), synonyms=["goto"], hidden=True) # todo: refactor test and re-enable direct use of state_changer method
+    # teleport_verb = Verb("teleport", movement.teleport, synonyms=["goto"], hidden=True)
 
 #--------------- state-changing verbs -------------------------
-    light_verb = Verb("light", adapt_state_changer(state_changer.light))
+    light_verb = Verb("light", adapt_method(state_changer.light))
     # light_verb = Verb("light", state_changer.light)   # todo: refactor test and re-enable direct use of state_changer method
-    extinguish_verb = Verb("extinguish", adapt_state_changer(state_changer.extinguish))
+    extinguish_verb = Verb("extinguish", adapt_method(state_changer.extinguish))
     # extinguish_verb = Verb("extinguish", state_changer.extinguish)   # todo: refactor test and re-enable direct use of state_changer method
     insert_verb = Verb("insert", insert_action)
-    open_verb = Verb("open", adapt_state_changer(state_changer.open))
+    open_verb = Verb("open", adapt_method(state_changer.open))
     # open_verb = Verb("open", state_changer.open)   # todo: refactor test and re-enable direct use of state_changer method
-    close_verb = Verb("close", adapt_state_changer(state_changer.close))
+    close_verb = Verb("close", adapt_method(state_changer.close))
     # close_verb = Verb("close", state_changer.close)   # todo: refactor test and re-enable direct use of state_changer method
-    unlock_verb = Verb("unlock", adapt_state_changer(state_changer.unlock))
+    unlock_verb = Verb("unlock", adapt_method(state_changer.unlock))
     # unlock_verb = Verb("unlock", state_changer.unlock)   # todo: refactor test and re-enable direct use of state_changer method
 
 #---------------- game-state verbs ----------------------------
 
-    load_verb = Verb("load", load_action)
-    score_verb = Verb("score", score_action)
-    save_verb = Verb("save", save_action)
+    load_verb = Verb("load", adapt_method(game_verb.load))
+    #load_verb = Verb("load", game_verb.load)
+    save_verb = Verb("save", adapt_method(game_verb.save))
+    #save_verb = Verb("save", game_verb.save)
+    score_verb = Verb("score", adapt_method(game_verb.score), synonyms=["points"])
+    #score_verb = Verb("score", game_verb.score, synonyms=["points"])
+    help_verb = Verb("help", adapt_method(game_verb.help), synonyms=["commands", "h", "?"])
+    #help_verb = Verb("help", game_verb.help, synonyms=["commands", "h"])
+
 
 # todo  - refactor these verbs
     examine_verb = Verb("examine", examine_action, synonyms=["inspect", "look"])
@@ -1050,7 +947,8 @@ def _build_core_verbs(
         open_verb,
         close_verb,
         unlock_verb,
-        teleport_verb
+        teleport_verb,
+        help_verb,
     ]
 
 
@@ -1071,7 +969,7 @@ def _register_legacy_stubs(verb_lookup: dict[str, Verb]) -> None:
 
 
 def build_verbs(
-    state: GameActionState,
+    state: "GameActionState",
     game: Game,
     default_save_path: Path,
     confirm_action: ConfirmAction | None = None,
@@ -1081,9 +979,6 @@ def build_verbs(
 
     for verb in _build_core_verbs(state, game, default_save_path, confirm_action, prompt_action):
         _register_verb(verbs, verb)
-
-    verbs_verb = Verb("verbs", lambda: verbs_action(verbs), synonyms=["help", "commands"])
-    _register_verb(verbs, verbs_verb)
 
     _register_legacy_stubs(verbs)
 

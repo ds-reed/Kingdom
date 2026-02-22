@@ -1,41 +1,51 @@
 # game_state_verbs.py
 
-from kingdom.dispatch_context import DispatchContext
-from kingdom.models import Game
+from tkinter.font import names
+
+from kingdom.models import Game, Noun, Verb, DispatchContext
+from kingdom.UI import render_current_room, UI
 
 class GameStateVerbHandler:
-    def save(self, dispatch_context, words):
+
+    def load(self, dispatch_context: DispatchContext, target: Noun | None, words: list[str]):
+        return dispatch_context.ui.request_load()
+
+    def save(self, dispatch_context: DispatchContext, target: Noun | None, words: list[str]):
+        return dispatch_context.ui.request_save()
+
+    def score(self, dispatch_context: DispatchContext, target: Noun | None, words: list[str]):
         game = dispatch_context.game
-        default_path = dispatch_context.save_path
-        confirm = dispatch_context.confirm_callback
-        prompt = dispatch_context.prompt_callback
-
         if game is None:
-            return "No game is active yet."
-        if default_path is None:
-            return "No save path is configured."
+            return "Score is unavailable."
+        return f"Your current score is: {game.score}"   
 
-        # Game-state verbs should not target nouns
-        if words and words[0] not in ("", None):
-            return "You can't save that."
+    
+    def help(self, dispatch_context: DispatchContext, target: Noun | None, words: list[str]):
+        if words == None or len(words) == 0: 
+            return (
+                "You can try commands like:\n"
+                "  - look\n"
+                "  - go <direction>\n"
+                "  - take <item>\n"
+                "  - drop <item>\n"
+                "  - inventory\n"
+                "  - save\n"
+                "  - load\n"
+                "  - score\n"
+                "  - help"
+            )
+        elif words[0] in ("commands", "verbs"): 
+            names = {
+                    verb.verb
+                    for verb in Verb.all_verbs
+                    if not verb.hidden
+                }
+            parts = sorted(names)
+            return "Available commands: " + ", ".join(parts)
+        else:
+            return "Help is not available for that topic."
 
-        if not _confirm("Save game?", confirm):
-            return "Save cancelled."
-
-        save_path = _prompt_for_path(prompt, "Save", default_path)
-        game.save_world(save_path)
-
-        return f"Game saved to {save_path}."
+    
 
 
-    def load(self, dispatch_context: DispatchContext, words):
-        path = dispatch_context.save_path
-        dispatch_context.game.load_from_file(path)
-        return f"Game restored from {path}."
-
-    def score(self, dispatch_context: DispatchContext, words):
-        hero = dispatch_context.state.hero
-        return f"Your score is {hero.score}."
-
-
-
+# future commands history, help, etc. could be added here

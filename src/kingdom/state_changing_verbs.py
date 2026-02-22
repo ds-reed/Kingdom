@@ -28,7 +28,7 @@ def state_change_helper(
 
 class StateChangingVerbHandler:
 
-    def open(self, context: DispatchContext, target: Noun | None) -> str:
+    def open(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
             capability_attr='is_openable',
@@ -39,7 +39,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't open that."
         )
 
-    def close(self, context: DispatchContext, target: Noun | None) -> str:
+    def close(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
             capability_attr='is_openable',
@@ -50,7 +50,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't close that."
         )
 
-    def unlock(self, context: DispatchContext, target: Noun | None) -> str:
+    def unlock(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
             capability_attr='is_lockable',
@@ -61,7 +61,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't unlock that."
         )
 
-    def light(self, context: DispatchContext, target: Noun | None) -> str:
+    def light(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
             capability_attr='is_lightable',
@@ -72,7 +72,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't light that."
         )
     
-    def extinguish(self, context: DispatchContext, target: Noun | None) -> str:
+    def extinguish(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
             capability_attr='is_lightable',

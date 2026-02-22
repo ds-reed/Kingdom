@@ -8,8 +8,35 @@ import inspect
 from pathlib import Path
 from typing import Iterable
 
-from kingdom.dispatch_context import DispatchContext
 from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
+from dataclasses import dataclass
+
+
+@dataclass(slots=True)
+class DispatchContext:
+    game: "Game | None" = None
+    state: "GameActionState | None" = None
+    ui: object | None = None  # UI is loosely typed to avoid circular imports. Expected to be an instance of kingdom.UI.UI.
+
+@dataclass
+class GameActionState:
+    current_room: "Room | None" = None
+    hero_name: str | None = None    
+
+class GameOver(Exception):
+    pass
+
+class QuitGame(Exception):
+    pass
+
+def build_dispatch_context(
+    state: "GameActionState",
+    game: "Game",
+) -> "DispatchContext":
+    return DispatchContext(
+        state=state,
+        game=game,
+    )
 
 
 def _normalize_tokens(text: str) -> list[str]:

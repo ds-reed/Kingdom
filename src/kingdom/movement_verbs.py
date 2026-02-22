@@ -5,11 +5,10 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
-from kingdom.dispatch_context import DispatchContext
-from kingdom.models import Verb, Noun, Room
+from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_print, trs80_clear_and_show_room
-from kingdom.render import render_current_room
+from kingdom.UI import render_current_room
 
 _DIRECTION_ORDER = {
     "up": 0,
@@ -24,6 +23,7 @@ _VERTICAL_DIRECTION_LABELS = {
     "up": "above",
     "down": "below",
 }
+
 
 class MovementVerbHandler:
 
@@ -44,7 +44,7 @@ class MovementVerbHandler:
         print()
         return ""
 
-    def resolve_direction(self, target, target_words):
+    def resolve_direction(self, target, words):
         """Extract direction from noun or raw text."""
         if target is not None:
             direction = getattr(target, "canonical_direction", None)
@@ -52,30 +52,30 @@ class MovementVerbHandler:
                 return normalize_direction_token(target.get_noun_name())
             return direction
 
-        if target_words:
-            return normalize_direction_token(target_words[0])
+        if words:
+            return normalize_direction_token(words[0])
 
         return None
     
 
-    def go(self, context, target, target_words):
+    def go(self, context, target: Noun, words: list[str]):
         """High-level GO verb."""
         state = context.state
-        direction = self.resolve_direction(target, target_words)
+        direction = self.resolve_direction(target, words)
 
         if not direction:
             return "Go where?"
 
         return self.transition(state, direction)
 
-    def climb(self, context, target, target_words):
+    def climb(self, context, target: Noun, words: list[str]):
         """High-level CLIMB verb."""
         state = context.state
         if state.current_room is None:
             return "There is nowhere to climb."
 
         # Try to resolve a direction (up/down)
-        direction = self.resolve_direction(target, target_words)
+        direction = self.resolve_direction(target, words)
 
         # No direction given → infer from available exits
         if direction is None:
@@ -100,7 +100,7 @@ class MovementVerbHandler:
         # Normal movement
         return self.transition(state, direction)
 
-    def swim(self, context, target, target_words):
+    def swim(self, context, target: Noun, words: list[str]):
         """High-level SWIM verb."""
         state = context.state
         game = context.game
@@ -109,7 +109,7 @@ class MovementVerbHandler:
             return "There is nowhere to swim."
 
         # 1. Resolve direction
-        direction = self.resolve_direction(target, target_words)
+        direction = self.resolve_direction(target, words)
 
         # 2. Check player constraints (drowning logic)
         constraint_error = self._check_swim_constraints(game)
@@ -172,7 +172,7 @@ class MovementVerbHandler:
 
         return None
 
-    def teleport(self, context, target, target_words):
+    def teleport(self, context, target: Noun, words: list[str] ):
         """Teleport to any room by name or number. No target → list rooms."""
         state = context.state
         game = context.game
@@ -181,7 +181,7 @@ class MovementVerbHandler:
             return "No current room — cannot teleport."
 
         # No argument → show list
-        if not target_words and target is None:
+        if not words and target is None:
             room_list = sorted(game.rooms, key=lambda r: r.name)
             if not room_list:
                 return "No rooms in the world yet."
@@ -210,8 +210,8 @@ class MovementVerbHandler:
                         break
 
         # 2. Words fallback (e.g. "teleport kitchen" or "tp 4")
-        if target_room is None and target_words:
-            query = " ".join(target_words).strip().lower()
+        if target_room is None and words:
+            query = " ".join(words).strip().lower()
 
             # Number?
             try:
