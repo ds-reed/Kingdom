@@ -83,7 +83,7 @@ def _build_core_verbs(
 
 
     #---------------- meta verbs ----------------------------
-    verb_help = Verb("help", meta_handler.help,synonyms=["commands", "h", "?"])
+    verb_help = Verb("help", meta_handler.help, synonyms=["commands", "h", "?"])
 
 
     return [

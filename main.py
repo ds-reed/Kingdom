@@ -34,11 +34,6 @@ from kingdom.terminal_style import (
 from kingdom.UI import render_current_room, UI
 import kingdom.terminal_style as terminal_style
 
-# Movement verb handler and adapter for implicit noun actions. Remove cleaed up singletons 
-from kingdom.movement_verbs import MovementVerbHandler,   GameOver   #move game over definition to models  
-from kingdom.actions import adapt_method
-movement = MovementVerbHandler()
-
 from kingdom.actions import build_verbs
 
 def iter_known_noun_names(game: Game):
@@ -299,10 +294,11 @@ def main(args: argparse.Namespace | None = None):
 
             try:
                 result = verb.execute(
-                    *args,
-                    target=target_noun,
-                    dispatch_context=dispatch_context,
+                dispatch_context,   # ctx
+                target_noun,        # target
+                args,               # words (tuple)
                 )
+
             except QuitGame:
                 trs80_print("Goodbye!", style=TRS80_WHITE)
                 break

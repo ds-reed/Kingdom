@@ -4,9 +4,8 @@ Defines Noun, Item, Box, Room, Player, Game, and related helpers.
 Handles world loading, serialization, and runtime entity management.
 """
 import json
-import inspect
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
 from dataclasses import dataclass
@@ -284,6 +283,17 @@ class Noun:
     def get_presence_text(self):
         """Default sentence used when this noun is noticed in a room."""
         return f"There is {self.name} here."
+    
+    # Default: no override, allow verb handler to run
+    def on_open(self, ctx, words):
+        return None
+
+    def on_close(self, ctx, words):
+        return None
+
+    def on_unlock(self, ctx, words):
+        return None
+
 
     def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
         """Return whether this noun allows handling the given verb.
@@ -635,6 +645,30 @@ class Item(Noun):
 
         return super().handle_verb(verb_name, *args, **kwargs)
 
+    def on_open(self, ctx, words) -> str | None:
+        if not self.is_openable:
+            return f"You can't open the {self.get_noun_name()}."
+
+        if self.is_lockable and self.is_locked:
+            if self.locked_description:
+                return self.locked_description
+            return f"The {self.get_noun_name()} is locked."
+
+        # Already open
+        if self.is_open:
+            if self.open_description:
+                return self.open_description
+            return f"The {self.get_noun_name()} is already open."
+
+        # Opening now — return the open description if present
+        if self.open_description:
+            return self.open_description
+
+        # Otherwise fall through to generic handler
+        return None
+
+
+
     def __repr__(self):
         """Controls how the item looks when printed in a list."""
         status = " [BROKEN]" if self.is_broken else ""
@@ -726,8 +760,28 @@ class Box(Noun):
         if announce:
             print(f" {self.box_name}: {item.name} has been added to the treasury.")
 
-    def __repr__(self):
-        return f"Box({self.box_name}, contents={self.contents})"
+    def on_open(self, ctx, words) -> str | None:
+        if not self.is_openable:
+            return f"You can't open the {self.get_noun_name()}."
+
+        if self.is_lockable and self.is_locked:
+            if self.locked_description:
+                return self.locked_description
+            return f"The {self.get_noun_name()} is locked."
+
+        # Already open
+        if self.is_open:
+            if self.open_description:
+                return self.open_description
+            return f"The {self.get_noun_name()} is already open."
+
+        # Opening now — return the open description if present
+        if self.open_description:
+            return self.open_description
+
+        # Otherwise fall through to generic handler
+        return None
+
 
 
 class Player:

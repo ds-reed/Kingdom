@@ -1,88 +1,127 @@
-"""
-state_changing_verbs.py
-
-Handlers for verbs that change the state of objects or rooms (e.g., OPEN, CLOSE, UNLOCK, LIGHT, TURN, PUSH, PRESS, BREAK, SMASH, RUB, DIAL).
-
-This module centralizes state-changing verb logic for clarity and maintainability.
-"""
+from __future__ import annotations
+from typing import Callable, Optional, Iterable
 
 from .models import Noun, DispatchContext
 
-def state_change_helper(
-    target: Noun | None,
-    capability_attr: str,
+
+def apply_state_change(
+    ctx: DispatchContext,
+    target: Optional[Noun],
+    words: Iterable[str],
+    override_method: str,
     state_attr: str,
     desired_state: bool,
-    already_msg: str,
-    success_msg: str,
-    fail_msg: str,
+    fallback_verb: str,
 ) -> str:
-    if target and hasattr(target, capability_attr) and getattr(target, capability_attr):
-        current = getattr(target, state_attr, not desired_state)
-        if current == desired_state:
-            return already_msg.format(target=target)
-        setattr(target, state_attr, desired_state)
-        return success_msg.format(target=target)
-    return fail_msg.format(target=target)
+    """
+    Generic helper for state-changing verbs in the new override-first architecture.
+    """
+
+    # 1. No target
+    if target is None:
+        return f"{fallback_verb.capitalize()} what?"
+
+    # 2. Noun override
+    override: Optional[Callable[[DispatchContext, Iterable[str]], Optional[str]]] = (
+        getattr(target, override_method, None)
+    )
+
+    if override is not None:
+        result = override(ctx, words)
+        if result is not None:
+            return result
+
+    # 3. Default world-state mutation
+    if not hasattr(target, state_attr):
+        # Noun forgot to define the attribute — safest fallback
+        return f"You {fallback_verb} the {target.get_noun_name()}."
+
+    setattr(target, state_attr, desired_state)
+
+    # 4. Generic fallback
+    return f"You {fallback_verb} the {target.get_noun_name()}."
 
 
 class StateVerbHandler:
 
-    def open(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
-        return state_change_helper(
-            target,
-            capability_attr='is_openable',
-            state_attr='is_open',
+    def open(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun],
+        words: tuple[str, ...],
+    ) -> str:
+        return apply_state_change(
+            ctx=ctx,
+            target=target,
+            words=words,
+            override_method="on_open",
+            state_attr="is_open",
             desired_state=True,
-            already_msg="The {target.name} is already open.",
-            success_msg="You open the {target.name}.",
-            fail_msg="You can't open that."
+            fallback_verb="open",
         )
 
-    def close(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
-        return state_change_helper(
-            target,
-            capability_attr='is_openable',
-            state_attr='is_open',
+    def close(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun],
+        words: tuple[str, ...],
+    ) -> str:
+        return apply_state_change(
+            ctx=ctx,
+            target=target,
+            words=words,
+            override_method="on_close",
+            state_attr="is_open",
             desired_state=False,
-            already_msg="The {target.name} is already closed.",
-            success_msg="You close the {target.name}.",
-            fail_msg="You can't close that."
+            fallback_verb="close",
         )
 
-# maybe missinga key check here? if target is None or not hasattr(target, capability_attr) or not getattr(target, capability_attr):
-    def unlock(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
-        return state_change_helper(
-            target,
-            capability_attr='is_lockable',
-            state_attr='is_locked',
+    def unlock(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun],
+        words: tuple[str, ...],
+    ) -> str:
+        return apply_state_change(
+            ctx=ctx,
+            target=target,
+            words=words,
+            override_method="on_unlock",
+            state_attr="is_locked",
             desired_state=False,
-            already_msg="The {target.name} is already unlocked.",
-            success_msg="You unlock the {target.name}.",
-            fail_msg="You can't unlock that."
+            fallback_verb="unlock",
         )
 
-# are we missing the hassattr check here too? if target is None or not hasattr(target, capability_attr) or not getattr(target, capability_attr):
-    def light(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
-        return state_change_helper(
-            target,
-            capability_attr='is_lightable',
-            state_attr='is_lit',
+    def light(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun],
+        words: tuple[str, ...],
+    ) -> str:
+        return apply_state_change(
+            ctx=ctx,
+            target=target,
+            words=words,
+            override_method="on_light",
+            state_attr="is_lit",
             desired_state=True,
-            already_msg="The {target.name} is already lit.",
-            success_msg="You light the {target.name}.",
-            fail_msg="You can't light that."
+            fallback_verb="light",
         )
-    
-    def extinguish(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
-        return state_change_helper(
-            target,
-            capability_attr='is_lightable',
-            state_attr='is_lit',
+
+    def extinguish(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun],
+        words: tuple[str, ...],
+    ) -> str:
+        return apply_state_change(
+            ctx=ctx,
+            target=target,
+            words=words,
+            override_method="on_extinguish",
+            state_attr="is_lit",
             desired_state=False,
-            already_msg="The {target.name} is already extinguished.",
-            success_msg="You extinguish the {target.name}.",
-            fail_msg="You can't extinguish that."
+            fallback_verb="extinguish",
         )
 
     # Add similar methods for TURN, PUSH, PRESS, BREAK, SMASH, RUB, DIAL, etc.
