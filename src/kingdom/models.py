@@ -348,109 +348,58 @@ class Noun:
         return None
 
 
-class Verb(Noun):
-    """A verb paired with an action function.
-    
-    Verbs are used to define actions that can be performed in the game.
-    Each verb has a name and an associated callable that implements the action.
-    """
-    all_verbs = []  # Class variable to track every verb created
+class Verb:
+    """A verb paired with a handler method.
 
-    def __init__(self, verb, action, synonyms: Iterable[str] | None = None, hidden: bool = False):
-        """Initialize a Verb.
-        
-        Args:
-            verb: The verb name (e.g., 'take', 'drop', 'examine')
-            action: A callable that performs the action
-            synonyms: Optional list of alternate verb spellings/phrases
-            hidden: If True, omit this verb from help/listing output
-        """
-        super().__init__()
-        normalized_verb = str(verb).strip().lower()
-        self.name = normalized_verb  # Noun uses 'name'
-        self.verb = normalized_verb
+    Verbs know:
+      - their name
+      - their synonyms
+      - their handler function
+      - how to perform noun-side overrides (double dispatch)
+    """
+
+    all_verbs = []
+
+    def __init__(self, name, action, synonyms=None, hidden=False):
+        self.name = str(name).strip().lower()
         self.action = action
-        self._accepts_target = self._detect_target_support(action)
-        self._accepts_dispatch_context = self._detect_dispatch_context_support(action)
         self.hidden = bool(hidden)
+
+        # Normalize synonyms
         self.synonyms = tuple(
             sorted(
                 {
-                    normalized
-                    for synonym in (synonyms or [])
-                    if (normalized := str(synonym).strip().lower()) and normalized != normalized_verb
+                    s.strip().lower()
+                    for s in (synonyms or [])
+                    if s.strip().lower() != self.name
                 }
             )
         )
-        Verb.all_verbs.append(self)    
 
-    @staticmethod
-    def _detect_target_support(action) -> bool:
-        try:
-            signature = inspect.signature(action)
-        except (TypeError, ValueError):
-            return False
-
-        for parameter in signature.parameters.values():
-            if parameter.kind == inspect.Parameter.VAR_KEYWORD:
-                return True
-            if parameter.name == "target":
-                return True
-        return False
-
-    @staticmethod
-    def _detect_dispatch_context_support(action) -> bool:
-        try:
-            signature = inspect.signature(action)
-        except (TypeError, ValueError):
-            return False
-
-        for parameter in signature.parameters.values():
-            if parameter.kind == inspect.Parameter.VAR_KEYWORD:
-                return True
-            if parameter.name == "dispatch_context":
-                return True
-        return False
+        Verb.all_verbs.append(self)
 
     def all_names(self):
-        return (self.verb, *self.synonyms)
-    
-    def execute(self, *args, target=None, dispatch_context: DispatchContext | None = None, **kwargs):
-        """Execute this verb with optional noun double-dispatch."""
+        return (self.name, *self.synonyms)
+
+    def execute(self, ctx, target, words):
+        """Execute this verb with noun override + handler fallback."""
+
+        # 1. Noun override: on_<verb>
         if target is not None:
-            can_handle, refusal_message = target.can_handle_verb(
-                self.verb,
-                *args,
-                dispatch_context=dispatch_context,
-            )
-            if not can_handle:
-                return refusal_message or f"You can't {self.verb} that."
+            override = getattr(target, f"on_{self.name}", None)
+            if callable(override):
+                result = override(ctx, words)
+                if result is not None:
+                    return result
 
-            handled_result = target.handle_verb(
-                self.verb,
-                *args,
-                dispatch_context=dispatch_context,
-            )
-            if handled_result is not None:
-                return handled_result
+        # 2. Handler fallback
+        return self.action(ctx, target, words)
 
-        if not callable(self.action):
-            raise TypeError(f"Action for verb '{self.verb}' is not callable")
-
-        if target is not None and self._accepts_target:
-            kwargs = dict(kwargs)
-            kwargs["target"] = target
-
-        if dispatch_context is not None and self._accepts_dispatch_context:
-            kwargs = dict(kwargs)
-            kwargs["dispatch_context"] = dispatch_context
-
-        return self.action(*args, **kwargs)
-    
     def __repr__(self):
         if self.synonyms:
-            return f"Verb({self.verb}, synonyms={list(self.synonyms)})"
-        return f"Verb({self.verb})"
+            return f"Verb({self.name}, synonyms={list(self.synonyms)})"
+        return f"Verb({self.name})"
+
 
 
 class DirectionNoun(Noun):
