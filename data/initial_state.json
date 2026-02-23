@@ -1,5 +1,6 @@
 {
     "score": 0,
+    "start_room": "Tower Cell",
     "rooms": [
         {
             "name": "Tower Cell",

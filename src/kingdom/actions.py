@@ -1,19 +1,5 @@
 """Action dispatch model for verb handlers.
 
-Commands are parsed into `(verb, target_words)` and routed through
-`Verb.execute`. Resolution follows this order:
-- A noun target may intercept via target-specific behavior.
-- Otherwise, the verb's registered handler executes.
-
-Handler contract:
-- Most handlers accept `*target_words`, optional `target`, and optional
-    `ctx` / `dispatch_context`.
-- Runtime collaborators are carried through `DispatchContext`
-    (`game`, `state`, save path, and UI callbacks).
-- Handlers should rely on context rather than module-level globals.
-
-This keeps verb wiring simple, supports synonym aliasing, and allows gradual
-signature migration without breaking command behavior.
 """
 from __future__ import annotations
 
@@ -56,112 +42,6 @@ def adapt_method(method):
 
 ConfirmAction = Callable[[str], bool]
 PromptAction = Callable[[str], str]
-LegacyVerbSpec: TypeAlias = tuple[str, tuple[str, ...]]
-
-LEGACY_VERB_SPECS: tuple[LegacyVerbSpec, ...] = (
-    ("throw", ()),
-    ("read", ()),
-    ("kick", ()),
-    ("knock", ()),
-    ("shoot", ()),
-    ("turn", ()),
-    ("wash", ()),
-    ("push", ("press",)),
-    ("dial", ()),
-    ("break", ("smash",)),
-    ("drink", ()),
-    ("drag", ()),
-    ("kill", ()),
-    ("swing", ()),
-    ("untie", ()),
-    ("tie", ()),
-)
-
-def quit_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-  #  active_ctx = ctx or dispatch_context
- #   confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
- #   if not _confirm("Are you sure you want to quit?", confirm_action):
-  #      return "Quit cancelled."
-    raise QuitGame()
-
-
-def _derive_player_save_path(default_save_path: Path, hero_name: str | None) -> Path:
-    if not hero_name:
-        return default_save_path
-
-    cleaned = "".join(ch.lower() if ch.isalnum() else "_" for ch in hero_name.strip())
-    cleaned = cleaned.strip("_")
-    while "__" in cleaned:
-        cleaned = cleaned.replace("__", "_")
-    if not cleaned:
-        return default_save_path
-
-    return default_save_path.with_name(f"{cleaned}.sav")
-
-
-def _prompt_for_path(prompt_action: PromptAction | None, prompt_label: str, default_path: Path) -> Path:
-    if prompt_action is None:
-        return default_path
-
-    raw_path = prompt_action(f"{prompt_label} file name [{default_path}]: ").strip()
-    if not raw_path:
-        return default_path
-    return Path(raw_path)
-
-
-def _is_game_command_target(target_words: tuple[str, ...], target: object | None) -> bool:
-    normalized_words = [word.strip().lower() for word in target_words if word.strip()]
-    if target is not None and not isinstance(target, Game):
-        return False
-    return isinstance(target, Game) or not normalized_words or normalized_words == ["game"]
-
-
-
-
-
-def load_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    active_ctx = ctx or dispatch_context
-    game = active_ctx.game if active_ctx is not None else None
-    default_save_path = active_ctx.save_path if active_ctx is not None else None
-    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
-    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
-    state = active_ctx.state if active_ctx is not None else None
-
-    if game is None:
-        return "No game is active yet."
-    if default_save_path is None:
-        return "No save path is configured."
-
-    if not _is_game_command_target(target_words, target):
-        return "You can't load that."
-
-    if not _confirm("Load game?", confirm_action):
-        return "Load cancelled."
-
-    load_path = _prompt_for_path(prompt_action, "Load", default_save_path)
-
-    game.load_world(load_path)
-
-    if state is not None:
-        state.current_room = game.rooms[0] if game.rooms else None
-        if state.current_room is not None:
-            render_current_room(state, clear=False)
-            print()
-
-    return f"Game loaded from {load_path}"
-
-
-
 
 
 
@@ -217,56 +97,6 @@ def _active_player_or_none(game: Game | None) -> Player | None:
 
 def _require_player_for_action(game: Game) -> Player | str:
     return game.require_player(return_error=True)
-
-
-
-def exit_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    active_ctx = ctx or dispatch_context
-    state = active_ctx.state if active_ctx is not None else None
-    confirm_action = active_ctx.confirm_callback if active_ctx is not None else None
-    prompt_action = active_ctx.prompt_callback if active_ctx is not None else None
-
-    if state is None:
-        return "There is nowhere to exit from."
-
-    if not target_words and target is None:
-        return quit_action(dispatch_context=active_ctx)
-
-    target_text = " ".join(target_words).strip().lower()
-
-    if isinstance(target, Room) or target_text in {"room", "here"}:
-        if state.current_room is None:
-            return "There is nowhere to exit from."
-
-        exits = state.current_room.available_directions(visible_only=True)
-        if not exits:
-            return "There are no visible exits from here."
-        if len(exits) == 1:
-            return _go_with_state(state, exits[0])
-
-        displayed_exits = _format_exit_choices(exits)
-        if prompt_action is None:
-            return f"Which direction do you want to exit? ({', '.join(displayed_exits)})"
-
-        chosen_raw = prompt_action(f"Which direction? ({', '.join(displayed_exits)}): ").strip().lower()
-        if not chosen_raw:
-            return "Exit cancelled."
-        return _go_with_state(state, chosen_raw)
-
-    if target_text in {"game", "program"}:
-        return quit_action(dispatch_context=active_ctx)
-
-    if target_words:
-        maybe_direction = normalize_direction_token(target_words[0])
-        if maybe_direction in Room.DIRECTIONS:
-            return _go_with_state(state, maybe_direction)
-
-    return "Exit where?"
 
 
 def _describe_room(room: Room) -> str:
@@ -337,11 +167,6 @@ def examine_action(
 
     return f"You don't see {target_name} here."
 
-
-def legacy_stub_action(verb_name: str, *args: str) -> str:
-    if args:
-        return f"'{verb_name}' is recognized but not implemented yet. ({' '.join(args)})"
-    return f"'{verb_name}' is recognized but not implemented yet."
 
 
 def inventory_action(
@@ -866,12 +691,6 @@ def _build_core_verbs(
     confirm_action: ConfirmAction | None,
     prompt_action: PromptAction | None,
 ) -> list[Verb]:
-    quit_verb = Verb("quit", quit_action, synonyms=["q"])
-    exit_verb = Verb(
-        "exit",
-        exit_action,
-        synonyms=["leave"],
-    )
 
 #--------------- movement verbs ------------------------------
     go_verb = Verb("go", adapt_method(movement.go), synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"]) # todo: refactor test and re-enable direct use of movement method
@@ -896,7 +715,7 @@ def _build_core_verbs(
     unlock_verb = Verb("unlock", adapt_method(state_changer.unlock))
     # unlock_verb = Verb("unlock", state_changer.unlock)   # todo: refactor test and re-enable direct use of state_changer method
 
-#---------------- game-state verbs ----------------------------
+#----------------UI and game state related verbs ----------------------------
 
     load_verb = Verb("load", adapt_method(game_verb.load))
     #load_verb = Verb("load", game_verb.load)
@@ -906,6 +725,9 @@ def _build_core_verbs(
     #score_verb = Verb("score", game_verb.score, synonyms=["points"])
     help_verb = Verb("help", adapt_method(game_verb.help), synonyms=["commands", "h", "?"])
     #help_verb = Verb("help", game_verb.help, synonyms=["commands", "h"])
+    quit_verb = Verb("quit", adapt_method(game_verb.quit), synonyms=["q"])
+    #quit_verb = Verb("quit", game_verb.quit, synonyms=["exit", "q"]
+
 
 
 # todo  - refactor these verbs
@@ -924,7 +746,6 @@ def _build_core_verbs(
     
     return [
         quit_verb,
-        exit_verb,
         go_verb,
         swim_verb,
         climb_verb,
@@ -951,23 +772,6 @@ def _build_core_verbs(
         help_verb,
     ]
 
-
-def _build_legacy_stub_verbs(specs: Sequence[LegacyVerbSpec] = LEGACY_VERB_SPECS) -> list[Verb]:
-    return [
-        Verb(canonical_name, partial(legacy_stub_action, canonical_name), synonyms=list(aliases))
-        for canonical_name, aliases in specs
-    ]
-
-
-def _register_legacy_stubs(verb_lookup: dict[str, Verb]) -> None:
-    for legacy_verb in _build_legacy_stub_verbs():
-        existing = verb_lookup.get(legacy_verb.verb)
-        if existing is None:
-            _register_verb(verb_lookup, legacy_verb)
-            continue
-        _merge_aliases(verb_lookup, existing, legacy_verb.synonyms)
-
-
 def build_verbs(
     state: "GameActionState",
     game: Game,
@@ -976,10 +780,6 @@ def build_verbs(
     prompt_action: PromptAction | None = None,
 ) -> dict[str, Verb]:
     verbs: dict[str, Verb] = {}
-
     for verb in _build_core_verbs(state, game, default_save_path, confirm_action, prompt_action):
         _register_verb(verbs, verb)
-
-    _register_legacy_stubs(verbs)
-
     return verbs

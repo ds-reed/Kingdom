@@ -72,10 +72,12 @@ class UI:
         self.game.load_world(path)
 
         return f"Game loaded from {path}."
-
-
-
-
+    
+    def request_quit(self):
+        if self.confirm("Quit without saving? "):
+           return True # Confirmed
+        return False # Cancelled
+    
 
 def render_current_room(state: Any, clear: bool = True) -> None:
     """

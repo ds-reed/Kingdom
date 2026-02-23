@@ -2,7 +2,7 @@
 
 from tkinter.font import names
 
-from kingdom.models import Game, Noun, Verb, DispatchContext
+from kingdom.models import Game, Noun, QuitGame, Verb, DispatchContext
 from kingdom.UI import render_current_room, UI
 
 class GameStateVerbHandler:
@@ -45,7 +45,11 @@ class GameStateVerbHandler:
         else:
             return "Help is not available for that topic."
 
-    
+    def quit(self, dispatch_context: DispatchContext, target: Noun | None, words: list[str]):
+        if dispatch_context.ui.request_quit():
+            raise QuitGame()
+        else:
+            return "Quit cancelled."   
 
 
 # future commands history, help, etc. could be added here

@@ -172,7 +172,7 @@ class MovementVerbHandler:
 
         return None
 
-    def teleport(self, context, target: Noun, words: list[str] ):
+    def teleport(self, context, target: Noun, words: list[str]):
         """Teleport to any room by name or number. No target → list rooms."""
         state = context.state
         game = context.game
@@ -182,7 +182,7 @@ class MovementVerbHandler:
 
         # No argument → show list
         if not words and target is None:
-            room_list = sorted(game.rooms, key=lambda r: r.name)
+            room_list = sorted(game.rooms.values(), key=lambda r: r.name)
             if not room_list:
                 return "No rooms in the world yet."
 
@@ -197,26 +197,25 @@ class MovementVerbHandler:
         # Resolve target room
         target_room = None
 
-        # 1. Direct noun target (e.g. "teleport throne room" where throne room is a DirectionNoun or other noun)
+        # 1. Direct noun target
         if target is not None:
             if isinstance(target, Room):
                 target_room = target
             else:
-                # Try matching noun name against room names
                 query = target.get_noun_name().lower()
-                for r in game.rooms:
+                for r in game.rooms.values():
                     if query in r.name.lower() or query in r.get_noun_name().lower():
                         target_room = r
                         break
 
-        # 2. Words fallback (e.g. "teleport kitchen" or "tp 4")
+        # 2. Words fallback
         if target_room is None and words:
             query = " ".join(words).strip().lower()
 
             # Number?
             try:
                 idx = int(query) - 1
-                rooms_sorted = sorted(game.rooms, key=lambda r: r.name)
+                rooms_sorted = sorted(game.rooms.values(), key=lambda r: r.name)
                 if 0 <= idx < len(rooms_sorted):
                     target_room = rooms_sorted[idx]
             except ValueError:
@@ -224,13 +223,15 @@ class MovementVerbHandler:
 
             # Name prefix/partial match
             if target_room is None:
-                matches = [r for r in game.rooms if query in r.name.lower() or query in r.get_noun_name().lower()]
+                matches = [
+                    r for r in game.rooms.values()
+                    if query in r.name.lower() or query in r.get_noun_name().lower()
+                ]
                 if len(matches) == 1:
                     target_room = matches[0]
                 elif len(matches) > 1:
                     names = ", ".join(r.name for r in matches)
                     return f"Ambiguous room name — matches: {names}"
-                # else → error below
 
         if target_room is None:
             return "No matching room. Use 'teleport' alone to list rooms."
@@ -238,15 +239,13 @@ class MovementVerbHandler:
         # Perform the teleport
         old_room_name = state.current_room.name
         state.current_room = target_room
-
-        # Mark visited so full description shows immediately
         target_room.visited = True
 
-        # Render the new room
-        render_current_room(state, clear=True)  # or False if you prefer keeping the prompt visible
-        print()  # extra line for readability
+        render_current_room(state, clear=True)
+        print()
 
-        return f"Teleported: {old_room_name} → {target_room.name}"
+        
+
 
 
 

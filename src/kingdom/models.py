@@ -974,6 +974,8 @@ class Game(Noun):
         self.rooms = []
         self.current_player = None
         self.score = 0
+        self.start_room_name = None
+        self.state = None
         Game._instance = self
     
     @classmethod
@@ -1027,7 +1029,9 @@ class Game(Noun):
         Room.all_rooms.clear()
         Box.all_boxes.clear()
         Item.all_items.clear()
-        Noun.all_nouns.clear()           # ← important if parser uses this
+        Noun.all_nouns.clear()           
+
+
 
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))
@@ -1043,7 +1047,11 @@ class Game(Noun):
             self.score = 0
 
         self.set_world(boxes, rooms)
-        return boxes, rooms
+        self.rooms = { room.name: room for room in rooms }     #convert room list to a dictionary for easy lookup by name
+        start_room_name = data.get("start_room")
+        self.start_room_name = start_room_name
+
+        return boxes, self.rooms
 
     def load_world(self, filepath):
         with open(filepath, 'r') as file:
@@ -1052,7 +1060,10 @@ class Game(Noun):
         # --- 1. Peel off the player block ---
         player_data = data.pop("player", None)
 
-        # --- 2. Create the Player (empty sack) ---
+        # --- 2. Extract current room name BEFORE setup_world ---
+        room_name = data.get("current_room")
+
+        # --- 3. Create the Player (empty sack) ---
         if player_data:
             player = Player(player_data.get("name", "Hero"))
         else:
@@ -1060,12 +1071,22 @@ class Game(Noun):
 
         self.current_player = player
 
+        # --- 4. Build the world ---
         self.setup_world(data)
 
+        # --- 5. Restore player inventory ---
         if player_data:
             for item_json in player_data.get("inventory", []):
                 item = _construct_item_from_spec(item_json)
                 player.sack.add_item(item, announce=False)
+
+        # --- 6. Restore current room ---
+        if room_name and room_name in self.rooms:
+            self.state.current_room = self.rooms[room_name]
+
+        # --- 7. Restore score ---
+        self.score = int(data.get("score", 0))
+
 
 
     def save_world(self, filepath):
@@ -1075,12 +1096,15 @@ class Game(Noun):
             raise RuntimeError("Refusing to overwrite initial_state.json")
 
         payload = {
+            'player': { 'name': self.current_player.name, 
+            'inventory': [_serialize_item(item)  for item in self.current_player.sack.contents]} if self.current_player else None,
+            'current_room': (self.state.current_room.name if self.state and self.state.current_room else None ),
+            'start_room': self.start_room_name,
             'score': int(getattr(self, 'score', 0)),
-            'player': { 'name': self.current_player.name, 'inventory': [_serialize_item(item)  for item in self.current_player.sack.contents]} if self.current_player else None,
             'rooms': []
         }
 
-        for room in self.rooms:
+        for room in self.rooms.values():
             room_payload = {
                 'name': room.name,
                 'description': room.description,

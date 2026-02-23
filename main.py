@@ -233,10 +233,10 @@ def main(args: argparse.Namespace | None = None):
             current_room = game.rooms[0]
         else:
             current_room = None
+        
         action_state = GameActionState(current_room=current_room, hero_name=hero_name)
-
+        game.state = action_state    # give the world a pointer to action state  
         dispatch_context = build_dispatch_context(game=game, state=action_state)
-
 
         # Build the UI
         ui = UI(
