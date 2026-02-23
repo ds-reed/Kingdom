@@ -230,7 +230,7 @@ def main(args: argparse.Namespace | None = None):
 
         if game.rooms:
             clear_screen()
-            current_room = game.rooms[0]
+            current_room = game.rooms[game.start_room_name]
         else:
             current_room = None
         
