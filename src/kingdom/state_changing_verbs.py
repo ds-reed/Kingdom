@@ -6,7 +6,7 @@ Handlers for verbs that change the state of objects or rooms (e.g., OPEN, CLOSE,
 This module centralizes state-changing verb logic for clarity and maintainability.
 """
 
-from .models import Room, Noun, DispatchContext
+from .models import Noun, DispatchContext
 
 def state_change_helper(
     target: Noun | None,
@@ -26,7 +26,7 @@ def state_change_helper(
     return fail_msg.format(target=target)
 
 
-class StateChangingVerbHandler:
+class StateVerbHandler:
 
     def open(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
@@ -50,6 +50,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't close that."
         )
 
+# maybe missinga key check here? if target is None or not hasattr(target, capability_attr) or not getattr(target, capability_attr):
     def unlock(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,
@@ -61,6 +62,7 @@ class StateChangingVerbHandler:
             fail_msg="You can't unlock that."
         )
 
+# are we missing the hassattr check here too? if target is None or not hasattr(target, capability_attr) or not getattr(target, capability_attr):
     def light(self, context: DispatchContext, target: Noun | None, words: list[str]) -> str:
         return state_change_helper(
             target,

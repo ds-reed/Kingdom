@@ -11,25 +11,23 @@ from typing import Callable, Mapping, Sequence, TypeAlias
 from kingdom.models import Box, Game, Item, Player, Room, Verb, Noun, DispatchContext, QuitGame
 from kingdom.parser import normalize_direction_token
 
-from kingdom.state_changing_verbs import StateChangingVerbHandler
-state_changer = StateChangingVerbHandler()
+from kingdom.state_changing_verbs import StateVerbHandler
+state_handler = StateVerbHandler()
 
 from kingdom.movement_verbs import MovementVerbHandler
-movement = MovementVerbHandler()
+movement_handler = MovementVerbHandler()
 
-from kingdom.game_state_verbs import GameStateVerbHandler
-game_verb = GameStateVerbHandler()
+from kingdom.world_verbs import WorldVerbHandler
+world_handler = WorldVerbHandler()
+
+from kingdom.ui_verbs import UIVerbHandler
+ui_handler = UIVerbHandler()
+
+from kingdom.meta_verbs import MetaVerbHandler
+meta_handler = MetaVerbHandler()
+
 
 from kingdom.terminal_style import TRS80_WHITE, trs80_clear_and_show_room, trs80_print
-
-from kingdom.UI import (
-    _describe_room,
-    _describe_box_contents,
-    _is_dark_room,
-    _dark_room_message,
-    _build_visible_exits_text,
-    _format_exit_choices,
-)     #temporary until render logic is fully decoupled from actions
 
 
 # temporary adapters to match new handler method signatures to Verb.execute contract - Remove after refactoring is complete
@@ -112,7 +110,7 @@ def _describe_room(room: Room) -> str:
     return f"{long_description} {exits_text}"
 
 
-def examine_action(
+def look_action(
     *target_words: str,
     target: Noun | None = None,
     ctx: DispatchContext | None = None,
@@ -121,10 +119,10 @@ def examine_action(
     active_ctx = ctx or dispatch_context
     state = active_ctx.state if active_ctx is not None else None
     if state is None:
-        return "There is nothing to examine."
+        return "There is nothing to look at."
 
     if state.current_room is None:
-        return "There is nothing to examine."
+        return "There is nothing to look at."
 
     if not target_words:
         return _describe_room(state.current_room)
@@ -140,7 +138,7 @@ def examine_action(
             return _describe_box_contents(target)
 
         if isinstance(target, Item):
-            return f"You examine {target.get_name()} carefully."
+            return f"You look at {target.get_name()} carefully."
 
     target_name = " ".join(target_words).strip().lower()
 
@@ -163,7 +161,7 @@ def examine_action(
         if obj.matches_reference(target_name):
             if isinstance(obj, Box):
                 return _describe_box_contents(obj)
-            return f"You examine {obj.get_name()} carefully."
+            return f"You look at {obj.get_name()} carefully."
 
     return f"You don't see {target_name} here."
 
@@ -424,33 +422,6 @@ def hide_exit(room: Room, direction: str) -> bool:
     return bool(room.set_exit_visibility(canonical_direction, visible=False))
 
 
-def eat_action(
-    *target_words: str,
-    target: Noun | None = None,
-    ctx: DispatchContext | None = None,
-    dispatch_context: DispatchContext | None = None,
-) -> str:
-    default_refuse = "You can't eat that."
-    default_success = "YUM! TASTES GOOD."
-    active_ctx = ctx or dispatch_context
-
-    if target is None:
-        return "Eat what?"
-
-    if not isinstance(target, Item):
-        return default_refuse
-
-    if not target.edible:
-        return target.eat_refuse_string or default_refuse
-
-    missing_message = target.eat_missing_string or default_refuse
-    consumed, error_message = consume_if_getable_and_present(target, active_ctx, missing_message)
-    if not consumed:
-        return error_message or target.eat_refuse_string or default_refuse
-
-    return target.eat_success_string or default_success
-
-
 def _resolve_room_by_name(game: object | None, room_name: str | None) -> Room | None:
     if game is None or not room_name:
         return None
@@ -510,150 +481,6 @@ def _player_has_item(dispatch_context: DispatchContext | None, item_name: str | 
     return False
 
 
-def rub_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if target is None:
-        return "Rub what?"
-
-    if not isinstance(target, Item):
-        return "You can't rub that."
-
-    if not getattr(target, "rubbable", False):
-        return "You can't rub that."
-
-    target_name = target.get_noun_name()
-    transformed_name = getattr(target, "rubbed_name", None)
-    if transformed_name and target.name == transformed_name:
-        message = getattr(target, "rub_repeat_string", None) or f"The {target_name} is already shiny."
-    else:
-        if transformed_name:
-            target.name = transformed_name
-
-        transformed_presence = getattr(target, "rubbed_presence_string", None)
-        if transformed_presence is not None:
-            target.presence_string = transformed_presence
-
-        message = getattr(target, "rub_success_string", None) or f"You rub the {target_name}."
-
-    state = dispatch_context.state if dispatch_context is not None else None
-    current_room = getattr(state, "current_room", None)
-    trigger_room = getattr(target, "rub_trigger_room", None)
-
-    if current_room is not None and trigger_room and current_room.name == trigger_room:
-        djinni_present = any(getattr(item, "noun_name", None) == "djinni" for item in current_room.items)
-        if not djinni_present:
-            djinni_item = Item(
-                "a helpful Djinni",
-                pickupable=False,
-                noun_name="djinni",
-                presence_string="A helpful Djinni materializes in a swirl of sweet smoke.",
-            )
-            djinni_item.wish_exit_direction = "west"
-            djinni_item.wish_exit_destination = "Colossal Cave"
-            current_room.items.append(djinni_item)
-            tease = getattr(target, "rub_minigame_tease", None) or "The Djinni smiles and offers a small challenge."
-            return f"{message} {tease}"
-
-    return message
-
-
-def _find_room_djinni(dispatch_context: DispatchContext | None) -> tuple[Room | None, Item | None, Game | None]:
-    state = dispatch_context.state if dispatch_context is not None else None
-    game = dispatch_context.game if dispatch_context is not None else None
-    room = getattr(state, "current_room", None)
-    if room is None:
-        return None, None, game
-
-    for item in room.items:
-        if getattr(item, "noun_name", None) == "djinni":
-            return room, item, game
-
-    return room, None, game
-
-
-def _trigger_djinni_wish(dispatch_context: DispatchContext | None) -> str | None:
-    room, djinni, game = _find_room_djinni(dispatch_context)
-    if room is None or djinni is None:
-        return None
-
-    destination_name = getattr(djinni, "wish_exit_destination", None) or "Demo Landing"
-    destination_room = _resolve_room_by_name(game, destination_name)
-    direction = getattr(djinni, "wish_exit_direction", None) or "west"
-
-    if destination_room is not None:
-        reveal_exit(room, direction, destination_room)
-
-    if djinni in room.items:
-        room.items.remove(djinni)
-
-    return (
-        "The Djinni seems puzzled by your exotic language. Djinn aren't omniscient, just omnipotent! "
-        "But seeing that you are at a dead end and wanting to be helpful, he places a doorway in the west wall and disappears."
-    )
-
-
-def _is_djinni_target(target: object | None) -> bool:
-    if target is None:
-        return False
-
-    noun_name = getattr(target, "noun_name", None)
-    if isinstance(noun_name, str) and noun_name.strip().lower() == "djinni":
-        return True
-
-    matches_reference = getattr(target, "matches_reference", None)
-    if callable(matches_reference):
-        return bool(matches_reference("djinni"))
-
-    return False
-
-
-def make_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if not target_words:
-        return "Make what?"
-
-    if normalize_direction_token(target_words[0]) != "wish" and target_words[0].strip().lower() != "wish":
-        return "Make what?"
-
-    wish_result = _trigger_djinni_wish(dispatch_context)
-    if wish_result is not None:
-        return wish_result
-
-    return "Nothing happens."
-
-
-def say_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if not target_words:
-        return "Say what?"
-
-    wish_result = _trigger_djinni_wish(dispatch_context)
-    if wish_result is not None:
-        return wish_result
-
-    return f"You say, '{' '.join(target_words)}.'"
-
-
-def talk_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if target is None:
-        return "Talk to whom?"
-
-    if _is_djinni_target(target):
-        wish_result = _trigger_djinni_wish(dispatch_context)
-        if wish_result is not None:
-            return wish_result
-
-    return "They don't seem interested in talking."
-
-
-def ask_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
-    if target is None:
-        return "Ask whom?"
-
-    if _is_djinni_target(target):
-        wish_result = _trigger_djinni_wish(dispatch_context)
-        if wish_result is not None:
-            return wish_result
-
-    return "They have no answer for you."
-
 
 def insert_action(*target_words: str, target: object | None = None, dispatch_context: DispatchContext | None = None) -> str:
     return unlock_action(*target_words, target=target, dispatch_context=dispatch_context)
@@ -692,85 +519,84 @@ def _build_core_verbs(
     prompt_action: PromptAction | None,
 ) -> list[Verb]:
 
+# refactored verbs. These still use adapter to match old handler signature to Verb.execute contract - Remove adapter after refactoring is complete
+
 #--------------- movement verbs ------------------------------
-    go_verb = Verb("go", adapt_method(movement.go), synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"]) # todo: refactor test and re-enable direct use of movement method
-    # go_verb = Verb("go", movement.go, synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"])   
-    swim_verb = Verb("swim", adapt_method(movement.swim)) # todo: refactor test and re-enable direct use of movement method 
-    #   swim_verb = Verb("swim", movement.swim)
-    climb_verb = Verb("climb", adapt_method(movement.climb), synonyms=["scale", "ascend", "descend"]) # todo: refactor test and re-enable direct use of movement method
-    # climb_verb = Verb("climb", movement.climb, synonyms=["scale", "ascend", "descend"])
-    teleport_verb = Verb("teleport", adapt_method(movement.teleport), synonyms=["goto"], hidden=True) # todo: refactor test and re-enable direct use of state_changer method
-    # teleport_verb = Verb("teleport", movement.teleport, synonyms=["goto"], hidden=True)
+    verb_go        = Verb("go", adapt_method(movement_handler.go),
+                        synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"])
 
-#--------------- state-changing verbs -------------------------
-    light_verb = Verb("light", adapt_method(state_changer.light))
-    # light_verb = Verb("light", state_changer.light)   # todo: refactor test and re-enable direct use of state_changer method
-    extinguish_verb = Verb("extinguish", adapt_method(state_changer.extinguish))
-    # extinguish_verb = Verb("extinguish", state_changer.extinguish)   # todo: refactor test and re-enable direct use of state_changer method
-    insert_verb = Verb("insert", insert_action)
-    open_verb = Verb("open", adapt_method(state_changer.open))
-    # open_verb = Verb("open", state_changer.open)   # todo: refactor test and re-enable direct use of state_changer method
-    close_verb = Verb("close", adapt_method(state_changer.close))
-    # close_verb = Verb("close", state_changer.close)   # todo: refactor test and re-enable direct use of state_changer method
-    unlock_verb = Verb("unlock", adapt_method(state_changer.unlock))
-    # unlock_verb = Verb("unlock", state_changer.unlock)   # todo: refactor test and re-enable direct use of state_changer method
+    verb_swim      = Verb("swim", adapt_method(movement_handler.swim))
 
-#----------------UI and game state related verbs ----------------------------
+    verb_climb     = Verb("climb", adapt_method(movement_handler.climb),
+                        synonyms=["scale", "ascend", "descend"])
 
-    load_verb = Verb("load", adapt_method(game_verb.load))
-    #load_verb = Verb("load", game_verb.load)
-    save_verb = Verb("save", adapt_method(game_verb.save))
-    #save_verb = Verb("save", game_verb.save)
-    score_verb = Verb("score", adapt_method(game_verb.score), synonyms=["points"])
-    #score_verb = Verb("score", game_verb.score, synonyms=["points"])
-    help_verb = Verb("help", adapt_method(game_verb.help), synonyms=["commands", "h", "?"])
-    #help_verb = Verb("help", game_verb.help, synonyms=["commands", "h"])
-    quit_verb = Verb("quit", adapt_method(game_verb.quit), synonyms=["q"])
-    #quit_verb = Verb("quit", game_verb.quit, synonyms=["exit", "q"]
+    verb_teleport  = Verb("teleport", adapt_method(movement_handler.teleport),
+                        synonyms=["goto"], hidden=True)
+
+
+    #--------------- state-changing verbs -------------------------
+    verb_light      = Verb("light", adapt_method(state_handler.light))
+
+    verb_extinguish = Verb("extinguish", adapt_method(state_handler.extinguish))
+
+    verb_open       = Verb("open", adapt_method(state_handler.open))
+
+    verb_close      = Verb("close", adapt_method(state_handler.close))
+
+    verb_unlock     = Verb("unlock", adapt_method(state_handler.unlock))
+
+
+    #---------------- UI verbs ----------------------------
+    verb_load = Verb("load", adapt_method(ui_handler.load))
+
+    verb_save = Verb("save", adapt_method(ui_handler.save))
+
+    verb_quit = Verb("quit", adapt_method(ui_handler.quit),
+                    synonyms=["q"])
+
+
+    #---------------- world-state verbs ----------------------------
+    verb_score = Verb("score", adapt_method(world_handler.score),
+                    synonyms=["points"])
+
+
+    #---------------- meta verbs ----------------------------
+    verb_help = Verb("help", adapt_method(meta_handler.help),
+                    synonyms=["commands", "h", "?"])
+
 
 
 
 # todo  - refactor these verbs
-    examine_verb = Verb("examine", examine_action, synonyms=["inspect", "look"])
+    look_verb = Verb("look", look_action, synonyms=["inspect", "examine"])
+
+# item management verbs - refactor to use new verb handler
     inventory_verb = Verb("inventory", inventory_action, synonyms=["inven"])
     take_verb = Verb("take", take_action, synonyms=["get"])
     drop_verb = Verb("drop", drop_action)
-    eat_verb = Verb("eat", eat_action)
-    rub_verb = Verb("rub", rub_action)
-    talk_verb = Verb("talk", talk_action, synonyms=["speak"])
-    ask_verb = Verb("ask", ask_action, synonyms=["question"])
-    say_verb = Verb("say", say_action)
-    make_verb = Verb("make", make_action)
-
 
     
     return [
-        quit_verb,
-        go_verb,
-        swim_verb,
-        climb_verb,
-        save_verb,
-        load_verb,
-        examine_verb,
-        inventory_verb,
-        score_verb,
-        take_verb,
-        drop_verb,
-        eat_verb,
-        rub_verb,
-        talk_verb,
-        ask_verb,
-        say_verb,
-        make_verb,
-        light_verb,
-        extinguish_verb,
-        insert_verb,
-        open_verb,
-        close_verb,
-        unlock_verb,
-        teleport_verb,
-        help_verb,
+        verb_quit,
+        verb_go,
+        verb_swim,
+        verb_climb,
+        verb_save,
+        verb_load,
+#        verb_look,
+#        verb_inventory,
+        verb_score,
+#        verb_take,
+#        verb_drop,
+        verb_light,
+        verb_extinguish,
+        verb_open,
+        verb_close,
+        verb_unlock,
+        verb_teleport,
+        verb_help,
     ]
+
 
 def build_verbs(
     state: "GameActionState",

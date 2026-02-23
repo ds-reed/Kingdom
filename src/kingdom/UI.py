@@ -159,21 +159,6 @@ def _room_display_lines(room: Room) -> list[str]:
     return lines
 
 
-def _describe_room(room: Room) -> str:
-    """
-    Long-form room description used by EXAMINE ROOM.
-    """
-    if _is_dark_room(room):
-        return _dark_room_message(room)
-
-    exits = room.available_directions(visible_only=True)
-    visible_text = [obj.get_presence_text() for obj in [*room.items, *room.boxes]]
-    exits_text = _build_visible_exits_text(exits)
-    long_description = room.description.strip() if room.description else room.name
-
-    if visible_text:
-        return f"{long_description} {' '.join(visible_text)} {exits_text}"
-    return f"{long_description} {exits_text}"
 
 
 # ---------------------------------------------------------------------------
