@@ -74,11 +74,17 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "is_open", False):
         payload["is_open"] = True
 
-    if getattr(item, "open_description", None):
-        payload["open_description"] = item.open_description
+    if getattr(item, "opened_state_description", None):
+        payload["opened_state_description"] = item.opened_state_description
 
-    if getattr(item, "closed_description", None):
-        payload["closed_description"] = item.closed_description
+    if getattr(item, "closed_state_description", None):
+        payload["closed_state_description"] = item.closed_state_description
+
+    if getattr(item, "open_action_description", None):
+        payload["open_action_description"] = item.open_action_description
+
+    if getattr(item, "close_action_description", None):
+        payload["close_action_description"] = item.close_action_description
 
     if getattr(item, "open_exit_direction", None):
         payload["open_exit_direction"] = item.open_exit_direction
@@ -206,8 +212,10 @@ def _construct_item_from_spec(item_spec) -> "Item":
         noun_name=item_spec.get("noun_name"),
         is_openable=item_spec.get("is_openable", False),
         is_open=item_spec.get("is_open", False),
-        open_description=item_spec.get("open_description"),
-        closed_description=item_spec.get("closed_description"),
+        opened_state_description=item_spec.get("opened_state_description"),
+        closed_state_description=item_spec.get("closed_state_description"),
+        open_action_description=item_spec.get("open_action_description"),
+        close_action_description=item_spec.get("close_action_description"),
         open_exit_direction=item_spec.get("open_exit_direction"),
         open_exit_destination=item_spec.get("open_exit_destination"),
         close_hides_exit=item_spec.get("close_hides_exit", False),
@@ -504,8 +512,10 @@ class Item(Noun):
         noun_name=None,
         is_openable=False,
         is_open=False,
-        open_description=None,
-        closed_description=None,
+        opened_state_description=None,
+        closed_state_description=None,
+        open_action_description=None,
+        close_action_description=None,
         open_exit_direction=None,
         open_exit_destination=None,
         close_hides_exit=False,
@@ -546,8 +556,10 @@ class Item(Noun):
         self.presence_string = presence_string
         self.is_openable = bool(is_openable)
         self.is_open = bool(is_open)
-        self.open_description = open_description
-        self.closed_description = closed_description
+        self.opened_state_description = opened_state_description
+        self.closed_state_description = closed_state_description
+        self.open_action_description = open_action_description
+        self.close_action_description = close_action_description
         self.open_exit_direction = (
             str(open_exit_direction).strip().lower()
             if open_exit_direction is not None and str(open_exit_direction).strip()
@@ -587,10 +599,10 @@ class Item(Noun):
         if self.is_lockable and self.is_locked and self.locked_description:
             return self.locked_description
         if self.is_openable:
-            if self.is_open and self.open_description:
-                return self.open_description
-            if not self.is_open and self.closed_description:
-                return self.closed_description
+            if self.is_open and self.opened_state_description:
+                return self.opened_state_description
+            if not self.is_open and self.closed_state_description:
+                return self.closed_state_description
         if self.presence_string:
             return self.presence_string
         return f"There is {self.name} here."
@@ -654,25 +666,17 @@ class Item(Noun):
                 return self.locked_description
             return f"The {self.get_noun_name()} is locked."
 
-        # Already open
         if self.is_open:
-            if self.open_description:
-                return self.open_description
+            # Already open → use state description if available
+            if getattr(self, "opened_state_description", None):
+                return self.opened_state_description
             return f"The {self.get_noun_name()} is already open."
 
-        # Opening now — return the open description if present
-        if self.open_description:
-            return self.open_description
+        # Opening now → use action description if available
+        if getattr(self, "open_action_description", None):
+            return self.open_action_description
 
-        # Otherwise fall through to generic handler
         return None
-
-
-
-    def __repr__(self):
-        """Controls how the item looks when printed in a list."""
-        status = " [BROKEN]" if self.is_broken else ""
-        return f"'{self.name}{status}'"
 
 class Box(Noun):
     all_boxes = []  # Class variable to track every box created
@@ -684,8 +688,10 @@ class Box(Noun):
         presence_string=None,
         is_openable=False,
         is_open=False,
-        open_description=None,
-        closed_description=None,
+        opened_state_description=None,
+        closed_state_description=None,
+        open_action_description=None,
+        close_action_description=None,
         is_lockable=False,
         is_locked=False,
         unlock_key=None,
@@ -702,8 +708,10 @@ class Box(Noun):
         self.presence_string = presence_string
         self.is_openable = bool(is_openable)
         self.is_open = bool(is_open)
-        self.open_description = open_description
-        self.closed_description = closed_description
+        self.opened_state_description = opened_state_description
+        self.closed_state_description = closed_state_description
+        self.open_action_description = open_action_description
+        self.close_action_description = close_action_description
         self.is_lockable = bool(is_lockable)
         self.is_locked = bool(is_locked)
         self.unlock_key = (
@@ -729,10 +737,10 @@ class Box(Noun):
         if self.is_lockable and self.is_locked and self.locked_description:
             return self.locked_description
         if self.is_openable:
-            if self.is_open and self.open_description:
-                return self.open_description
-            if not self.is_open and self.closed_description:
-                return self.closed_description
+            if self.is_open and self.opened_state_description:
+                return self.opened_state_description
+            if not self.is_open and self.closed_state_description:
+                return self.closed_state_description
         if self.presence_string:
             return self.presence_string
         return f"There is {self.box_name} here."
@@ -769,17 +777,16 @@ class Box(Noun):
                 return self.locked_description
             return f"The {self.get_noun_name()} is locked."
 
-        # Already open
         if self.is_open:
-            if self.open_description:
-                return self.open_description
+            # Already open → use state description if available
+            if getattr(self, "opened_state_description", None):
+                return self.opened_state_description
             return f"The {self.get_noun_name()} is already open."
 
-        # Opening now — return the open description if present
-        if self.open_description:
-            return self.open_description
+        # Opening now → use action description if available
+        if getattr(self, "open_action_description", None):
+            return self.open_action_description
 
-        # Otherwise fall through to generic handler
         return None
 
 
@@ -1159,8 +1166,10 @@ def _construct_boxes(data):
             presence_string=entry.get("presence_string"),
             is_openable=entry.get("is_openable", False),
             is_open=entry.get("is_open", False),
-            open_description=entry.get("open_description"),
-            closed_description=entry.get("closed_description"),
+            open_action_description=entry.get("open_action_description"),
+            close_action_description=entry.get("close_action_description"),
+            opened_state_description=entry.get("opened_state_description"),
+            closed_state_description=entry.get("closed_state_description"),
             is_lockable=entry.get("is_lockable", False),
             is_locked=entry.get("is_locked", False),
             unlock_key=entry.get("unlock_key"),
@@ -1201,8 +1210,10 @@ def _construct_rooms(data):
                 presence_string=box_data.get("presence_string"),
                 is_openable=box_data.get("is_openable", False),
                 is_open=box_data.get("is_open", False),
-                open_description=box_data.get("open_description"),
-                closed_description=box_data.get("closed_description"),
+                opened_state_description=box_data.get("opened_state_description"),
+                closed_state_description=box_data.get("closed_state_description"),
+                open_action_description=box_data.get("open_action_description"),
+                close_action_description=box_data.get("close_action_description"),
                 is_lockable=box_data.get("is_lockable", False),
                 is_locked=box_data.get("is_locked", False),
                 unlock_key=box_data.get("unlock_key"),

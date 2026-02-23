@@ -14,6 +14,15 @@
                     "is_lit": false
                 },
                 {
+                    "name": "an ornate broach",
+                    "noun_name": "broach",
+                    "is_openable": true,
+                    "is_open": false,
+                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
+                    "opened_state_description": "An ornate broach with an ivory carving of a favorite pet fish.",
+                    "closed_state_description": "An ornate broach with a tightly-closed clasp."
+                },
+                {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
                     "pickupable": false,
@@ -26,17 +35,20 @@
                     "open_exit_direction": "down",
                     "open_exit_destination": "Blank Chamber",
                     "close_hides_exit": true,
-                    "closed_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed.",
-                    "open_description": "A rusty iron trapdoor in the middle of the floor. The trap door is open."
+                    "closed_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed.",
+                    "opened_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
             ],
             "boxes": [
                 {
-                    "box_name": "a brown greasy lunch bag",
+                    "box_name": "a greasy brown lunch bag",
                     "is_openable": true,
                     "is_open": false,
-                    "open_description": "A brown greasy lunch bag sits here with its top unfolded open.",
-                    "closed_description": "A brown greasy lunch bag sits here with its top folded shut.",
+                    "open_action_description": "You unfold the top of the greasy lunch bag.",
+                    "close_action_description": "You fold the top of the greasy lunch bag shut.",
+                    "opened_state_description": "A greasy brown lunch bag sits here with its top unfolded open.",
+                    "closed_state_description": "A greasy brown lunch bag sits here with its top folded shut.",
+
                     "items": [
                         {
                             "name": "a cheery orange carrot",
