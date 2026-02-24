@@ -160,6 +160,22 @@ Kingdom TODO (Outstanding Only)
 - [ ] Test rub/eat (if implemented)
 - [ ] Test special_handlers overrides
 
+When loading the world, maintain a global registry of item identities keyed by (room_name, noun_name) or a unique item ID.
+
+If the loader encounters the same noun twice:
+
+warn
+
+or dedupe
+
+or merge
+
+or refuse to load
+
+Ensure that items in the player’s inventory are removed from their original rooms.
+
+Ensure that rooms do not contain items that have been moved into containers.
+
 ## 9. Celebrate
 - [ ] Enjoy the fact that adding a new item attribute now requires updating **ONE** place instead of nine.
 

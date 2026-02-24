@@ -114,7 +114,6 @@ def trs80_prompt(prompt_text="> "):
 
 
 def trs80_clear_and_show_room(
-    room_name: str,
     content_lines: Sequence[str],
     score=0,
     moves=0,
@@ -125,13 +124,7 @@ def trs80_clear_and_show_room(
 ):
     if clear:
         clear_screen()
-    if show_status is None:
-        show_status = SHOW_STATUS_BANNER
-    if show_status:
-        trs80_status_line(room_name, score, moves, light_on, hero_name=hero_name)
-        print()
 
-    trs80_print(str(room_name), bold=True, style=TRS80_WHITE)
     for line in content_lines:
         trs80_print(line, style=TRS80_WHITE)
 

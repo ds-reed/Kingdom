@@ -13,6 +13,8 @@ import sys
 sys.path.append("./src")
 
 from kingdom.models import Game, Player, GameOver, QuitGame, GameActionState, build_dispatch_context
+from kingdom.renderer import RoomRenderer, render_current_room
+
 from kingdom.parser import DIRECTION_ALIASES  #needed for implicit noun action handling, remove when implicts are refactored
 from kingdom.models import get_direction_nouns_for_available_exits, ensure_direction_nouns
 from kingdom.actions import build_verbs
@@ -29,7 +31,7 @@ from kingdom.terminal_style import (
     TERMINAL_MODE_TRS80,
     TERMINAL_MODE_MODERN,
 )
-from kingdom.UI import render_current_room, UI
+from kingdom.UI import UI
 import kingdom.terminal_style as terminal_style
 
 from kingdom.actions import build_verbs
@@ -209,7 +211,9 @@ def main(args: argparse.Namespace | None = None):
         print()
         hero_name = trs80_prompt("Enter hero name: ").strip() or "Hero"
         game.set_current_player(Player(hero_name))
-        trs80_print(f"Welcome, {hero_name}.", style=TRS80_WHITE)
+        print()
+        trs80_print(f"Welcome, {hero_name}!", style=TRS80_WHITE)
+        print()
 
         save_path = base_dir / "data" / f"{hero_name}-save.json"
         load_path = base_dir / "data" / f"{hero_name}-save.json"
@@ -222,7 +226,6 @@ def main(args: argparse.Namespace | None = None):
             return trs80_prompt(prompt_text)
 
         if game.rooms:
-            clear_screen()
             current_room = game.rooms[game.start_room_name]
         else:
             current_room = None
@@ -235,7 +238,6 @@ def main(args: argparse.Namespace | None = None):
         ui = UI(
             confirm=confirm_action,
             prompt=prompt_callback,
-            render=render_current_room,
             save_path=save_path,
             load_path=load_path,
             game=game,
@@ -245,7 +247,6 @@ def main(args: argparse.Namespace | None = None):
         dispatch_context.ui = ui
         if current_room is not None:
             render_current_room(action_state, clear=False)
-            print()
 
         verbs = build_verbs(
             action_state,
@@ -260,6 +261,7 @@ def main(args: argparse.Namespace | None = None):
         while True:
             print()
             command = trs80_prompt("Enter command: ")
+            print()
             if not command:
                 continue
 
@@ -325,13 +327,11 @@ def main(args: argparse.Namespace | None = None):
                     print()
                 recovery_mode = False
                 continue
- #           except TypeError:
- #               trs80_print("That command needs more information.", style=TRS80_WHITE)
- #               continue
+
             except TypeError as e:
+                trs80_print("That command needs more information.", style=TRS80_WHITE)
                 trs80_print(f"TypeError: {e}", style=TRS80_WHITE)
                 continue
-
 
 
             if recovery_mode and verb_word in {"load", "restore"} and isinstance(result, str) and result.startswith("Game loaded from"):

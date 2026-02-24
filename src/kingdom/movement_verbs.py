@@ -8,7 +8,7 @@ This module centralizes movement verb logic for clarity and maintainability.
 from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
 from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_print, trs80_clear_and_show_room
-from kingdom.UI import render_current_room
+from kingdom.renderer import render_current_room
 
 _DIRECTION_ORDER = {
     "up": 0,
@@ -27,8 +27,11 @@ _VERTICAL_DIRECTION_LABELS = {
 
 class MovementVerbHandler:
 
-    def transition(self, state, direction):
+    def transition(self, context, direction):
         """Core movement engine: normalize, validate, move, render."""
+        state = context.state
+        game = context.game
+
         if state.current_room is None:
             return "There is nowhere to go."
 
@@ -39,10 +42,13 @@ class MovementVerbHandler:
             return f"You can't go {canonical} from here."
 
         state.current_room = next_room
-        trs80_print(f"You go {canonical}.", style=TRS80_WHITE)
+        if not state.current_room.visited:
+            game.score += getattr(state.current_room, "discover_points", 0)
+            print("DEBUG: Awarded discover points for new room:", getattr(state.current_room, "discover_points", 0))
+            state.current_room.visited = True
         render_current_room(state, clear=False)
         print()
-        return ""
+        return f"You go {canonical}."
 
     def resolve_direction(self, target, words):
         """Extract direction from noun or raw text."""
@@ -60,13 +66,12 @@ class MovementVerbHandler:
 
     def go(self, context, target: Noun, words: list[str]):
         """High-level GO verb."""
-        state = context.state
         direction = self.resolve_direction(target, words)
 
         if not direction:
             return "Go where?"
 
-        return self.transition(state, direction)
+        return self.transition(context, direction)
 
     def climb(self, context, target: Noun, words: list[str]):
         """High-level CLIMB verb."""
@@ -86,7 +91,7 @@ class MovementVerbHandler:
 
             if len(vertical_exits) == 1:
                 # Only one vertical exit → climb it
-                return self.transition(state, vertical_exits[0])
+                return self.transition(context, vertical_exits[0])
 
             if not vertical_exits:
                 return "There is nothing here to climb."
@@ -98,7 +103,7 @@ class MovementVerbHandler:
             return "You can only climb up or down."
 
         # Normal movement
-        return self.transition(state, direction)
+        return self.transition(context, direction)
 
     def swim(self, context, target: Noun, words: list[str]):
         """High-level SWIM verb."""
@@ -139,7 +144,7 @@ class MovementVerbHandler:
         if room.get_connection(direction) is None:
             return f"You can't go {direction} from here."
 
-        return self.transition(state, direction)
+        return self.transition(context, direction)
 
 
     def _resolve_swim_destination(self, game, room):

@@ -25,6 +25,9 @@ ui_handler = UIVerbHandler()
 from kingdom.meta_verbs import MetaVerbHandler
 meta_handler = MetaVerbHandler()
 
+from kingdom.inventory_verbs import InventoryVerbHandler
+inventory_handler = InventoryVerbHandler()  
+
 ConfirmAction = Callable[[str], bool]
 PromptAction = Callable[[str], str]
 
@@ -50,41 +53,46 @@ def _build_core_verbs(
 
 #--------------- movement verbs ------------------------------
     verb_go        = Verb("go", movement_handler.go, synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"])
-
     verb_swim      = Verb("swim", movement_handler.swim)
-
     verb_climb     = Verb("climb", movement_handler.climb, synonyms=["scale", "ascend", "descend"])
-
     verb_teleport  = Verb("teleport", movement_handler.teleport, synonyms=["goto"], hidden=True)
 
 
     #--------------- state-changing verbs -------------------------
     verb_light      = Verb("light", state_handler.light)
-
     verb_extinguish = Verb("extinguish", state_handler.extinguish)
-
     verb_open       = Verb("open", state_handler.open)
-
     verb_close      = Verb("close", state_handler.close)
-
     verb_unlock     = Verb("unlock", state_handler.unlock)
 
 
     #---------------- UI verbs ----------------------------
     verb_load = Verb("load", ui_handler.load)
-
     verb_save = Verb("save", ui_handler.save)
-
     verb_quit = Verb("quit", ui_handler.quit, synonyms=["q"])
-
-
-    #---------------- world-state verbs ----------------------------
-    verb_score = Verb("score", world_handler.score, synonyms=["points"])
 
 
     #---------------- meta verbs ----------------------------
     verb_help = Verb("help", meta_handler.help, synonyms=["commands", "h", "?"])
     verb_debug = Verb("DEBUG", meta_handler.DEBUG, hidden=True)
+
+
+    #---------------- world verbs ----------------------------
+    verb_score = Verb("score", world_handler.score, synonyms=["points"])
+    verb_look = Verb("look", world_handler.look, synonyms=["examine", "inspect"])
+
+    #---------------- inventory verbs ----------------------------
+    verb_inventory = Verb("inventory", inventory_handler.inventory, synonyms=["inven"]) 
+    verb_take = Verb("take", inventory_handler.take, synonyms=["get"])
+    verb_drop = Verb("drop", inventory_handler.drop)
+
+
+    #----------------- other verbs to be refactored ----------------------
+    # verb_look = Verb("look", world_handler.look, synonyms=["examine", "inspect"])
+    # verb_inventory = Verb("inventory", world_handler.inventory, synonyms=["inven"])
+    # verb_take = Verb("take", world_handler.take, synonyms=["get"])   
+    # verb_drop = Verb("drop", world_handler.drop)
+
 
 
     return [
@@ -94,11 +102,11 @@ def _build_core_verbs(
         verb_climb,
         verb_save,
         verb_load,
-#        verb_look,
-#        verb_inventory,
+        verb_look,
+        verb_inventory,
         verb_score,
-#        verb_take,
-#        verb_drop,
+        verb_take,
+        verb_drop,
         verb_light,
         verb_extinguish,
         verb_open,

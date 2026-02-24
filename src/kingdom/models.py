@@ -754,8 +754,6 @@ class Box(Noun):
             print(f" {self.box_name}: {item.name} has been added to the treasury.")
 
 
-
-
 class Player:
     """A player character who can collect items in their sack (max 10 items)."""
     def __init__(self, name):
@@ -1125,6 +1123,11 @@ class Game(Noun):
             return f"Game loaded from {path}"
 
         return Verb("save", save_action), Verb("load", load_action)
+
+
+
+
+#----- functions for constructing objects from JSON data -----
 
 
 def _construct_boxes(data):

@@ -21,10 +21,16 @@ class MetaVerbHandler:
     
     def debug_noun(self, noun: Noun):
         if noun is None:
-            return "No target noun was passed."    
-        attrs = vars(noun)
-        lines = [f"{k}: {v!r}" for k, v in attrs.items()]
+            return "No target noun was passed."
+
+        lines = []
+        lines.append(f"id: {id(noun)}")  # ⭐ Add instance identity
+
+        for k, v in vars(noun).items():
+            lines.append(f"{k}: {v!r}")
+
         return "\n".join(lines)
+
 
 
     def help(self, ctx: DispatchContext, target: Noun | None, words:tuple[str, ...] = () ):
