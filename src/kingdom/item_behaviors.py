@@ -17,6 +17,9 @@ _DEFAULT_ITEM_BEHAVIORS: dict[str, tuple[str, ...]] = {
     "fish": ("eat_fish",),
 }
 
+def get_behavior(name: str) -> ItemBehaviorHandler | None:
+    return _ITEM_BEHAVIORS.get(str(name).strip())
+
 
 def register_item_behavior(name: str):
     def decorator(func: ItemBehaviorHandler) -> ItemBehaviorHandler:
@@ -98,3 +101,9 @@ def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispa
 
     return "YOU BARELY GET THE FISH TO YOUR NOSE WHEN YOU VOMIT VIOLENTLY ON A NEARBY WALL."
 
+@register_item_behavior("open_bean")
+def open_bean(item, verb_name, words, ctx):
+    if verb_name == "open":
+        print("you reached me!!!!")  # or log it
+        return "you reached me!!!!"  # or return None to use generic
+    return None

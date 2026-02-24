@@ -14,6 +14,14 @@
                     "is_lit": false
                 },
                 {
+                    "name": "a single shiny bean",
+                    "noun_name": "bean",
+                    "pickupable": true,
+                    "is_openable": true,
+                    "open_action_description": "You crack open the bean with a satisfying snap.",
+                    "special_handlers": {"open": "open_bean"}
+                },
+                {
                     "name": "an ornate broach",
                     "noun_name": "broach",
                     "is_openable": true,
@@ -33,7 +41,7 @@
                     "unlock_key": "key",
                     "locked_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
-                    "unlockable_description": "You don't have the right key to unlock the trapdoor.",
+                    "unlockable_description": "The trapdoor is locked and you need a key.",
                     "open_exit_direction": "down",
                     "open_exit_destination": "Blank Chamber",
                     "closed_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed.",

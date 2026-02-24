@@ -1,6 +1,9 @@
 from __future__ import annotations
 from typing import Callable, Optional, Iterable
 
+from kingdom.item_behaviors import get_behavior
+
+
 from .models import Noun, DispatchContext
 
 
@@ -44,37 +47,74 @@ def apply_state_change(
 
 class StateVerbHandler:
 
-    def open(
-        self,
-        ctx: DispatchContext,
-        target: Optional[Noun],
-        words: tuple[str, ...],
-    ) -> str:
-        return apply_state_change(
-            ctx=ctx,
-            target=target,
-            words=words,
-            override_method="on_open",
-            state_attr="is_open",
-            desired_state=True,
-            fallback_verb="open",
-        )
+    def open(self, ctx: DispatchContext, target: Optional[Noun] = None, words: tuple[str, ...] = ()) -> str:
+        if target is None:
+            return "Open what?"
 
-    def close(
-        self,
-        ctx: DispatchContext,
-        target: Optional[Noun],
-        words: tuple[str, ...],
-    ) -> str:
-        return apply_state_change(
-            ctx=ctx,
-            target=target,
-            words=words,
-            override_method="on_close",
-            state_attr="is_open",
-            desired_state=False,
-            fallback_verb="close",
-        )
+        # Standard refusals (locked, already open, not openable)
+        if not target.is_openable:
+            return f"You can't open the {target.get_noun_name()}."
+
+        if target.is_lockable and target.is_locked:
+            return target.locked_description or f"The {target.get_noun_name()} is locked."
+
+        if target.is_open:
+            return target.opened_state_description or f"The {target.get_noun_name()} is already open."
+
+        # Ask noun: any special behavior for this verb?
+        handler_name = getattr(target, "special_handlers", {}).get("open")
+        
+        if handler_name:
+            handler = get_behavior(handler_name)
+            if handler:
+                result = handler(target, "open", words, ctx)
+                if result is not None:
+                    return result
+
+        # Normal open
+        target.is_open = True
+
+        # Exit reveal if configured
+        direction = getattr(target, "open_exit_direction", None)
+        destination = getattr(target, "open_exit_destination", None)
+        if direction and destination:
+            room = ctx.state.current_room
+            game = ctx.game
+            destination_room = game.rooms.get(destination)
+            if room and destination_room:
+                room.connections[direction] = destination_room
+                reverse = {"north": "south", "south": "north", "east": "west", "west": "east", "up": "down", "down": "up"}.get(direction)
+                if reverse:
+                    destination_room.connections[reverse] = room
+
+        # Message
+        return target.open_action_description or f"You open the {target.get_noun_name()}."
+
+    def close(self, ctx: DispatchContext, target: Optional[Noun] = None, words: tuple[str, ...] = ()) -> str:
+        if target is None:
+            return "Close what?"
+
+        # 1. Basic checks (refusals)
+        if not getattr(target, "is_openable", False):
+            return f"You can't close the {target.get_noun_name()}."
+
+        if not getattr(target, "is_open", False):
+            return getattr(target, "closed_state_description", None) or f"The {target.get_noun_name()} is already closed."
+
+        # 2. Perform state change
+        target.is_open = False
+
+        # 3. Hide exit if configured
+        if getattr(target, "close_hides_exit", False) and getattr(target, "open_exit_direction", None):
+            direction = target.open_exit_direction
+            if ctx.state.current_room:
+                ctx.state.current_room.connections.pop(direction, None)
+
+        # 4. Return message: custom action first, then generic
+        if getattr(target, "close_action_description", None):
+            return target.close_action_description
+
+        return f"You close the {target.get_noun_name()}."
 
     def unlock(
         self,

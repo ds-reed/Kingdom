@@ -199,6 +199,9 @@ def _serialize_box(box: "Box") -> dict:
     if getattr(box, "unlockable_description", None):
         payload["unlockable_description"] = box.unlockable_description
 
+    if getattr(box, "special_open", None):
+        payload["special_open"] = box.special_open
+
     return payload
 
 
@@ -214,7 +217,7 @@ def _construct_item_from_spec(item_spec) -> "Item":
     if presence_string is None:
         presence_string = item_spec.get("presence")
 
-    return Item(
+    item = Item(
         item_spec.get("name"),
         pickupable=item_spec.get("pickupable", True),
         refuse_string=refuse_string,
@@ -251,6 +254,11 @@ def _construct_item_from_spec(item_spec) -> "Item":
         behavior_ids=item_spec.get("behaviors") or item_spec.get("behavior_ids"),
     )
 
+    # Attach special behaviors after Item creation
+    special_handlers = item_spec.get("special_handlers", {})
+    item.special_handlers = special_handlers
+
+    return item 
 
 class Verb:
     """A verb paired with a handler method.
@@ -357,71 +365,7 @@ class Noun:
         """Default sentence used when this noun is noticed in a room."""
         return f"There is {self.name} here."
     
-    # Default: no override, allow verb handler to run
-    def on_open(self, ctx, words) -> str | None:
-        if not self.is_openable:
-            return f"You can't open the {self.get_noun_name()}."
-
-        if self.is_lockable and self.is_locked:
-            if self.unlockable_description:
-                return self.unlockable_description
-            return f"The {self.get_noun_name()} is locked."
-
-        if self.is_open:
-            return f"The {self.get_noun_name()} is already open."
-
-        # Opening now → use action description if available
         
-        self.is_open = True
-                    
-        direction = getattr(self, "open_exit_direction", None)
-        destination = getattr(self, "open_exit_destination", None)
-
-
-        if direction and destination:
-            room = ctx.state.current_room
-            game = ctx.game
-
-            for r in game.rooms:
-                if r.name.lower() == destination.lower():
-                    room.connections[direction] = r
-
-                    # ⭐ Add reverse exit
-                    reverse = {
-                        "north": "south",
-                        "south": "north",
-                        "east": "west",
-                        "west": "east",
-                        "up": "down",
-                        "down": "up",
-                    }.get(direction)
-
-                    if reverse:
-                        r.connections[reverse] = room
-
-                    break
-        if getattr(self, "open_action_description", None): return self.open_action_description
-
-        return None
-    
-    def on_close(self, ctx, words) -> str | None:
-        if not self.is_openable:
-            return f"You can't close the {self.get_noun_name()}."
-
-        if not self.is_open:
-            return f"The {self.get_noun_name()} is already closed."
-
-        # Closing now 
-        self.is_open = False
-        direction = getattr(self, "open_exit_direction", None)
-        if direction:
-            room = ctx.state.current_room
-            room.connections.pop(direction, None)
-
-        if getattr(self, "close_action_description", None): return self.close_action_description
-
-        return None
-       
     def on_unlock(self, ctx, words):
         return None
 
@@ -444,9 +388,6 @@ class Noun:
                 return handled_result
 
         return None
-
-
-
 
 
 class DirectionNoun(Noun):
@@ -568,6 +509,8 @@ class Item(Noun):
         eat_success_string=None,
         eat_missing_string=None,
         behavior_ids=None,
+        special_handlers=None,
+
     ):
         super().__init__()
         self.name = str(name).strip()
@@ -624,6 +567,7 @@ class Item(Noun):
         self.eat_refuse_string = eat_refuse_string
         self.eat_success_string = eat_success_string
         self.eat_missing_string = eat_missing_string
+        self.special_handlers = special_handlers or {}
         Item.all_items.append(self)
 
     def get_presence_text(self):
@@ -688,8 +632,6 @@ class Item(Noun):
 
         return super().handle_verb(verb_name, *args, **kwargs)
 
-
-    
 
 
 
@@ -759,6 +701,11 @@ class Box(Noun):
         return f"There is {self.box_name} here."
 
     def add_item(self, item, announce=True):
+        print("DEBUG add_item:", self.box_name, "item =", item)
+        if item is None: 
+            print("ERROR: add_item received None — item lookup failed in loader!") 
+            return
+        print(f"Attempting to add {item.name} to {self.box_name}...")
         if self.capacity is not None and len(self.contents) >= self.capacity:
             if announce:
                 print(f" {self.box_name}:  box is full!")
