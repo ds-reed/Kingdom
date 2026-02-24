@@ -28,7 +28,7 @@ def register_item_behavior(name: str):
 
     return decorator
 
-
+# likely obsolete with new architecture
 def resolve_item_behaviors(names: list[str] | tuple[str, ...] | None) -> list[ItemBehaviorHandler]:
     if not names:
         return []
@@ -39,7 +39,7 @@ def resolve_item_behaviors(names: list[str] | tuple[str, ...] | None) -> list[It
             handlers.append(handler)
     return handlers
 
-
+# likely obsolete with new architecture
 def get_default_item_behavior_ids(noun_name: str | None) -> tuple[str, ...]:
     if noun_name is None:
         return ()
@@ -104,6 +104,6 @@ def eat_fish_behavior(item: object, verb_name: str, args: tuple[str, ...], dispa
 @register_item_behavior("open_bean")
 def open_bean(item, verb_name, words, ctx):
     if verb_name == "open":
-        print("you reached me!!!!")  # or log it
+        print("Ha Ha - you tried to open a magical bean!")  # or log it
         return "you reached me!!!!"  # or return None to use generic
     return None

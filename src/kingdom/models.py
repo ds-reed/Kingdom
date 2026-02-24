@@ -701,11 +701,9 @@ class Box(Noun):
         return f"There is {self.box_name} here."
 
     def add_item(self, item, announce=True):
-        print("DEBUG add_item:", self.box_name, "item =", item)
         if item is None: 
             print("ERROR: add_item received None — item lookup failed in loader!") 
             return
-        print(f"Attempting to add {item.name} to {self.box_name}...")
         if self.capacity is not None and len(self.contents) >= self.capacity:
             if announce:
                 print(f" {self.box_name}:  box is full!")

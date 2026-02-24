@@ -4,7 +4,7 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import get_behavior
 
 
-from .models import Noun, DispatchContext
+from kingdom.models import Noun, DispatchContext, Player
 
 
 def apply_state_change(
@@ -23,8 +23,17 @@ def apply_state_change(
     # 1. No target
     if target is None:
         return f"{fallback_verb.capitalize()} what?"
+    
+    # 2. Item override
+    handler_name = getattr(target, "special_handlers", {}).get(fallback_verb)
+    if handler_name:
+        handler = get_behavior(handler_name)
+        if handler:
+            result = handler(target, fallback_verb, tuple(words), ctx)
+            if result is not None:
+                return result
 
-    # 2. Noun override
+    # 3. Noun override
     override: Optional[Callable[[DispatchContext, Iterable[str]], Optional[str]]] = (
         getattr(target, override_method, None)
     )
@@ -34,14 +43,14 @@ def apply_state_change(
         if result is not None:
             return result
 
-    # 3. Default world-state mutation
+    # 4. Default world-state mutation
     if not hasattr(target, state_attr):
         # Noun forgot to define the attribute — safest fallback
         return f"You {fallback_verb} the {target.get_noun_name()}."
 
     setattr(target, state_attr, desired_state)
 
-    # 4. Generic fallback
+    # 45. Generic fallback
     return f"You {fallback_verb} the {target.get_noun_name()}."
 
 
@@ -56,10 +65,11 @@ class StateVerbHandler:
             return f"You can't open the {target.get_noun_name()}."
 
         if target.is_lockable and target.is_locked:
-            return target.locked_description or f"The {target.get_noun_name()} is locked."
+            return getattr(target, "locked_description", None) or f"The {target.get_noun_name()} is locked."
+
 
         if target.is_open:
-            return target.opened_state_description or f"The {target.get_noun_name()} is already open."
+            return f"The {target.get_noun_name()} is already open."
 
         # Ask noun: any special behavior for this verb?
         handler_name = getattr(target, "special_handlers", {}).get("open")
@@ -88,7 +98,7 @@ class StateVerbHandler:
                     destination_room.connections[reverse] = room
 
         # Message
-        return target.open_action_description or f"You open the {target.get_noun_name()}."
+        return getattr(target, "open_action_description", None) or f"You open the {target.get_noun_name()}."
 
     def close(self, ctx: DispatchContext, target: Optional[Noun] = None, words: tuple[str, ...] = ()) -> str:
         if target is None:
@@ -99,22 +109,33 @@ class StateVerbHandler:
             return f"You can't close the {target.get_noun_name()}."
 
         if not getattr(target, "is_open", False):
-            return getattr(target, "closed_state_description", None) or f"The {target.get_noun_name()} is already closed."
+            return f"The {target.get_noun_name()} is already closed."
 
-        # 2. Perform state change
+        # 2. Ask noun: any special behavior for this verb?
+        handler_name = getattr(target, "special_handlers", {}).get("close")
+        
+        if handler_name:
+            handler = get_behavior(handler_name)
+            if handler:
+                result = handler(target, "close", words, ctx)
+                if result is not None:
+                    return result
+
+        # 3. Perform state change
         target.is_open = False
 
-        # 3. Hide exit if configured
+        # 4. Hide exit if configured
         if getattr(target, "close_hides_exit", False) and getattr(target, "open_exit_direction", None):
             direction = target.open_exit_direction
             if ctx.state.current_room:
                 ctx.state.current_room.connections.pop(direction, None)
 
-        # 4. Return message: custom action first, then generic
+        # 5. Return message: custom action first, then generic
         if getattr(target, "close_action_description", None):
             return target.close_action_description
 
         return f"You close the {target.get_noun_name()}."
+
 
     def unlock(
         self,
@@ -122,15 +143,44 @@ class StateVerbHandler:
         target: Optional[Noun],
         words: tuple[str, ...],
     ) -> str:
-        return apply_state_change(
-            ctx=ctx,
-            target=target,
-            words=words,
-            override_method="on_unlock",
-            state_attr="is_locked",
-            desired_state=False,
-            fallback_verb="unlock",
-        )
+        if target is None:
+            return "Unlock what?"
+
+        # 1. Basic checks (refusals)
+        if not getattr(target, "is_lockable", False):
+            return f"You can't unlock the {target.get_noun_name()}."
+
+        if not getattr(target, "is_locked", False):
+            return f"The {target.get_noun_name()} is already unlocked."
+
+        # 2. Player must have the key
+        inventory = ctx.game.current_player.sack.contents
+        key_name = getattr(target, "unlock_key", None)
+        print(f"DEBUG: unlock_key for {target.get_noun_name()} is {key_name}")  # Debug statement
+        print(f"DEBUG: Player inventory contains {[item.name for item in inventory]}")  # Debug statement   
+        if key_name:
+            has_key = any(
+                getattr(item, "noun_name", "").lower() == key_name.lower()
+                for item in inventory
+            )
+            if not has_key:
+                return f"You don't have the key to unlock the {target.get_noun_name()}."
+
+
+        # 3. Item-specific special handler
+        handler_name = getattr(target, "special_handlers", {}).get("unlock")
+        if handler_name:
+            handler = get_behavior(handler_name)
+            if handler:
+                result = handler(target, "unlock", words, ctx)
+                if result is not None:
+                    return result
+
+        # 4. Default unlock
+        target.is_locked = False
+        return f"You unlock the {target.get_noun_name()}."
+
+    
 
     def light(
         self,
