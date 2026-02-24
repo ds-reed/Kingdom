@@ -31,10 +31,11 @@
                     "is_lockable": true,
                     "is_locked": true,
                     "unlock_key": "key",
-                    "locked_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
+                    "locked_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
+                    "unlocked_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
+                    "unlockable_description": "You don't have the right key to unlock the trapdoor.",
                     "open_exit_direction": "down",
                     "open_exit_destination": "Blank Chamber",
-                    "close_hides_exit": true,
                     "closed_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is closed.",
                     "opened_state_description": "A rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
@@ -70,7 +71,7 @@
                             "noun_name": "lamp",
                             "rubbable": true,
                             "rubbed_name": "a battered but shiny brass lamp",
-                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rub_success_string": "The lamfp grows shiny from rubbing.",
                             "rub_repeat_string": "The lamp is already gleaming.",
                             "rub_trigger_room": "Blank Chamber",
                             "rub_minigame_tease": "The air fills with smoke. After it clears you cannot believe your eyes: a Djinni has appeared before you. He mutters some words, 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly. This means (in magic Arabic), 'I will grant you one wish.'"

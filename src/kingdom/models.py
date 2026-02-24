@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Iterable, Optional
 
+from kingdom import dispatch_context
 from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
 from dataclasses import dataclass
 
@@ -92,9 +93,6 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "open_exit_destination", None):
         payload["open_exit_destination"] = item.open_exit_destination
 
-    if getattr(item, "close_hides_exit", False):
-        payload["close_hides_exit"] = True
-
     if getattr(item, "is_lockable", False):
         payload["is_lockable"] = True
 
@@ -104,9 +102,15 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "unlock_key", None):
         payload["unlock_key"] = item.unlock_key
 
-    if getattr(item, "locked_description", None):
-        payload["locked_description"] = item.locked_description
-
+    if getattr(item, "locked_state_description", None):
+        payload["locked_state_description"] = item.locked_state_description
+    
+    if getattr(item, "unlocked_state_description", None):
+        payload["unlocked_state_description"] = item.unlocked_state_description
+    
+    if getattr(item, "unlockable_description", None):
+        payload["unlockable_description"] = item.unlockable_description
+    
     if getattr(item, "edible", False):
         payload["edible"] = True
 
@@ -186,8 +190,14 @@ def _serialize_box(box: "Box") -> dict:
     if getattr(box, "unlock_key", None):
         payload["unlock_key"] = box.unlock_key
 
-    if getattr(box, "locked_description", None):
-        payload["locked_description"] = box.locked_description
+    if getattr(box, "locked_state_description", None):
+        payload["locked_state_description"] = box.locked_state_description
+
+    if getattr(box, "unlocked_state_description", None):
+        payload["unlocked_state_description"] = box.unlocked_state_description
+
+    if getattr(box, "unlockable_description", None):
+        payload["unlockable_description"] = box.unlockable_description
 
     return payload
 
@@ -218,11 +228,12 @@ def _construct_item_from_spec(item_spec) -> "Item":
         close_action_description=item_spec.get("close_action_description"),
         open_exit_direction=item_spec.get("open_exit_direction"),
         open_exit_destination=item_spec.get("open_exit_destination"),
-        close_hides_exit=item_spec.get("close_hides_exit", False),
         is_lockable=item_spec.get("is_lockable", False),
         is_locked=item_spec.get("is_locked", False),
         unlock_key=item_spec.get("unlock_key"),
-        locked_description=item_spec.get("locked_description"),
+        unlockable_description=item_spec.get("unlockable_description"),
+        unlocked_state_description=item_spec.get("unlocked_state_description"),
+        locked_state_description=item_spec.get("locked_state_description"),
         edible=item_spec.get("edible", False),
         is_lightable=item_spec.get("is_lightable", False),
         is_lit=item_spec.get("is_lit", False),
@@ -240,17 +251,6 @@ def _construct_item_from_spec(item_spec) -> "Item":
         behavior_ids=item_spec.get("behaviors") or item_spec.get("behavior_ids"),
     )
 
-DIRECTION_ALIASES = {
-    "north": ("n",),
-    "south": ("s",),
-    "east": ("e",),
-    "west": ("w",),
-    "up": ("u", "above"),
-    "down": ("d", "below"),
-}
-
-_DIRECTION_NOUNS_BY_REFERENCE: dict[str, "DirectionNoun"] = {}
-_DIRECTION_NOUNS_BY_CANONICAL: dict[str, list["DirectionNoun"]] = {}
 
 class Verb:
     """A verb paired with a handler method.
@@ -305,6 +305,19 @@ class Verb:
         return f"Verb({self.name})"
 
 
+DIRECTION_ALIASES = {
+    "north": ("n",),
+    "south": ("s",),
+    "east": ("e",),
+    "west": ("w",),
+    "up": ("u", "above"),
+    "down": ("d", "below"),
+}
+
+_DIRECTION_NOUNS_BY_REFERENCE: dict[str, "DirectionNoun"] = {}
+_DIRECTION_NOUNS_BY_CANONICAL: dict[str, list["DirectionNoun"]] = {}
+
+
 class Noun:
     """Parent class for all game world entities (items, boxes, rooms)."""
     all_nouns = []  # Class variable to track every noun created
@@ -345,12 +358,70 @@ class Noun:
         return f"There is {self.name} here."
     
     # Default: no override, allow verb handler to run
-    def on_open(self, ctx, words):
-        return None
+    def on_open(self, ctx, words) -> str | None:
+        if not self.is_openable:
+            return f"You can't open the {self.get_noun_name()}."
 
-    def on_close(self, ctx, words):
-        return None
+        if self.is_lockable and self.is_locked:
+            if self.unlockable_description:
+                return self.unlockable_description
+            return f"The {self.get_noun_name()} is locked."
 
+        if self.is_open:
+            return f"The {self.get_noun_name()} is already open."
+
+        # Opening now → use action description if available
+        
+        self.is_open = True
+                    
+        direction = getattr(self, "open_exit_direction", None)
+        destination = getattr(self, "open_exit_destination", None)
+
+
+        if direction and destination:
+            room = ctx.state.current_room
+            game = ctx.game
+
+            for r in game.rooms:
+                if r.name.lower() == destination.lower():
+                    room.connections[direction] = r
+
+                    # ⭐ Add reverse exit
+                    reverse = {
+                        "north": "south",
+                        "south": "north",
+                        "east": "west",
+                        "west": "east",
+                        "up": "down",
+                        "down": "up",
+                    }.get(direction)
+
+                    if reverse:
+                        r.connections[reverse] = room
+
+                    break
+        if getattr(self, "open_action_description", None): return self.open_action_description
+
+        return None
+    
+    def on_close(self, ctx, words) -> str | None:
+        if not self.is_openable:
+            return f"You can't close the {self.get_noun_name()}."
+
+        if not self.is_open:
+            return f"The {self.get_noun_name()} is already closed."
+
+        # Closing now 
+        self.is_open = False
+        direction = getattr(self, "open_exit_direction", None)
+        if direction:
+            room = ctx.state.current_room
+            room.connections.pop(direction, None)
+
+        if getattr(self, "close_action_description", None): return self.close_action_description
+
+        return None
+       
     def on_unlock(self, ctx, words):
         return None
 
@@ -365,49 +436,6 @@ class Noun:
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
 
-        # ⭐ 1. OPEN logic (doors, trapdoors, portals)
-        if verb_name == "open" and self.is_openable and not self.is_open:
-            self.is_open = True
-
-            direction = self.open_exit_direction
-            destination = self.open_exit_destination
-
-            if direction and destination:
-                room = dispatch_context.state.current_room
-                game = dispatch_context.game
-
-                for r in game.rooms:
-                    if r.name.lower() == destination.lower():
-                        room.connections[direction] = r
-
-                        # ⭐ Add reverse exit
-                        reverse = {
-                            "north": "south",
-                            "south": "north",
-                            "east": "west",
-                            "west": "east",
-                            "up": "down",
-                            "down": "up",
-                        }.get(direction)
-
-                        if reverse:
-                            r.connections[reverse] = room
-
-                        break
-
-            return self.open_description or f"You open the {self.get_noun_name()}."
-
-        
-
-        # ⭐ 2. CLOSE logic (hide exits)
-        if verb_name == "close" and self.is_openable and self.is_open:
-            self.is_open = False
-
-            if self.close_hides_exit and self.open_exit_direction:
-                room = dispatch_context.state.current_room
-                room.connections.pop(self.open_exit_direction, None)
-
-            return self.closed_description or f"You close the {self.get_noun_name()}."
 
         # ⭐ 3. Behavior handlers
         for handler in getattr(self, "behavior_handlers", []):
@@ -519,11 +547,12 @@ class Item(Noun):
         close_action_description=None,
         open_exit_direction=None,
         open_exit_destination=None,
-        close_hides_exit=False,
         is_lockable=False,
         is_locked=False,
         unlock_key=None,
-        locked_description=None,
+        locked_state_description=None,
+        unlocked_state_description=None,
+        unlockable_description=None,
         edible=False,
         is_lightable=False,
         is_lit=False,
@@ -571,7 +600,6 @@ class Item(Noun):
             if open_exit_destination is not None and str(open_exit_destination).strip()
             else None
         )
-        self.close_hides_exit = bool(close_hides_exit)
         self.is_lockable = bool(is_lockable)
         self.is_locked = bool(is_locked)
         self.unlock_key = (
@@ -579,7 +607,9 @@ class Item(Noun):
             if unlock_key is not None and str(unlock_key).strip()
             else None
         )
-        self.locked_description = locked_description
+        self.locked_state_description = locked_state_description
+        self.unlocked_state_description = unlocked_state_description
+        self.unlockable_description = unlockable_description
         self.edible = bool(edible)
         self.is_lightable = bool(is_lightable)
         self.is_lit = bool(is_lit)
@@ -597,8 +627,8 @@ class Item(Noun):
         Item.all_items.append(self)
 
     def get_presence_text(self):
-        if self.is_lockable and self.is_locked and self.locked_description:
-            return self.locked_description
+        if self.is_lockable and self.is_locked and self.locked_state_description:
+            return self.locked_state_description
         if self.is_openable:
             if self.is_open and self.opened_state_description:
                 return self.opened_state_description
@@ -658,26 +688,10 @@ class Item(Noun):
 
         return super().handle_verb(verb_name, *args, **kwargs)
 
-    def on_open(self, ctx, words) -> str | None:
-        if not self.is_openable:
-            return f"You can't open the {self.get_noun_name()}."
 
-        if self.is_lockable and self.is_locked:
-            if self.locked_description:
-                return self.locked_description
-            return f"The {self.get_noun_name()} is locked."
+    
 
-        if self.is_open:
-            # Already open → use state description if available
-            if getattr(self, "opened_state_description", None):
-                return self.opened_state_description
-            return f"The {self.get_noun_name()} is already open."
 
-        # Opening now → use action description if available
-        if getattr(self, "open_action_description", None):
-            return self.open_action_description
-
-        return None
 
 class Box(Noun):
     all_boxes = []  # Class variable to track every box created
@@ -699,7 +713,6 @@ class Box(Noun):
         locked_description=None,
         open_exit_direction=None,
         open_exit_destination=None,
-        close_hides_exit=False
     ):
         super().__init__()
         self.name = box_name  # Noun uses 'name'
@@ -731,7 +744,6 @@ class Box(Noun):
             if open_exit_destination is not None and str(open_exit_destination).strip()
             else None
         )
-        self.close_hides_exit = bool(close_hides_exit)
         Box.all_boxes.append(self)
 
     def get_presence_text(self):
@@ -769,26 +781,6 @@ class Box(Noun):
         if announce:
             print(f" {self.box_name}: {item.name} has been added to the treasury.")
 
-    def on_open(self, ctx, words) -> str | None:
-        if not self.is_openable:
-            return f"You can't open the {self.get_noun_name()}."
-
-        if self.is_lockable and self.is_locked:
-            if self.locked_description:
-                return self.locked_description
-            return f"The {self.get_noun_name()} is locked."
-
-        if self.is_open:
-            # Already open → use state description if available
-            if getattr(self, "opened_state_description", None):
-                return self.opened_state_description
-            return f"The {self.get_noun_name()} is already open."
-
-        # Opening now → use action description if available
-        if getattr(self, "open_action_description", None):
-            return self.open_action_description
-
-        return None
 
 
 
