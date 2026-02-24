@@ -183,6 +183,14 @@ def _is_dark_room(room: Room) -> bool:
     """
     Return True if the room is effectively dark (requires light but none present/lit).
     """
+    game = Game.get_instance()
+    player = game.current_player
+    print("DEBUG: inventory:", [i.name for i in player.sack.contents])
+
+
+
+
+
     if not getattr(room, "is_dark", False):
         return False
 

@@ -6,52 +6,62 @@ from kingdom.item_behaviors import get_behavior
 
 from kingdom.models import Noun, DispatchContext, Player
 
+def basic_checks(target, *, capability_attr, current_state_attr=None, desired_state=None, verb, already_msg=None):
+    if target is None:
+        return f"{verb.capitalize()} what?"
+
+    if capability_attr and not getattr(target, capability_attr, False):
+        return f"You can't {verb} the {target.get_noun_name()}."
+
+    if current_state_attr is not None:
+        current = getattr(target, current_state_attr, None)
+        if current == desired_state:
+            return f"The {target.get_noun_name()} is already {already_msg}."
+
+    return None
+
+def require_item(ctx, *, noun, required_noun_name, verb):
+    inventory = ctx.game.current_player.sack.contents
+    for item in inventory:
+        if getattr(item, "noun_name", "").lower() == required_noun_name.lower():
+            return item  # success
+    return f"You don't have the {required_noun_name} to {verb} the {noun.get_noun_name()}."
+
 
 def apply_state_change(
-    ctx: DispatchContext,
-    target: Optional[Noun],
-    words: Iterable[str],
-    override_method: str,
-    state_attr: str,
-    desired_state: bool,
-    fallback_verb: str,
-) -> str:
-    """
-    Generic helper for state-changing verbs in the new override-first architecture.
-    """
-
-    # 1. No target
-    if target is None:
-        return f"{fallback_verb.capitalize()} what?"
-    
-    # 2. Item override
-    handler_name = getattr(target, "special_handlers", {}).get(fallback_verb)
+    ctx,
+    target,
+    verb,
+    *,
+    override_method,
+    state_attr,
+    desired_state,
+    used_item=None,
+):
+    # 1. Special handler
+    handler_name = getattr(target, "special_handlers", {}).get(verb)
     if handler_name:
         handler = get_behavior(handler_name)
         if handler:
-            result = handler(target, fallback_verb, tuple(words), ctx)
+            result = handler(target, verb, (), ctx)
             if result is not None:
                 return result
 
-    # 3. Noun override
-    override: Optional[Callable[[DispatchContext, Iterable[str]], Optional[str]]] = (
-        getattr(target, override_method, None)
-    )
-
-    if override is not None:
-        result = override(ctx, words)
+    # 2. Noun override
+    override = getattr(target, override_method, None)
+    if callable(override):
+        result = override(ctx, ())
         if result is not None:
             return result
 
-    # 4. Default world-state mutation
-    if not hasattr(target, state_attr):
-        # Noun forgot to define the attribute — safest fallback
-        return f"You {fallback_verb} the {target.get_noun_name()}."
-
+    # 3. Default mutation
     setattr(target, state_attr, desired_state)
 
-    # 45. Generic fallback
-    return f"You {fallback_verb} the {target.get_noun_name()}."
+    # 4. Message
+    if used_item:
+        return f"You {verb} the {target.get_noun_name()} with the {used_item.get_noun_name()}."
+    return f"You {verb} the {target.get_noun_name()}."
+
 
 
 class StateVerbHandler:
@@ -155,9 +165,7 @@ class StateVerbHandler:
 
         # 2. Player must have the key
         inventory = ctx.game.current_player.sack.contents
-        key_name = getattr(target, "unlock_key", None)
-        print(f"DEBUG: unlock_key for {target.get_noun_name()} is {key_name}")  # Debug statement
-        print(f"DEBUG: Player inventory contains {[item.name for item in inventory]}")  # Debug statement   
+        key_name = getattr(target, "unlock_key", None) 
         if key_name:
             has_key = any(
                 getattr(item, "noun_name", "").lower() == key_name.lower()
@@ -182,21 +190,39 @@ class StateVerbHandler:
 
     
 
-    def light(
-        self,
-        ctx: DispatchContext,
-        target: Optional[Noun],
-        words: tuple[str, ...],
-    ) -> str:
+    def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
+        # 1. Basic capability + already-lit checks
+        refusal = basic_checks(
+            target,
+            capability_attr="is_lightable",
+            current_state_attr="is_lit",
+            desired_state=True,
+            verb="light",
+            already_msg="lit",
+        )
+        if refusal:
+            return refusal
+
+        # 2. Required ignition source
+        ignition_source = next(
+            (item for item in ctx.game.current_player.sack.contents
+            if getattr(item, "can_ignite", False)),
+            None
+        )
+        if not ignition_source:
+            return f"You have nothing to light the {target.get_noun_name()} with."
+
+        # 3. Unified state-change pipeline
         return apply_state_change(
             ctx=ctx,
             target=target,
-            words=words,
+            verb="light",
             override_method="on_light",
             state_attr="is_lit",
             desired_state=True,
-            fallback_verb="light",
+            used_item=ignition_source,
         )
+
 
     def extinguish(
         self,
@@ -204,14 +230,26 @@ class StateVerbHandler:
         target: Optional[Noun],
         words: tuple[str, ...],
     ) -> str:
+        # 1. Basic capability + already-extinguished checks
+        refusal = basic_checks(
+            target,
+            capability_attr="is_lightable",
+            current_state_attr="is_lit",
+            desired_state=False,    
+            verb="extinguish",
+            already_msg="extinguished",
+        )
+        if refusal:
+            return refusal
+
+        # 2. Unified state-change pipeline
         return apply_state_change(
             ctx=ctx,
             target=target,
-            words=words,
+            verb="extinguish",
             override_method="on_extinguish",
             state_attr="is_lit",
             desired_state=False,
-            fallback_verb="extinguish",
         )
 
     # Add similar methods for TURN, PUSH, PRESS, BREAK, SMASH, RUB, DIAL, etc.

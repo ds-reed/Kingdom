@@ -84,6 +84,7 @@ def _build_core_verbs(
 
     #---------------- meta verbs ----------------------------
     verb_help = Verb("help", meta_handler.help, synonyms=["commands", "h", "?"])
+    verb_debug = Verb("DEBUG", meta_handler.DEBUG, hidden=True)
 
 
     return [
@@ -105,6 +106,7 @@ def _build_core_verbs(
         verb_unlock,
         verb_teleport,
         verb_help,
+        verb_debug,
     ]
 
 

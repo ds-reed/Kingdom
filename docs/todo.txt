@@ -81,99 +81,86 @@ Kingdom TODO (Outstanding Only)
 
 
 
-## TODO — Make `Verb` a First‑Class Class (Decouple from `Noun`)
 
-### 🎯 Goal
-Refactor `Verb` so it no longer inherits from `Noun`, and instead becomes its own clean, minimal command type.
 
----
+# TODO — Unify Item Attribute Handling with ITEM_FIELDS Table
 
-### ✅ 1. Create a new lightweight base class
-Introduce a `NamedSymbol` (or similar) that provides:
-- `name`
-- `synonyms`
-- `all_names()`
-- `matches_reference()`
-- basic normalization helpers
+## 1. Create a single source of truth for item attributes
+- [ ] Add a new module or section in `item.py` defining:
+  ```python
+  ITEM_FIELDS = {
+      "pickupable": True,
+      "refuse_string": None,
+      "presence_string": None,
+      "is_openable": False,
+      "is_open": False,
+      "is_lockable": False,
+      "is_locked": False,
+      "unlock_key": None,
+      "is_lightable": False,
+      "is_lit": False,
+      "can_ignite": False,
+      "ignite_success_string": None,
+      "rubbable": False,
+      "rubbed_name": None,
+      "rubbed_presence_string": None,
+      "rub_success_string": None,
+      "rub_repeat_string": None,
+      "rub_trigger_room": None,
+      "rub_minigame_tease": None,
+      "too_heavy_to_swim": False,
+      "edible": False,
+      "eat_refuse_string": None,
+      "eat_success_string": None,
+      "eat_missing_string": None,
+      # Add more as needed
+  }
+  ```
 
-This replaces the parts of `Noun` that `Verb` actually uses.
+## 2. Refactor Item.__init__ to use ITEM_FIELDS
+- [ ] Replace the long parameter list with:
+  ```python
+  def __init__(self, name, noun_name=None, behavior_ids=None, special_handlers=None, **kwargs):
+  ```
+- [ ] Loop through ITEM_FIELDS and set attributes:
+  ```python
+  for field, default in ITEM_FIELDS.items():
+      setattr(self, field, kwargs.get(field, default))
+  ```
 
----
+## 3. Update the world loader to pass JSON directly
+- [ ] Replace explicit constructor args with:
+  ```python
+  item = Item(**item_spec)
+  ```
+- [ ] Ensure name/noun_name/behavior_ids/special_handlers are still handled explicitly.
 
-### ✅ 2. Update `Verb` to inherit from `NamedSymbol` instead of `Noun`
-`Verb` should explicitly define:
-- `__init__`
-- `all_names`
-- `_detect_target_support`
-- `_detect_dispatch_context_support`
-- `execute`
-- `__repr__`
+## 4. Migrate existing JSON
+- [ ] Remove fields that were previously ignored or duplicated.
+- [ ] Ensure all item capability flags match ITEM_FIELDS keys.
+- [ ] Validate that no JSON fields are silently dropped.
 
-These are the only pieces `Verb` truly needs.
+## 5. Add validation (optional but recommended)
+- [ ] Add a check in Item.__init__ to warn about unknown JSON keys.
+- [ ] Add type coercion (bool, str, etc.) if needed.
 
----
+## 6. Update debugging tools
+- [ ] Update your debug verb to print ITEM_FIELDS dynamically.
+- [ ] Add a helper to pretty-print only fields that differ from defaults.
 
-### 🧹 3. Remove inherited world‑entity behavior from `Verb`
-Ensure `Verb` no longer inherits:
-- `get_presence_text`
-- open/close logic
-- lock/unlock logic
-- behavior handlers
-- room‑connection logic
-- `all_nouns` registry
+## 7. Remove old constructor parameters
+- [ ] Delete unused parameters from Item.__init__.
+- [ ] Remove redundant loader logic.
+- [ ] Clean up any code paths that referenced old attributes.
 
-These belong only to world objects.
+## 8. Regression test verbs
+- [ ] Test open/close
+- [ ] Test lock/unlock
+- [ ] Test light/extinguish
+- [ ] Test rub/eat (if implemented)
+- [ ] Test special_handlers overrides
 
----
+## 9. Celebrate
+- [ ] Enjoy the fact that adding a new item attribute now requires updating **ONE** place instead of nine.
 
-### 🔧 4. Update parser/dispatcher to use `NamedSymbol` for matching
-Verify that:
-- verb lookup uses `Verb.all_names()`
-- noun lookup uses `Noun.matches_reference()`
-- no code assumes verbs are in `Noun.all_nouns`
-
----
-
-### 🧪 5. Test the double‑dispatch path
-Confirm that:
-- `Verb.execute()` still calls `target.can_handle_verb` correctly
-- verbs themselves are never treated as targets
-- movement/state‑changing/game‑state adapters still receive the right parameters
-
----
-
-### ⚠️ Potential Gotchas / Side Effects
-
-- **Parser assumptions:**  
-  Some parts of the parser may assume verbs and nouns share a base class.  
-  Look for any code that iterates over `Noun.all_nouns` or checks `isinstance(x, Noun)`.
-
-- **Legacy verbs:**  
-  `_build_legacy_stub_verbs` may rely on verbs being nouns.  
-  Check how synonyms and lookup tables are built.
-
-- **DirectionNoun interactions:**  
-  Movement verbs rely on direction nouns being matchable.  
-  Ensure verb matching still works cleanly after the split.
-
-- **Help system:**  
-  If help lists verbs by scanning `Noun.all_nouns`, it will need updating.
-
-- **World loading:**  
-  `Game.setup_world()` clears `Noun.all_nouns`.  
-  After the split, verbs must not be wiped out during world loads.
-
-- **Behavior handlers:**  
-  Items and boxes use `handle_verb` extensively.  
-  Ensure verbs never accidentally fall into world‑object behavior paths.
-
----
-
-### 📝 Notes for Future‑Dave
-- This refactor will *simplify* the mental model:  
-  **Noun = world object**  
-  **Verb = command**  
-  **NamedSymbol = shared parser identity layer**
-- The engine becomes more rediscoverable and easier to extend.
-- No need to rush — this can be done incrementally.
 

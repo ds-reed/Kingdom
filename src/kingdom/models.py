@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from typing import Iterable, Optional
 
-from kingdom import dispatch_context
 from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
 from dataclasses import dataclass
 
@@ -17,6 +16,17 @@ class DispatchContext:
     game: "Game | None" = None
     state: "GameActionState | None" = None
     ui: object | None = None  # UI is loosely typed to avoid circular imports. Expected to be an instance of kingdom.UI.UI.
+
+    def __repr__(self):
+        return (
+            f"DispatchContext(\n"
+            f"  game={self.game!r},\n"
+            f"  state={self.state!r},\n"
+            f"  current_room={getattr(self.state, 'current_room', None)!r},\n"
+            f"  hero={getattr(self, 'hero', None)!r},\n"
+            f")"
+        )
+
 
 @dataclass
 class GameActionState:
@@ -119,6 +129,12 @@ def _serialize_item(item: "Item") -> dict:
 
     if getattr(item, "is_lit", False):
         payload["is_lit"] = True
+    
+    if getattr(item, "can_ignite", False):
+        payload["can_ignite"] = True   
+
+    if getattr(item, "ignite_success_string", None):
+        payload["ignite_success_string"] = item.ignite_success_string
 
     if getattr(item, "eat_refuse_string", None):
         payload["eat_refuse_string"] = item.eat_refuse_string
@@ -240,6 +256,8 @@ def _construct_item_from_spec(item_spec) -> "Item":
         edible=item_spec.get("edible", False),
         is_lightable=item_spec.get("is_lightable", False),
         is_lit=item_spec.get("is_lit", False),
+        can_ignite=item_spec.get("can_ignite", False),
+        ignite_success_string=item_spec.get("ignite_success_string"),
         rubbable=item_spec.get("rubbable", False),
         rubbed_name=item_spec.get("rubbed_name"),
         rubbed_presence_string=item_spec.get("rubbed_presence_string"),
@@ -497,6 +515,8 @@ class Item(Noun):
         edible=False,
         is_lightable=False,
         is_lit=False,
+        can_ignite=False,
+        ignite_success_string=None,
         rubbable=False,
         rubbed_name=None,
         rubbed_presence_string=None,
@@ -556,6 +576,8 @@ class Item(Noun):
         self.edible = bool(edible)
         self.is_lightable = bool(is_lightable)
         self.is_lit = bool(is_lit)
+        self.can_ignite = bool(can_ignite)
+        self.ignite_success_string = ignite_success_string
         self.rubbable = bool(rubbable)
         self.rubbed_name = str(rubbed_name).strip() if rubbed_name is not None and str(rubbed_name).strip() else None
         self.rubbed_presence_string = rubbed_presence_string
@@ -687,6 +709,11 @@ class Box(Noun):
             else None
         )
         Box.all_boxes.append(self)
+
+    def __repr__(self):
+        cls = self.__class__.__name__
+        contents = [item.name for item in self.contents]
+        return f"<{cls} name={self.name!r} open={self.is_open} contents={contents}>"
 
     def get_presence_text(self):
         if self.is_lockable and self.is_locked and self.locked_description:
@@ -925,7 +952,16 @@ class Game(Noun):
         self.start_room_name = None
         self.state = None
         Game._instance = self
-    
+
+    def __repr__(self):
+        return (
+            f"Game(\n"
+            f"  rooms={list(self.rooms.keys())},\n"
+            f"  current_player={self.current_player!r},\n"
+            f")"
+        )
+
+
     @classmethod
     def get_instance(cls):
         """Get or create the singleton Game instance."""

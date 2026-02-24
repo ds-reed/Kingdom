@@ -79,14 +79,16 @@
                             "noun_name": "lamp",
                             "rubbable": true,
                             "rubbed_name": "a battered but shiny brass lamp",
-                            "rub_success_string": "The lamfp grows shiny from rubbing.",
+                            "rub_success_string": "The lamp grows shiny from rubbing.",
                             "rub_repeat_string": "The lamp is already gleaming.",
                             "rub_trigger_room": "Blank Chamber",
                             "rub_minigame_tease": "The air fills with smoke. After it clears you cannot believe your eyes: a Djinni has appeared before you. He mutters some words, 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly. This means (in magic Arabic), 'I will grant you one wish.'"
                         },
                         {
                             "name": "a cheap plastic lighter",
-                            "noun_name": "lighter"
+                            "noun_name": "lighter",
+                            "can_ignite": true,
+                            "ignite_success_string": "You flick the lighter and a small flame appears."
                         }
                     ]
                 }

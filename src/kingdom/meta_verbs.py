@@ -4,6 +4,29 @@ from kingdom.models import DispatchContext, Noun, Verb, DispatchContext
 
 class MetaVerbHandler:
     
+    def DEBUG(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
+        print(f"DEBUG: DispatchContext: {ctx}, \n\ntarget: {target}, \n\nwords: {words}")
+        if target is None and words and words[0] == "room":
+            if(ctx.state.current_room is None):
+                return "No current room."
+            print(f"DEBUG: Current room: {ctx.state.current_room.get_noun_name() }")
+            return self.debug_noun(ctx.state.current_room)
+        elif target is None and words and words[0] == "player":
+            if getattr(ctx.game, "current_player", None) is None:
+                return "No current player."
+            print("DEBUG: Current player:", getattr(ctx.game, "current_player", None))
+            return self.debug_noun(getattr(ctx.game, "current_player", None))
+        else:
+            return self.debug_noun(target)
+    
+    def debug_noun(self, noun: Noun):
+        if noun is None:
+            return "No target noun was passed."    
+        attrs = vars(noun)
+        lines = [f"{k}: {v!r}" for k, v in attrs.items()]
+        return "\n".join(lines)
+
+
     def help(self, ctx: DispatchContext, target: Noun | None, words:tuple[str, ...] = () ):
         if not words:
             return (
