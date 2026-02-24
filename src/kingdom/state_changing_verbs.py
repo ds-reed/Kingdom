@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Optional, Iterable
 
-from kingdom.item_behaviors import get_behavior
+from kingdom.item_behaviors import try_item_special_handler, VerbOutcome
 
 
 from kingdom.models import Noun, DispatchContext, Player
@@ -36,31 +36,13 @@ def apply_state_change(
     target,
     verb,
     *,
-    override_method,
     state_attr,
     desired_state,
     used_item=None,
 ):
-    # 1. Special handler
-    handler_name = getattr(target, "special_handlers", {}).get(verb)
-    if handler_name:
-        handler = get_behavior(handler_name)
-        if handler:
-            result = handler(target, verb, (), ctx)
-            if result is not None:
-                return result
 
-    # 2. Noun override
-    override = getattr(target, override_method, None)
-    if callable(override):
-        result = override(ctx, ())
-        if result is not None:
-            return result
-
-    # 3. Default mutation
     setattr(target, state_attr, desired_state)
 
-    # 4. Message
     if used_item:
         return f"You {verb} the {target.get_noun_name()} with the {used_item.get_noun_name()}."
     return f"You {verb} the {target.get_noun_name()}."
@@ -96,17 +78,23 @@ class StateVerbHandler:
                 or f"The {target.get_noun_name()} is locked."
             )
 
-        # 3. Unified state-change pipeline
+
+        # 3. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or ""
+
+
+        # 4. Unified state-change pipeline
         result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="open",
-            override_method="on_open",
             state_attr="is_open",
             desired_state=True,
         )
 
-        # 4. Post-mutation side effect: reveal exit if configured
+        # 5. Post-mutation side effect: reveal exit if configured
         direction = getattr(target, "open_exit_direction", None)
         destination = getattr(target, "open_exit_destination", None)
 
@@ -130,7 +118,8 @@ class StateVerbHandler:
                 if reverse:
                     destination_room.connections[reverse] = room
 
-        return result
+        return (outcome.message if outcome else None) or result or ""
+
 
 
     def close(
@@ -152,26 +141,29 @@ class StateVerbHandler:
         )
         if refusal:
             return refusal
+        
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or ""
 
-        # 2. Unified state-change pipeline (special handlers + noun override + mutation)
+        # 3. Unified state-change pipeline (special handlers + noun override + mutation)
         result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="close",
-            override_method="on_close",
             state_attr="is_open",
             desired_state=False,
         )
 
-        # 3. Post-mutation side effects: hide exit if configured
+        # 4. Post-mutation side effects: hide exit if configured
         if getattr(target, "close_hides_exit", False) and getattr(target, "open_exit_direction", None):
             direction = target.open_exit_direction
             room = ctx.state.current_room
             if room:
                 room.connections.pop(direction, None)
 
-        return result
-
+        return (outcome.message if outcome else None) or result or ""
 
     def unlock(
         self,
@@ -192,8 +184,13 @@ class StateVerbHandler:
         )
         if refusal:
             return refusal
+        
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
 
-        # 2. Required key (if any)
+        # 3. Required key (if any)
         key_name = getattr(target, "unlock_key", None)
         if key_name:
             key_or_refusal = require_item(
@@ -208,18 +205,17 @@ class StateVerbHandler:
         else:
             key_item = None
 
-        # 3. Unified state-change pipeline
-        return apply_state_change(
+        # 4. Unified state-change pipeline
+        result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="unlock",
-            override_method="on_unlock",
             state_attr="is_locked",
             desired_state=False,
             used_item=key_item,
         )
-
-
+        return (outcome.message if outcome else None) or result or ""
+    
     def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
         # 1. Basic capability + already-lit checks
         refusal = basic_checks(
@@ -234,7 +230,12 @@ class StateVerbHandler:
         if refusal:
             return refusal
 
-        # 2. Required ignition source
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
+
+        # 3. Required ignition source
         ignition_source = next(
             (item for item in ctx.game.current_player.sack.contents
             if getattr(item, "can_ignite", False)),
@@ -243,17 +244,16 @@ class StateVerbHandler:
         if not ignition_source:
             return f"You have nothing to light the {target.get_noun_name()} with."
 
-        # 3. Unified state-change pipeline
-        return apply_state_change(
+        # 4. Unified state-change pipeline
+        result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="light",
-            override_method="on_light",
             state_attr="is_lit",
             desired_state=True,
             used_item=ignition_source,
         )
-
+        return (outcome.message if outcome else None) or result or ""
 
     def extinguish(
         self,
@@ -274,14 +274,62 @@ class StateVerbHandler:
         if refusal:
             return refusal
 
-        # 2. Unified state-change pipeline
-        return apply_state_change(
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
+
+        # 3. Unified state-change pipeline
+        result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="extinguish",
-            override_method="on_extinguish",
             state_attr="is_lit",
             desired_state=False,
         )
+        return (outcome.message if outcome else None) or result or ""
+    
+
+    def eat(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun] = None,
+        words: tuple[str, ...] = (),
+    ) -> str:
+        # 1. Basic capability checks
+        refusal = basic_checks(
+            target,
+            words=words,
+            capability_attr="is_edible",
+            desired_state=True,
+            verb="eat",
+        )
+        if refusal:
+            return refusal
+
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
+
+        # 3. Unified state-change pipeline
+        return_msg = apply_state_change(
+            ctx=ctx,
+            target=target,
+            verb="eat",
+            state_attr="is_eaten",
+            desired_state=True,
+        )   
+        
+        # 4. Post-mutation side effect: remove item from inventory
+        inventory = ctx.game.current_player.sack.contents
+        if target in inventory:
+            inventory.remove(target)
+        return return_msg
+
+        
+
+            
+
 
     # Add similar methods for TURN, PUSH, PRESS, BREAK, SMASH, RUB, DIAL, etc.

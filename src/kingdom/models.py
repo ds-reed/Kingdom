@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from typing import Iterable, Optional
 
-from kingdom.item_behaviors import get_default_item_behavior_ids, resolve_item_behaviors
 from dataclasses import dataclass
 
 
@@ -121,8 +120,8 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "unlockable_description", None):
         payload["unlockable_description"] = item.unlockable_description
     
-    if getattr(item, "edible", False):
-        payload["edible"] = True
+    if getattr(item, "is_edible", False):
+        payload["is_edible"] = True
 
     if getattr(item, "is_lightable", False):
         payload["is_lightable"] = True
@@ -145,8 +144,8 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "eat_missing_string", None):
         payload["eat_missing_string"] = item.eat_missing_string
 
-    if getattr(item, "rubbable", False):
-        payload["rubbable"] = True
+    if getattr(item, "is_rubbable", False):
+        payload["is_rubbable"] = True
 
     if getattr(item, "rubbed_name", None):
         payload["rubbed_name"] = item.rubbed_name
@@ -253,12 +252,12 @@ def _construct_item_from_spec(item_spec) -> "Item":
         unlockable_description=item_spec.get("unlockable_description"),
         unlocked_state_description=item_spec.get("unlocked_state_description"),
         locked_state_description=item_spec.get("locked_state_description"),
-        edible=item_spec.get("edible", False),
+        is_edible=item_spec.get("is_edible", False),
         is_lightable=item_spec.get("is_lightable", False),
         is_lit=item_spec.get("is_lit", False),
         can_ignite=item_spec.get("can_ignite", False),
         ignite_success_string=item_spec.get("ignite_success_string"),
-        rubbable=item_spec.get("rubbable", False),
+        is_rubbable=item_spec.get("is_rubbable", False),
         rubbed_name=item_spec.get("rubbed_name"),
         rubbed_presence_string=item_spec.get("rubbed_presence_string"),
         rub_success_string=item_spec.get("rub_success_string"),
@@ -512,12 +511,12 @@ class Item(Noun):
         locked_state_description=None,
         unlocked_state_description=None,
         unlockable_description=None,
-        edible=False,
+        is_edible=False,
         is_lightable=False,
         is_lit=False,
         can_ignite=False,
         ignite_success_string=None,
-        rubbable=False,
+        is_rubbable=False,
         rubbed_name=None,
         rubbed_presence_string=None,
         rub_success_string=None,
@@ -537,11 +536,7 @@ class Item(Noun):
         self.descriptive_phrase = self.name
         self.noun_name = str(noun_name).strip().lower() if noun_name else _derive_noun_name(self.name)
         explicit_behavior_ids = tuple(str(identifier).strip() for identifier in (behavior_ids or []) if str(identifier).strip())
-        default_behavior_ids = get_default_item_behavior_ids(self.noun_name)
-        combined_behavior_ids = tuple(dict.fromkeys((*default_behavior_ids, *explicit_behavior_ids)))
         self.explicit_behavior_ids = explicit_behavior_ids
-        self.behavior_ids = combined_behavior_ids
-        self.behavior_handlers = resolve_item_behaviors(self.behavior_ids)
         self.current_box = None
         self.is_broken = False
         self.pickupable = pickupable
@@ -573,12 +568,12 @@ class Item(Noun):
         self.locked_state_description = locked_state_description
         self.unlocked_state_description = unlocked_state_description
         self.unlockable_description = unlockable_description
-        self.edible = bool(edible)
+        self.is_edible = bool(is_edible)
         self.is_lightable = bool(is_lightable)
         self.is_lit = bool(is_lit)
         self.can_ignite = bool(can_ignite)
         self.ignite_success_string = ignite_success_string
-        self.rubbable = bool(rubbable)
+        self.is_rubbable = bool(is_rubbable)
         self.rubbed_name = str(rubbed_name).strip() if rubbed_name is not None and str(rubbed_name).strip() else None
         self.rubbed_presence_string = rubbed_presence_string
         self.rub_success_string = rub_success_string
@@ -923,7 +918,7 @@ class Room(Noun):
         return None
 
     def __repr__(self):
-        items_str = [it.name for it in self.items]
+        items_str = [it.name for it in self.items if it is not None]
         boxes_str = [b.box_name for b in self.boxes]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (

@@ -44,7 +44,6 @@ class MovementVerbHandler:
         state.current_room = next_room
         if not state.current_room.visited:
             game.score += getattr(state.current_room, "discover_points", 0)
-            print("DEBUG: Awarded discover points for new room:", getattr(state.current_room, "discover_points", 0))
             state.current_room.visited = True
         render_current_room(state, clear=False)
         print()

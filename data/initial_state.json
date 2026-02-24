@@ -62,13 +62,14 @@
                         {
                             "name": "a cheery orange carrot",
                             "noun_name": "carrot",
-                            "edible": true,
-                            "eat_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH.",
-                            "eat_missing_string": "YOU HAVE NO CARROT! ARE YOU TRYING TO CONFUSE ME?"
+                            "is_edible": true,
+                            "eat_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
                         },
                         {
                             "name": "a suspicious looking fish",
-                            "noun_name": "fish"
+                            "noun_name": "fish",
+                            "special_handlers": {"eat": "eat_fish"},
+                            "is_edible": true
                         },
                         {
                             "name": "a small brass key",
@@ -77,12 +78,11 @@
                         {
                             "name": "a battered and dull brass lamp",
                             "noun_name": "lamp",
-                            "rubbable": true,
+                            "is_rubbable": true,
                             "rubbed_name": "a battered but shiny brass lamp",
                             "rub_success_string": "The lamp grows shiny from rubbing.",
-                            "rub_repeat_string": "The lamp is already gleaming.",
-                            "rub_trigger_room": "Blank Chamber",
-                            "rub_minigame_tease": "The air fills with smoke. After it clears you cannot believe your eyes: a Djinni has appeared before you. He mutters some words, 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly. This means (in magic Arabic), 'I will grant you one wish.'"
+                            "special_handlers": {"rub": "rub_lamp"},
+                            "trigger_room": "Blank Chamber"
                         },
                         {
                             "name": "a cheap plastic lighter",

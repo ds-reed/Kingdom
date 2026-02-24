@@ -64,6 +64,8 @@ def _build_core_verbs(
     verb_open       = Verb("open", state_handler.open)
     verb_close      = Verb("close", state_handler.close)
     verb_unlock     = Verb("unlock", state_handler.unlock)
+    verb_eat        = Verb("eat", state_handler.eat)
+    verb_rub        = Verb("rub", state_handler.rub)    
 
 
     #---------------- UI verbs ----------------------------
@@ -88,10 +90,7 @@ def _build_core_verbs(
 
 
     #----------------- other verbs to be refactored ----------------------
-    # verb_look = Verb("look", world_handler.look, synonyms=["examine", "inspect"])
-    # verb_inventory = Verb("inventory", world_handler.inventory, synonyms=["inven"])
-    # verb_take = Verb("take", world_handler.take, synonyms=["get"])   
-    # verb_drop = Verb("drop", world_handler.drop)
+    # eat, say, rub, make wish
 
 
 
@@ -115,6 +114,8 @@ def _build_core_verbs(
         verb_teleport,
         verb_help,
         verb_debug,
+        verb_eat,
+        verb_rub,
     ]
 
 
