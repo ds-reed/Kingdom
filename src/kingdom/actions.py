@@ -54,18 +54,20 @@ def _build_core_verbs(
 #--------------- movement verbs ------------------------------
     verb_go        = Verb("go", movement_handler.go, synonyms=["move", "walk", "run", "slide", "head", "jog", "travel"])
     verb_swim      = Verb("swim", movement_handler.swim)
-    verb_climb     = Verb("climb", movement_handler.climb, synonyms=["scale", "ascend", "descend"])
+ #   verb_climb     = Verb("climb", movement_handler.climb, synonyms=["scale", "ascend", "descend"])
     verb_teleport  = Verb("teleport", movement_handler.teleport, synonyms=["goto"], hidden=True)
 
 
     #--------------- state-changing verbs -------------------------
     verb_light      = Verb("light", state_handler.light)
-    verb_extinguish = Verb("extinguish", state_handler.extinguish)
+    verb_extinguish = Verb("extinguish", state_handler.extinguish, synonyms=["douse", "put out"])
     verb_open       = Verb("open", state_handler.open)
     verb_close      = Verb("close", state_handler.close)
     verb_unlock     = Verb("unlock", state_handler.unlock)
-    verb_eat        = Verb("eat", state_handler.eat)
-    verb_rub        = Verb("rub", state_handler.rub)    
+    verb_eat        = Verb("eat", state_handler.eat, synonyms=["consume"])
+    verb_rub        = Verb("rub", state_handler.rub, synonyms=["polish", "clean"]) 
+    verb_say        = Verb("say", state_handler.say, synonyms=["speak", "talk", "shout", "whisper"])
+    verb_make       = Verb("make", state_handler.make, synonyms=["wish"], hidden=True)     # make is used for make wish only right
 
 
     #---------------- UI verbs ----------------------------
@@ -75,7 +77,7 @@ def _build_core_verbs(
 
 
     #---------------- meta verbs ----------------------------
-    verb_help = Verb("help", meta_handler.help, synonyms=["commands", "h", "?"])
+    verb_help = Verb("help", meta_handler.help, synonyms=["commands", "h", "?"])  #right now "?" is intercepted by parser, but we can change that later
     verb_debug = Verb("DEBUG", meta_handler.DEBUG, hidden=True)
 
 
@@ -89,16 +91,11 @@ def _build_core_verbs(
     verb_drop = Verb("drop", inventory_handler.drop)
 
 
-    #----------------- other verbs to be refactored ----------------------
-    # eat, say, rub, make wish
-
-
-
     return [
         verb_quit,
         verb_go,
         verb_swim,
-        verb_climb,
+   #     verb_climb,
         verb_save,
         verb_load,
         verb_look,
@@ -116,6 +113,8 @@ def _build_core_verbs(
         verb_debug,
         verb_eat,
         verb_rub,
+        verb_say,
+        verb_make,
     ]
 
 
@@ -130,15 +129,3 @@ def build_verbs(
     for verb in _build_core_verbs(state, game, default_save_path, confirm_action, prompt_action):
         _register_verb(verbs, verb)
     return verbs
-
-
-
-"""
-# todo  - refactor these verbs
-    look_verb = Verb("look", look_action, synonyms=["inspect", "examine"])
-
-# item management verbs - refactor to use new verb handler
-    inventory_verb = Verb("inventory", inventory_action, synonyms=["inven"])
-    take_verb = Verb("take", take_action, synonyms=["get"])
-    drop_verb = Verb("drop", drop_action)
-"""

@@ -3,6 +3,23 @@
     "start_room": "Tower Cell",
     "rooms": [
         {
+            "name": "Djinni Lair",
+            "description": "You shouldn't be here.",
+            "discover_points": 10,
+            "items": [
+                {
+                    "name": "an imposing djinni",
+                    "noun_name": "djinni",
+                    "is_gettable": false,
+                    "is_verbally_interactive": true,
+                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
+                    "special_handlers": {"say": "speak_djinni", "make": "make_djinni"}
+                }
+            ],
+            "boxes": [],
+            "connections": {}
+        },
+        {
             "name": "Tower Cell",
             "description": "A cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
             "discover_points": 0,
@@ -16,7 +33,7 @@
                 {
                     "name": "a single shiny bean",
                     "noun_name": "bean",
-                    "is_getable": true,
+                    "is_gettable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
                     "special_handlers": {"open": "open_bean"}
@@ -33,7 +50,7 @@
                 {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
-                    "is_getable": false,
+                    "is_gettable": false,
                     "is_openable": true,
                     "is_open": false,
                     "is_lockable": true,
@@ -112,7 +129,9 @@
             "name": "Colossal Cave",
             "description": "A colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
             "discover_points": 10,
-            "swim_destination": "Pool Ledge",
+            "swim_exits": {
+                "west": "Pool Ledge"
+            },
             "items": [
                 {
                     "name": "a large gold bar",
@@ -123,17 +142,18 @@
             "boxes": [],
             "connections": {
                 "east": "Blank Chamber"
-            },
-            "hidden_exits": [
-                "east"
-            ]
+            }
         },
         {
             "name": "Pool Ledge",
             "description": "You stand on a narrow ledge across the pool.",
             "discover_points": 10,
-            "swim_destination": "Colossal Cave",
-            "items": [                
+            "is_dark": true,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "swim_exits": {
+                "east": "Colossal Cave"
+            },
+            "items": [
                 {
                     "name": "a lit silver lantern",
                     "noun_name": "lantern",

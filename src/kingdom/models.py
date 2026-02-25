@@ -68,8 +68,8 @@ def _serialize_item(item: "Item") -> dict:
         "noun_name": item.get_noun_name(),
     }
 
-    if not item.pickupable:
-        payload["pickupable"] = False
+    if not item.is_gettable:
+        payload["is_gettable"] = False
 
     default_refusal = f"You can't pick up {item.name}"
     if item.get_refuse_string and item.get_refuse_string != default_refusal:
@@ -125,6 +125,9 @@ def _serialize_item(item: "Item") -> dict:
 
     if getattr(item, "is_lightable", False):
         payload["is_lightable"] = True
+
+    if getattr(item, "is_verbally_interactive", False):
+        payload["is_verbally_interactive"] = True
 
     if getattr(item, "is_lit", False):
         payload["is_lit"] = True
@@ -219,7 +222,7 @@ def _construct_item_from_spec(item_spec) -> "Item":
 
     item = Item(
         item_spec.get("name"),
-        pickupable=item_spec.get("pickupable", True),
+        is_gettable=item_spec.get("is_gettable", True),
         refuse_string=refuse_string,
         presence_string=presence_string,
         noun_name=item_spec.get("noun_name"),
@@ -238,6 +241,7 @@ def _construct_item_from_spec(item_spec) -> "Item":
         unlocked_state_description=item_spec.get("unlocked_state_description"),
         locked_state_description=item_spec.get("locked_state_description"),
         is_edible=item_spec.get("is_edible", False),
+        is_verbally_interactive=item_spec.get("is_verbally_interactive", False),
         is_lightable=item_spec.get("is_lightable", False),
         is_lit=item_spec.get("is_lit", False),
         can_ignite=item_spec.get("can_ignite", False),
@@ -474,7 +478,7 @@ class Item(Noun):
     def __init__(
         self,
         name,
-        pickupable=True,
+        is_gettable=True,
         refuse_string=None,
         presence_string=None,
         noun_name=None,
@@ -493,6 +497,7 @@ class Item(Noun):
         unlocked_state_description=None,
         unlockable_description=None,
         is_edible=False,
+        is_verbally_interactive=False,
         is_lightable=False,
         is_lit=False,
         can_ignite=False,
@@ -516,7 +521,7 @@ class Item(Noun):
         self.explicit_behavior_ids = explicit_behavior_ids
         self.current_box = None
         self.is_broken = False
-        self.pickupable = pickupable
+        self.is_gettable = is_gettable
         self.refuse_string = refuse_string or f"You can't pick up {self.name}"
         self.presence_string = presence_string
         self.is_openable = bool(is_openable)
@@ -546,6 +551,7 @@ class Item(Noun):
         self.unlocked_state_description = unlocked_state_description
         self.unlockable_description = unlockable_description
         self.is_edible = bool(is_edible)
+        self.is_verbally_interactive = bool(is_verbally_interactive)
         self.is_lightable = bool(is_lightable)
         self.is_lit = bool(is_lit)
         self.can_ignite = bool(can_ignite)
@@ -557,6 +563,7 @@ class Item(Noun):
         self.eat_refuse_string = eat_refuse_string
         self.eat_success_string = eat_success_string
         self.get_refuse_string = get_refuse_string
+        self.is_verbally_interactive = bool(is_verbally_interactive)
         self.special_handlers = special_handlers or {}
         Item.all_items.append(self)
 
@@ -606,7 +613,7 @@ class Item(Noun):
         return False
 
     def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
-        if verb_name == "take" and not self.pickupable:
+        if verb_name == "take" and not self.is_gettable:
             return False, self.refuse_string
         if verb_name == "eat":
             return True, None
@@ -742,8 +749,8 @@ class Player:
 
         assert item in contents, f"{item.name} isn't even in {container_name}!"
 
-        # Check if item is pickupable
-        if not item.pickupable:
+        # Check if item is gettable
+        if not item.is_gettable:
             print(f"{self.name} tries to pick up {item.name}...")
             print(f"{item.refuse_string}")
             return
@@ -769,26 +776,20 @@ class Player:
 
 
 class Room(Noun):
-    """A simple Room that can hold `Item` objects and connect to other rooms.
-
-    Adapted from the Castle example; uses the project's `Item` class.
-    """
+    # A Room that can hold `Item` objects and connect to other Rooms.
+  
     all_rooms = []  # Class variable to track every room created
     DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
-    def __init__(self, name, description, visited=False, is_dark=False, dark_description=None, swim_destination=None, discover_points=10):
+    def __init__(self, name, description, visited=False, is_dark=False, dark_description=None, discover_points=10):
         super().__init__()
         self.name = name
         self.description = description
         self.visited = bool(visited)
         self.is_dark = bool(is_dark)
         self.dark_description = dark_description or None
-        self.swim_destination = str(swim_destination).strip() if swim_destination is not None and str(swim_destination).strip() else None
-        try:
-            parsed_points = int(discover_points)
-        except (TypeError, ValueError):
-            parsed_points = 10
-        self.discover_points = max(0, parsed_points)
+        self.discover_points = max(0, discover_points)
+        self.swim_exits: dict[str, "Room"] = {}
         self.items = []  # list[Item]
         self.boxes = []  # list[Box]
         self.connections = {}
@@ -963,6 +964,38 @@ class Game(Noun):
     def get_all_nouns(self):
         """Get all nouns in the game world (boxes, items, rooms, players, etc)."""
         return Noun.all_nouns
+    
+
+    def find_item_in_game(self, noun_name: str) -> tuple["Room | None", "Item | None"]:
+        """
+        Search all rooms for an item by noun_name.
+        Returns (room, item) or (None, None) if not found.
+        """
+        for room in self.rooms.values():
+            for item in room.items:  # items is a list[Item]
+                if getattr(item, "noun_name", None) == noun_name:
+                    return room, item
+        return None, None
+
+
+    def move_item_between_rooms(
+        self,
+        item: "Item",
+        from_room: "Room",
+        to_room: "Room"
+    ) -> None:
+        """
+        Move an item from one room to another.
+        Works with the current list-based room.items structure.
+        """
+        # Remove from old room
+        if item in from_room.items:
+            from_room.items.remove(item)
+
+        # Add to new room
+        if item not in to_room.items:
+            to_room.items.append(item)
+            
 
     def setup_world(self, source):
         """ Build the world from either: 
@@ -1067,7 +1100,6 @@ class Game(Noun):
                 'hidden_directions': list(room.hidden_directions),
                 'is_dark': room.is_dark,
                 'dark_description': room.dark_description,
-                'swim_destination': room.swim_destination,
                 'discover_points': room.discover_points,
             }
 
@@ -1102,7 +1134,7 @@ def _construct_boxes(data):
     """Construct Box and Item objects from loaded JSON data list.
 
     Expects `data` to be a list of dicts with keys 'box_name' and 'items'.
-    Each item can be a string or a dict with 'name', 'pickupable', 'refuse_string'.
+    Each item can be a string or a dict with 'name', 'is_gettable', 'refuse_string'.
     """
     Box.all_boxes.clear()  # Clear existing boxes for a clean load
     for entry in data:
@@ -1131,7 +1163,7 @@ def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.
 
     Each room dict should have 'name', 'description', optional 'items', optional 'boxes', and optional 'connections'.
-    Items can be strings or dicts with 'name', 'pickupable', 'refuse_string'.
+    Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
     """
     Room.all_rooms.clear()  # Clear existing rooms for a clean load
     pending_connections = []
@@ -1142,7 +1174,6 @@ def _construct_rooms(data):
             visited=entry.get("visited", False),
             is_dark=entry.get("is_dark", False),
             dark_description=entry.get("dark_description"),
-            swim_destination=entry.get("swim_destination"),
             discover_points=entry.get("discover_points", 10),
         )        
         # Add items to the room
@@ -1168,6 +1199,7 @@ def _construct_rooms(data):
                 item_obj = _construct_item_from_spec(item_spec)
                 box.add_item(item_obj, announce=False)
             room.add_box(box)
+        room.swim_exits = entry.get("swim_exits", {})
 
         pending_connections.append((room, entry.get("connections", {}), entry.get("hidden_exits", [])))
 
@@ -1203,6 +1235,20 @@ def _construct_rooms(data):
             for direction in hidden_exits:
                 if isinstance(direction, str):
                     room.set_exit_visibility(direction, visible=False)
+        # ------------------------------------------------------------
+        # Resolve swim_exits into Room objects
+        # ------------------------------------------------------------
+        raw_swim_exits = getattr(room, "swim_exits", {})
+        resolved_swim_exits = {}
+
+        for direction, dest_name in raw_swim_exits.items():
+            dest_room = room_by_name.get(dest_name)
+            if dest_room:
+                resolved_swim_exits[direction] = dest_room
+            else:
+                print(f"DEBUG: Swim exit destination '{dest_name}' not found for room '{room.name}'.")
+
+        room.swim_exits = resolved_swim_exits
 
     return Room.all_rooms
 

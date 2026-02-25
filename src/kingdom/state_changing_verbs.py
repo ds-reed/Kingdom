@@ -363,7 +363,54 @@ class StateVerbHandler:
         return (outcome.message if outcome else None) or return_message or ""
      
 
-            
+    def say(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun] = None,
+        words: tuple[str, ...] = (),
+    ) -> str:
+        # 1. Basic capability checks
+        refusal = basic_checks(
+            target,
+            words=words,
+            capability_attr="is_verbally_interactive",
+            desired_state=True,
+            verb="say",
+        )
+        if refusal:
+            return "You speak to the wind; the wind does not hear. The wind cannot hear." if target is None else refusal
 
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
 
-    # Add similar methods for TURN, PUSH, PRESS, BREAK, SMASH, RUB, DIAL, etc.
+        # 3. Unified state-change pipeline
+        return_message = apply_state_change(
+            ctx=ctx,
+            target=target,
+            verb="say",
+            state_attr="has_been_spoken_to",
+            desired_state=True,
+        )
+        
+
+        return (outcome.message if outcome else None) or return_message or ""
+                
+
+    def make(self, ctx, target=None, words=()):
+
+        # Implicit Djinni targeting - clean this all up when we can do other things with make
+        if target is None:
+            room = ctx.state.current_room
+            for obj in room.items:
+                if getattr(obj, "noun_name", None) == "djinni":
+                    target = obj
+                    break
+
+        outcome = try_item_special_handler(target, "make", words, ctx)
+
+        if outcome and outcome.stop:
+            return outcome.message or ""
+
+        return "Nothing happens."

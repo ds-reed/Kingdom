@@ -1,7 +1,7 @@
 # inventory Verbs
 
 from kingdom.actions import Verb
-from kingdom.models import DispatchContext, Noun, Item
+from kingdom.models import DispatchContext, Noun, Item, Box
 
 class InventoryVerbHandler:
     def inventory(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
@@ -31,23 +31,19 @@ class InventoryVerbHandler:
             return "What do you want to take?"
 
         # Must be an item
-        if not isinstance(target, Item):
-            return f"You can't take the {target.get_noun_name()}."
+        #if not isinstance(target, Item):
+        #    return f"You can't take the {target.get_noun_name()}."
 
         # Already in inventory
         if target in player.sack.contents:
             return f"You already have the {target.get_noun_name()}."
         
         in_room = target in room.items
-        in_box = any(
-            target in box.contents
-            for box in room.boxes
-            if box.is_openable and box.is_open
-        )   
+        found_box = next( ( box for box in room.boxes if box.is_openable and box.is_open and target in box.contents ), None, )
 
-        if in_room or in_box:
+        if in_room or found_box:
             # Check for get_refuse_string
-            if hasattr(target, "pickupable") and not target.pickupable:
+            if hasattr(target, "is_gettable") and not target.is_gettable:
                 refuse_string = getattr(target, "get_refuse_string", None)
                 if refuse_string: return refuse_string
                 return f"You can't take the {target.get_noun_name()}."
@@ -60,10 +56,10 @@ class InventoryVerbHandler:
             return f"You take the {target.get_noun_name()}."
 
         # Item in an open box?
-        if in_box:
-            box.contents.remove(target)
+        if found_box:
+            found_box.contents.remove(target)
             player.sack.contents.append(target)
-            return f"You take the {target.get_noun_name()} from the {box.get_noun_name()}."
+            return f"You take the {target.get_noun_name()} from the {found_box.get_noun_name()}."
 
         return "You don't see that here."
 

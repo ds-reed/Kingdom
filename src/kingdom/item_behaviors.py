@@ -120,9 +120,8 @@ def _spawn_room_item(
     *,
     name: str,
     noun_name: str,
-    pickupable: bool,
-    presence_string: str,
-    refuse_string: str
+    is_gettable: bool,
+    get_refuse_string: str
 ) -> None:
     """Spawn an item into the current room unless it already exists."""
     if dispatch_context is None:
@@ -143,15 +142,14 @@ def _spawn_room_item(
     room.items.append(
         Item(
             name,
-            pickupable=pickupable,
-            refuse_string=refuse_string,
-            presence_string=presence_string,
+            is_gettable=is_gettable,
+            get_refuse_string=get_refuse_string,
             noun_name=noun_name,
         )
     )
 
 
-def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, pickupable: bool,  get_refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, is_gettable: bool,  get_refuse_string: str) -> None:
     if dispatch_context is None:
         return
 
@@ -166,20 +164,15 @@ def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, n
 
     from kingdom.models import Item
 
-    print(f"DEBUG: Spawning item '{name}' in room '{room.name}'")  # Debug log
-
     new_item = Item(
         name,
         noun_name=noun_name,
-        pickupable=pickupable,
+        is_gettable=is_gettable,
         get_refuse_string=get_refuse_string,
         )
-
-    print("DEBUG: new_item =", new_item, "type:", type(new_item))    
     
     room.items.append(new_item)   
 
-    print(f"DEBUG: Item '{name}' added to room '{room.name}'. Current items in room: {[item.name for item in room.items]}")  # Debug log
 
 
 # ------------------------------------------------------------
@@ -191,19 +184,18 @@ def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, n
 #     ...
 #     return VerbOutcome("Example!", stop_outer=True)
 
+#----------------- the Magic Bean test item ---------------------------------
 
 @register_item_behavior("open_bean")
 def open_bean(item, verb_name, words, ctx):
-    if verb_name != "open":
-        return None
+
     print("Ha Ha - you tried to open a magical bean!")  # or log it
     return VerbOutcome(message="you reached me!!!!", stop=True)  # or return None to use generic
 
+# ----------------- the fish ---------------------------------
 
 @register_item_behavior("eat_fish")
 def eat_fish(item, verb, words, ctx):
-    if verb != "eat":
-        return None
 
     player = ctx.game.current_player
     inventory = player.sack.contents
@@ -225,7 +217,7 @@ def eat_fish(item, verb, words, ctx):
     vomit = _spawn_room_item(ctx, 
         name="There is vomit on a nearby wall.",
         noun_name="vomit",
-        pickupable=False,      
+        is_gettable=False,      
         get_refuse_string="EW! You can't get that."
     )
 
@@ -235,107 +227,105 @@ def eat_fish(item, verb, words, ctx):
         stop=True
     )
 
+
+#----------------- the Lamp and Djinni ---------------------------------
+
 @register_item_behavior("rub_lamp")
 def rub_lamp(item, verb, words, ctx):
-    if verb != "rub":
-        return None
 
     player = ctx.game.current_player
     inventory = player.sack.contents
 
+    # Must be holding the lamp
     if item not in inventory:
         return VerbOutcome(
             message="YOU HAVE NO LAMP!",
             stop=True
         )
-    
+
     room = ctx.state.current_room
     trigger_room_name = getattr(item, "trigger_room", None)
 
-    print("DEBUG: Player is rubbing the lamp in room:", room.name, "with trigger room:", trigger_room_name)  # Debug log
-
+    # Only trigger Djinni in the correct room
     if room.name == trigger_room_name:
-        print("DEBUG: Lamp's trigger_room matches current room. Spawning Djinni.")  # Debug log
-        _spawn_room_item(ctx, 
-            name="A djinni appears in a cloud of smoke!",
-            noun_name="djinni",
-            pickupable=False,      
-            get_refuse_string="The 10 foot tall djinni glares at you."
+
+        # Presence check for list-based room.items
+        djinni_present = any(
+            obj.noun_name == "djinni" for obj in room.items
         )
+
+        if not djinni_present:
+            djinni_room, djinni = ctx.game.find_item_in_game("djinni")
+            if djinni:
+                ctx.game.move_item_between_rooms(djinni, djinni_room, room)
+
+        return VerbOutcome(
+            message=(
+                "The air fills with smoke. After it clears you cannot believe your eyes: "
+                "a djinni has appeared before you. He mutters some words, "
+                "'MYPCLY JUBURUAY MIT DE DIGNIC PIC?' and looks at you inquiringly. "
+                "This means (in magic Arabic), 'I will grant you one wish.'"
+            ),
+            stop=True
+        )
+
+    # Default case: lamp gets shinier
     item.name = "a battered but shiny brass lamp"
     return VerbOutcome(
-        message="",
-        stop=False
+        message="You have a feeling of accomplishment as you rub the lamp. It looks shinier now.",
+        stop=True
     )
 
+# ----------------- the Djinni ---------------------------------
+
+@register_item_behavior("speak_djinni")
+def speak_djinni(item, verb, words, ctx):
+    return _djinni_scripted_action(item, verb, words, ctx)
 
 
+@register_item_behavior("make_djinni")
+def make_djinni(item, verb, words, ctx):
+    return _djinni_scripted_action(item, verb, words, ctx)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""Item behavior registry and dispatch.
-
-Defines item-specific behavior handlers, registration decorators, and lookup utilities.
-Used for dynamic item actions (e.g., eat fish) and custom item logic.
-
-
-from typing import Callable
-
-ItemBehaviorHandler = Callable[
-    [object, str, tuple[str, ...], "DispatchContext | None"],
-    str | None
-]
-
-The air fills with smoke. After it clears you cannot believe your eyes: a Djinni has appeared before you. He mutters some words, 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly. This means (in magic Arabic), 'I will grant you one wish.'"
-
-def get_behavior(name: str) -> ItemBehaviorHandler | None:
-    return _ITEM_BEHAVIORS.get(str(name).strip())
-
-
-def register_item_behavior(name: str):
-    def decorator(func: ItemBehaviorHandler) -> ItemBehaviorHandler:
-        _ITEM_BEHAVIORS[name] = func
-        return func
-
-    return decorator
-
-# likely obsolete with new architecture
-def resolve_item_behaviors(names: list[str] | tuple[str, ...] | None) -> list[ItemBehaviorHandler]:
-    if not names:
-        return []
-    handlers: list[ItemBehaviorHandler] = []
-    for name in names:
-        handler = _ITEM_BEHAVIORS.get(str(name))
-        if handler is not None:
-            handlers.append(handler)
-    return handlers
-
-# likely obsolete with new architecture
-def get_default_item_behavior_ids(noun_name: str | None) -> tuple[str, ...]:
-    if noun_name is None:
-        return ()
-    return _DEFAULT_ITEM_BEHAVIORS.get(str(noun_name).strip().lower(), ())
-
-
-
-
-
-
-
+def _djinni_scripted_action(item, verb, words, ctx):
     """
+    The Djinni does not understand English; any SAY or MAKE attempt
+    triggers his pre-ordained magical action.
+    """
+
+    room = ctx.state.current_room
+    game = ctx.game
+
+    message_lines = [
+        "The Djinni seems puzzled by your exotic language.",
+        "Genies aren't omniscient, just omnipotent!",
+        "But seeing that you are at a dead end and wanting to be helpful,",
+        "he places a doorway in the west wall and disappears."
+    ]
+
+    # ------------------------------------------------------------
+    # 1. Add a west exit (Room object, not string)
+    # ------------------------------------------------------------
+    if "west" not in room.connections:
+        dest_name = getattr(item, "wish_exit_destination", "Colossal Cave")
+        destination = game.rooms.get(dest_name)
+        if destination is None:
+            print(f"DEBUG: Could not find destination room '{dest_name}'")
+        else:
+            room.connections["west"] = destination
+
+    # ------------------------------------------------------------
+    # 2. Remove the Djinni from the current room
+    # ------------------------------------------------------------
+    if item in room.items:
+        room.items.remove(item)
+
+    # ------------------------------------------------------------
+    # 3. Return narrative text
+    # ------------------------------------------------------------
+    return VerbOutcome(
+        message="\n".join(message_lines),
+        stop=True
+    )
+

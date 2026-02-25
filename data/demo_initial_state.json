@@ -10,7 +10,7 @@
         },
         {
           "name": "Crown of Kings",
-          "is_getable": false,
+          "is_gettable": false,
           "refuse_string": "The crown is too sacred to steal!",
           "noun_name": "kings"
         },
@@ -97,7 +97,7 @@
       "items": [
         {
           "name": "Ancient Tome",
-          "is_getable": false,
+          "is_gettable": false,
           "refuse_string": "The ancient tome is chained to the shelf!",
           "noun_name": "tome"
         },

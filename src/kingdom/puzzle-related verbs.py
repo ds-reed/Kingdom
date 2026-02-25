@@ -61,7 +61,7 @@ def rub_action(*target_words: str, target: object | None = None, dispatch_contex
         if not djinni_present:
             djinni_item = Item(
                 "a helpful Djinni",
-                pickupable=False,
+                is_gettable=False,
                 noun_name="djinni",
                 presence_string="A helpful Djinni materializes in a swirl of sweet smoke.",
             )
