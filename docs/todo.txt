@@ -1,5 +1,164 @@
 Kingdom TODO (Outstanding Only)
-================================
+===============================
+
+
+
+
+
+# 🧱 Master Architectural TODO List
+
+## 1. Create a `VerbHandler` Base Class
+- Provide unified helpers:
+  - `self.player(ctx)`
+  - `self.room(ctx)`
+  - `self.game(ctx)`
+  - `self.state(ctx)`
+  - `self.require_player(ctx)`
+- Standard refusal helpers:
+  - `self.missing_target(verb)`
+  - `self.not_here(noun)`
+  - `self.not_in_inventory(noun)`
+- Noun/word resolution:
+  - `self.resolve_noun_or_word(target, words)`
+- ALL-handling:
+  - `self.handle_all(ctx, items, single_fn, verb_name)`
+- Summary formatting:
+  - `self.summary(player, verb, items)`
+- Item-location helpers:
+  - `self.find_item_location(room, item)`
+  - `self.is_accessible(room, item)`
+- Message assembly:
+  - `self.build_message(*parts)`
+- Special-handler pipeline:
+  - `self.run_special_handler(target, verb, words, ctx)`
+
+---
+
+## 2. Move World-Logic Helpers Into Models
+
+### Room
+- `find_item(item)`
+- `all_accessible_items()`
+- `items_player_can_take(player)`
+- `visible_items()`
+
+### Item
+- `can_be_taken_by(player)`
+- `can_be_dropped_by(player)`
+- `location(room)`
+- `is_accessible(room)`
+
+### Box
+- `accessible_items()`
+- `contains(item)`
+
+### Game
+- `current_room` shortcut
+- `player_has(item)`
+- `find_room_by_name_or_number(query)`
+
+---
+
+## 3. Consolidate Shared Helper Functions
+Move or integrate:
+- `basic_checks`
+- `require_item`
+- `apply_state_change`
+
+Into:
+- `verb_utils.py`  
+  **or**
+- the `VerbHandler` base class
+
+---
+
+## 4. Normalize Message Assembly
+Create a unified helper:
+- `self.build_message(*parts)`
+
+Used by:
+- state verbs  
+- inventory verbs  
+- movement verbs  
+- world verbs  
+
+---
+
+## 5. Extract a `MovementEngine`
+Centralize:
+- direction resolution
+- exit lookup
+- scoring
+- visited marking
+- rendering
+- movement error patterns
+
+`perform_movement` becomes the core engine.
+
+---
+
+## 6. Extract a `TeleportResolver`
+Centralize teleport logic:
+- noun target resolution
+- numeric index resolution
+- partial name matching
+- ambiguous match detection
+- room listing
+
+Likely belongs in `Game`.
+
+---
+
+## 7. Unify the `help` Verb
+Two copies exist:
+- MetaVerbHandler.help
+- WorldVerbHandler.help
+
+Create a single implementation.
+
+---
+
+## 8. Normalize Special Handler Pipeline
+Create:
+- `self.run_special_handler(target, verb, words, ctx)`
+
+Used by:
+- open/close/unlock/light/extinguish/eat/rub/say/make
+- future puzzle verbs
+
+---
+
+## 9. Normalize Post-Mutation Hooks
+Create optional hooks:
+- `after_open(target, ctx)`
+- `after_close(target, ctx)`
+- `after_eat(target, ctx)`
+- `after_light(target, ctx)`
+- etc.
+
+Handlers call them; subclasses override as needed.
+
+---
+
+## 10. Establish the VerbHandler Hierarchy
+All handlers subclass the base class:
+
+```
+VerbHandler
+ ├── InventoryVerbHandler
+ ├── MovementVerbHandler
+ ├── StateVerbHandler
+ ├── MetaVerbHandler
+ ├── UIVerbHandler
+ └── WorldVerbHandler
+```
+
+Ensures:
+- shared utilities
+- consistent signatures
+- rediscoverable architecture
+- thinner, cleaner handlers
+
 
 
 1) Next session priority: Fix issues from testing

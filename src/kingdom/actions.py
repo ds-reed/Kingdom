@@ -10,23 +10,25 @@ from typing import Callable
 
 from kingdom.models import   Game,   Verb 
 
-from kingdom.state_changing_verbs import StateVerbHandler
-state_handler = StateVerbHandler()
+from kingdom.verbs.inventory_verbs import InventoryVerbHandler
+inventory_handler = InventoryVerbHandler()  
 
-from kingdom.movement_verbs import MovementVerbHandler
-movement_handler = MovementVerbHandler()
-
-from kingdom.world_verbs import WorldVerbHandler
-world_handler = WorldVerbHandler()
-
-from kingdom.ui_verbs import UIVerbHandler
-ui_handler = UIVerbHandler()
-
-from kingdom.meta_verbs import MetaVerbHandler
+from kingdom.verbs.meta_verbs import MetaVerbHandler
 meta_handler = MetaVerbHandler()
 
-from kingdom.inventory_verbs import InventoryVerbHandler
-inventory_handler = InventoryVerbHandler()  
+from kingdom.verbs.movement_verbs import MovementVerbHandler
+movement_handler = MovementVerbHandler()
+
+from kingdom.verbs.state_changing_verbs import StateVerbHandler
+state_handler = StateVerbHandler()
+
+from kingdom.verbs.ui_verbs import UIVerbHandler
+ui_handler = UIVerbHandler()
+
+from kingdom.verbs.world_verbs import WorldVerbHandler
+world_handler = WorldVerbHandler()
+
+
 
 ConfirmAction = Callable[[str], bool]
 PromptAction = Callable[[str], str]
