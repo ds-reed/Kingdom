@@ -80,7 +80,7 @@
                             "name": "a cheery orange carrot",
                             "noun_name": "carrot",
                             "is_edible": true,
-                            "eat_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
+                            "eaten_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
                         },
                         {
                             "name": "a suspicious looking fish",

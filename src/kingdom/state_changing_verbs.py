@@ -36,20 +36,25 @@ def apply_state_change(
     target,
     verb,
     *,
-    state_attr,
-    desired_state,
+    state_attr=None,
+    desired_state=None,
     used_item=None,
 ):
 
-    setattr(target, state_attr, desired_state)
+    # 1. Optional mutation
+    if state_attr is not None:
+        setattr(target, state_attr, desired_state)
 
+    # 2. Build the message
     if used_item:
-        return f"You {verb} the {target.get_noun_name()} with the {used_item.get_noun_name()}."
-    return f"You {verb} the {target.get_noun_name()}."
+        return f"You {verb} {target.get_name()} with {used_item.get_name()}."
+    else:
+        return f"You {verb} {target.get_name()}."
 
 
 
 class StateVerbHandler:
+
 
     def open(
         self,
@@ -78,15 +83,13 @@ class StateVerbHandler:
                 or f"The {target.get_noun_name()} is locked."
             )
 
-
         # 3. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
         if outcome and outcome.stop:
             return outcome.message or ""
 
-
         # 4. Unified state-change pipeline
-        return_message = apply_state_change(
+        result = apply_state_change(
             ctx=ctx,
             target=target,
             verb="open",
@@ -95,6 +98,7 @@ class StateVerbHandler:
         )
 
         # 5. Post-mutation side effect: reveal exit if configured
+        revealed_text = ""
         direction = getattr(target, "open_exit_direction", None)
         destination = getattr(target, "open_exit_destination", None)
 
@@ -118,8 +122,27 @@ class StateVerbHandler:
                 if reverse:
                     destination_room.connections[reverse] = room
 
-        return (outcome.message if outcome else None) or return_message or ""
+                revealed_text = f"You notice a passage leading {direction}."
 
+        # 6. Build the final return string
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result:
+            parts.append(result)
+
+        # State-based description (opened_state_description)
+        opened_desc = getattr(target, "opened_state_description", None)
+        if opened_desc and getattr(target, "is_open", False):
+            parts.append(opened_desc)
+
+        # Revealed exit text
+        if revealed_text:
+            parts.append(revealed_text)
+
+        return "\n".join(parts) if parts else ""
 
 
     def close(
@@ -317,10 +340,12 @@ class StateVerbHandler:
             ctx=ctx,
             target=target,
             verb="eat",
-            state_attr="is_eaten",
-            desired_state=True,
+            state_attr=None,
+            desired_state=None,
         )   
-        
+        if getattr(target, "eaten_success_string", None):
+            return_msg = target.eaten_success_string
+
         # 4. Post-mutation side effect: remove item from inventory
         inventory = ctx.game.current_player.sack.contents
         if target in inventory:

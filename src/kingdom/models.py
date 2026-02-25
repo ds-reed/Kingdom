@@ -141,8 +141,8 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "eat_refuse_string", None):
         payload["eat_refuse_string"] = item.eat_refuse_string
 
-    if getattr(item, "eat_success_string", None):
-        payload["eat_success_string"] = item.eat_success_string
+    if getattr(item, "eaten_success_string", None):
+        payload["eaten_success_string"] = item.eaten_success_string
 
     if getattr(item, "get_refuse_string", None):
         payload["get_refuse_string"] = item.get_refuse_string
@@ -251,7 +251,7 @@ def _construct_item_from_spec(item_spec) -> "Item":
         trigger_room=item_spec.get("trigger_room"),
         too_heavy_to_swim=item_spec.get("too_heavy_to_swim", False),
         eat_refuse_string=item_spec.get("eat_refuse_string"),
-        eat_success_string=item_spec.get("eat_success_string"),
+        eaten_success_string=item_spec.get("eaten_success_string"),
         get_refuse_string=item_spec.get("get_refuse_string"),
         behavior_ids=item_spec.get("behaviors") or item_spec.get("behavior_ids"),
     )
@@ -507,7 +507,7 @@ class Item(Noun):
         trigger_room=None,
         too_heavy_to_swim=False,
         eat_refuse_string=None,
-        eat_success_string=None,
+        eaten_success_string=None,
         get_refuse_string=None,
         behavior_ids=None,
         special_handlers=None,
@@ -561,7 +561,7 @@ class Item(Noun):
         self.trigger_room = str(trigger_room).strip() if trigger_room is not None and str(trigger_room).strip() else None
         self.too_heavy_to_swim = bool(too_heavy_to_swim)
         self.eat_refuse_string = eat_refuse_string
-        self.eat_success_string = eat_success_string
+        self.eaten_success_string = eaten_success_string
         self.get_refuse_string = get_refuse_string
         self.is_verbally_interactive = bool(is_verbally_interactive)
         self.special_handlers = special_handlers or {}
