@@ -1,7 +1,7 @@
 # inventory Verbs
 
 from kingdom.actions import Verb
-from kingdom.models import DispatchContext, Item, Noun
+from kingdom.models import DispatchContext, Noun, Item
 
 class InventoryVerbHandler:
     def inventory(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
@@ -28,7 +28,7 @@ class InventoryVerbHandler:
 
         # No target
         if target is None:
-            return "Take what?"
+            return "What do you want to take?"
 
         # Must be an item
         if not isinstance(target, Item):
@@ -37,21 +37,33 @@ class InventoryVerbHandler:
         # Already in inventory
         if target in player.sack.contents:
             return f"You already have the {target.get_noun_name()}."
+        
+        in_room = target in room.items
+        in_box = any(
+            target in box.contents
+            for box in room.boxes
+            if box.is_openable and box.is_open
+        )   
 
+        if in_room or in_box:
+            # Check for get_refuse_string
+            if hasattr(target, "pickupable") and not target.pickupable:
+                refuse_string = getattr(target, "get_refuse_string", None)
+                if refuse_string: return refuse_string
+                return f"You can't take the {target.get_noun_name()}."
+            
+            
         # Item in room?
-        if target in room.items:
+        if in_room:
             room.items.remove(target)
             player.sack.contents.append(target)
             return f"You take the {target.get_noun_name()}."
 
         # Item in an open box?
-        for box in room.boxes:
-            if box.is_openable and not box.is_open:
-                continue
-            if target in box.contents:
-                box.contents.remove(target)
-                player.sack.contents.append(target)
-                return f"You take the {target.get_noun_name()} from the {box.get_noun_name()}."
+        if in_box:
+            box.contents.remove(target)
+            player.sack.contents.append(target)
+            return f"You take the {target.get_noun_name()} from the {box.get_noun_name()}."
 
         return "You don't see that here."
 
@@ -62,7 +74,7 @@ class InventoryVerbHandler:
 
         # No target
         if target is None:
-            return "Drop what?"
+            return "What do you want to drop?"
 
         # Must be an item
         if not isinstance(target, Item):

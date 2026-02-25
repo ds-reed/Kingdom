@@ -54,12 +54,12 @@ class RoomRenderer:
         # Items
         if room.items:
             names = ", ".join(item.name for item in room.items)
-            lines.append(f"You see: {names}")
+            lines.append(f"You see {names}")
 
         # Boxes
         if room.boxes:
             names = ", ".join(box.name for box in room.boxes)
-            lines.append(f"There are containers here: {names}")
+            lines.append(f"There is {names} here.")
 
         # Exits
         exits = room.available_directions(visible_only=True)
@@ -172,7 +172,6 @@ class RoomRenderer:
 
 
 def render_current_room(state, clear=False):
-    from kingdom.terminal_style import trs80_clear_and_show_room
 
     room = state.current_room
     if room is None:

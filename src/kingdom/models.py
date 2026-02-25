@@ -72,8 +72,8 @@ def _serialize_item(item: "Item") -> dict:
         payload["pickupable"] = False
 
     default_refusal = f"You can't pick up {item.name}"
-    if item.refuse_string and item.refuse_string != default_refusal:
-        payload["refuse_string"] = item.refuse_string
+    if item.get_refuse_string and item.get_refuse_string != default_refusal:
+        payload["get_refuse_string"] = item.get_refuse_string
 
     if item.presence_string:
         payload["presence_string"] = item.presence_string
@@ -141,29 +141,14 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "eat_success_string", None):
         payload["eat_success_string"] = item.eat_success_string
 
-    if getattr(item, "eat_missing_string", None):
-        payload["eat_missing_string"] = item.eat_missing_string
+    if getattr(item, "get_refuse_string", None):
+        payload["get_refuse_string"] = item.get_refuse_string
 
     if getattr(item, "is_rubbable", False):
         payload["is_rubbable"] = True
 
-    if getattr(item, "rubbed_name", None):
-        payload["rubbed_name"] = item.rubbed_name
-
-    if getattr(item, "rubbed_presence_string", None):
-        payload["rubbed_presence_string"] = item.rubbed_presence_string
-
     if getattr(item, "rub_success_string", None):
         payload["rub_success_string"] = item.rub_success_string
-
-    if getattr(item, "rub_repeat_string", None):
-        payload["rub_repeat_string"] = item.rub_repeat_string
-
-    if getattr(item, "rub_trigger_room", None):
-        payload["rub_trigger_room"] = item.rub_trigger_room
-
-    if getattr(item, "rub_minigame_tease", None):
-        payload["rub_minigame_tease"] = item.rub_minigame_tease
 
     if getattr(item, "too_heavy_to_swim", False):
         payload["too_heavy_to_swim"] = True
@@ -258,16 +243,12 @@ def _construct_item_from_spec(item_spec) -> "Item":
         can_ignite=item_spec.get("can_ignite", False),
         ignite_success_string=item_spec.get("ignite_success_string"),
         is_rubbable=item_spec.get("is_rubbable", False),
-        rubbed_name=item_spec.get("rubbed_name"),
-        rubbed_presence_string=item_spec.get("rubbed_presence_string"),
         rub_success_string=item_spec.get("rub_success_string"),
-        rub_repeat_string=item_spec.get("rub_repeat_string"),
-        rub_trigger_room=item_spec.get("rub_trigger_room"),
-        rub_minigame_tease=item_spec.get("rub_minigame_tease"),
+        trigger_room=item_spec.get("trigger_room"),
         too_heavy_to_swim=item_spec.get("too_heavy_to_swim", False),
         eat_refuse_string=item_spec.get("eat_refuse_string"),
         eat_success_string=item_spec.get("eat_success_string"),
-        eat_missing_string=item_spec.get("eat_missing_string"),
+        get_refuse_string=item_spec.get("get_refuse_string"),
         behavior_ids=item_spec.get("behaviors") or item_spec.get("behavior_ids"),
     )
 
@@ -517,16 +498,12 @@ class Item(Noun):
         can_ignite=False,
         ignite_success_string=None,
         is_rubbable=False,
-        rubbed_name=None,
-        rubbed_presence_string=None,
         rub_success_string=None,
-        rub_repeat_string=None,
-        rub_trigger_room=None,
-        rub_minigame_tease=None,
+        trigger_room=None,
         too_heavy_to_swim=False,
         eat_refuse_string=None,
         eat_success_string=None,
-        eat_missing_string=None,
+        get_refuse_string=None,
         behavior_ids=None,
         special_handlers=None,
 
@@ -574,16 +551,12 @@ class Item(Noun):
         self.can_ignite = bool(can_ignite)
         self.ignite_success_string = ignite_success_string
         self.is_rubbable = bool(is_rubbable)
-        self.rubbed_name = str(rubbed_name).strip() if rubbed_name is not None and str(rubbed_name).strip() else None
-        self.rubbed_presence_string = rubbed_presence_string
         self.rub_success_string = rub_success_string
-        self.rub_repeat_string = rub_repeat_string
-        self.rub_trigger_room = str(rub_trigger_room).strip() if rub_trigger_room is not None and str(rub_trigger_room).strip() else None
-        self.rub_minigame_tease = rub_minigame_tease
+        self.trigger_room = str(trigger_room).strip() if trigger_room is not None and str(trigger_room).strip() else None
         self.too_heavy_to_swim = bool(too_heavy_to_swim)
         self.eat_refuse_string = eat_refuse_string
         self.eat_success_string = eat_success_string
-        self.eat_missing_string = eat_missing_string
+        self.get_refuse_string = get_refuse_string
         self.special_handlers = special_handlers or {}
         Item.all_items.append(self)
 

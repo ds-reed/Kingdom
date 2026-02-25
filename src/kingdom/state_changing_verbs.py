@@ -86,7 +86,7 @@ class StateVerbHandler:
 
 
         # 4. Unified state-change pipeline
-        result = apply_state_change(
+        return_message = apply_state_change(
             ctx=ctx,
             target=target,
             verb="open",
@@ -118,7 +118,7 @@ class StateVerbHandler:
                 if reverse:
                     destination_room.connections[reverse] = room
 
-        return (outcome.message if outcome else None) or result or ""
+        return (outcome.message if outcome else None) or return_message or ""
 
 
 
@@ -148,7 +148,7 @@ class StateVerbHandler:
             return outcome.message or ""
 
         # 3. Unified state-change pipeline (special handlers + noun override + mutation)
-        result = apply_state_change(
+        return_message  = apply_state_change(
             ctx=ctx,
             target=target,
             verb="close",
@@ -163,7 +163,7 @@ class StateVerbHandler:
             if room:
                 room.connections.pop(direction, None)
 
-        return (outcome.message if outcome else None) or result or ""
+        return (outcome.message if outcome else None) or return_message or ""
 
     def unlock(
         self,
@@ -206,7 +206,7 @@ class StateVerbHandler:
             key_item = None
 
         # 4. Unified state-change pipeline
-        result = apply_state_change(
+        return_message = apply_state_change(
             ctx=ctx,
             target=target,
             verb="unlock",
@@ -214,7 +214,7 @@ class StateVerbHandler:
             desired_state=False,
             used_item=key_item,
         )
-        return (outcome.message if outcome else None) or result or ""
+        return (outcome.message if outcome else None) or return_message or ""
     
     def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
         # 1. Basic capability + already-lit checks
@@ -245,7 +245,7 @@ class StateVerbHandler:
             return f"You have nothing to light the {target.get_noun_name()} with."
 
         # 4. Unified state-change pipeline
-        result = apply_state_change(
+        return_message = apply_state_change(
             ctx=ctx,
             target=target,
             verb="light",
@@ -253,7 +253,7 @@ class StateVerbHandler:
             desired_state=True,
             used_item=ignition_source,
         )
-        return (outcome.message if outcome else None) or result or ""
+        return (outcome.message if outcome else None) or return_message or ""
 
     def extinguish(
         self,
@@ -280,14 +280,14 @@ class StateVerbHandler:
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
-        result = apply_state_change(
+        return_message = apply_state_change(
             ctx=ctx,
             target=target,
             verb="extinguish",
             state_attr="is_lit",
             desired_state=False,
         )
-        return (outcome.message if outcome else None) or result or ""
+        return (outcome.message if outcome else None) or return_message or ""
     
 
     def eat(
@@ -327,7 +327,41 @@ class StateVerbHandler:
             inventory.remove(target)
         return return_msg
 
+
+    def rub(
+        self,
+        ctx: DispatchContext,
+        target: Optional[Noun] = None,
+        words: tuple[str, ...] = (),
+    ) -> str:
+        # 1. Basic capability checks
+        refusal = basic_checks(
+            target,
+            words=words,
+            capability_attr="is_rubbable",
+            desired_state=True,
+            verb="rub",
+        )
+        if refusal:
+            return refusal
+
+        # 2. Unified special-handling pipeline
+        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, ctx)
+        if outcome and outcome.stop:
+            return outcome.message or "" 
+
+        # 3. Unified state-change pipeline
+        return_message = apply_state_change(
+            ctx=ctx,
+            target=target,
+            verb="rub",
+            state_attr="is_rubbed",
+            desired_state=True,
+        )   
         
+
+        return (outcome.message if outcome else None) or return_message or ""
+     
 
             
 

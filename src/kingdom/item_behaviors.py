@@ -151,7 +151,7 @@ def _spawn_room_item(
     )
 
 
-def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, pickupable: bool, presence_string: str, refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, pickupable: bool,  get_refuse_string: str) -> None:
     if dispatch_context is None:
         return
 
@@ -172,8 +172,7 @@ def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, n
         name,
         noun_name=noun_name,
         pickupable=pickupable,
-        refuse_string=refuse_string,
-        presence_string=presence_string,
+        get_refuse_string=get_refuse_string,
         )
 
     print("DEBUG: new_item =", new_item, "type:", type(new_item))    
@@ -226,8 +225,8 @@ def eat_fish(item, verb, words, ctx):
     vomit = _spawn_room_item(ctx, 
         name="There is vomit on a nearby wall.",
         noun_name="vomit",
-        pickupable=False,
-        get_refuse="EW! You can't get that."
+        pickupable=False,      
+        get_refuse_string="EW! You can't get that."
     )
 
     # Final message - TRS80 old-school style
@@ -236,6 +235,38 @@ def eat_fish(item, verb, words, ctx):
         stop=True
     )
 
+@register_item_behavior("rub_lamp")
+def rub_lamp(item, verb, words, ctx):
+    if verb != "rub":
+        return None
+
+    player = ctx.game.current_player
+    inventory = player.sack.contents
+
+    if item not in inventory:
+        return VerbOutcome(
+            message="YOU HAVE NO LAMP!",
+            stop=True
+        )
+    
+    room = ctx.state.current_room
+    trigger_room_name = getattr(item, "trigger_room", None)
+
+    print("DEBUG: Player is rubbing the lamp in room:", room.name, "with trigger room:", trigger_room_name)  # Debug log
+
+    if room.name == trigger_room_name:
+        print("DEBUG: Lamp's trigger_room matches current room. Spawning Djinni.")  # Debug log
+        _spawn_room_item(ctx, 
+            name="A djinni appears in a cloud of smoke!",
+            noun_name="djinni",
+            pickupable=False,      
+            get_refuse_string="The 10 foot tall djinni glares at you."
+        )
+    item.name = "a battered but shiny brass lamp"
+    return VerbOutcome(
+        message="",
+        stop=False
+    )
 
 
 

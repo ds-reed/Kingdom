@@ -16,7 +16,7 @@
                 {
                     "name": "a single shiny bean",
                     "noun_name": "bean",
-                    "pickupable": true,
+                    "is_getable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
                     "special_handlers": {"open": "open_bean"}
@@ -33,7 +33,7 @@
                 {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
-                    "pickupable": false,
+                    "is_getable": false,
                     "is_openable": true,
                     "is_open": false,
                     "is_lockable": true,
@@ -79,7 +79,6 @@
                             "name": "a battered and dull brass lamp",
                             "noun_name": "lamp",
                             "is_rubbable": true,
-                            "rubbed_name": "a battered but shiny brass lamp",
                             "rub_success_string": "The lamp grows shiny from rubbing.",
                             "special_handlers": {"rub": "rub_lamp"},
                             "trigger_room": "Blank Chamber"
