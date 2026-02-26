@@ -1,9 +1,9 @@
 # inventory Verbs
 
-from kingdom.actions import Verb
-from kingdom.models import DispatchContext, Noun, Item, Box
+from kingdom.models import DispatchContext, Noun, Verb, Item, Box
+from kingdom.verbs.verb_handler import VerbHandler
 
-class InventoryVerbHandler:
+class InventoryVerbHandler(VerbHandler):
     def inventory(
         self,
         ctx: DispatchContext,
@@ -22,8 +22,8 @@ class InventoryVerbHandler:
         if not contents:
             return f"{player.name}'s sack is empty."
 
-        # Use full descriptive names
-        names = [item.name for item in contents]
+        # Use display names under the new naming scheme
+        names = [item.display_name() for item in contents]
 
         count = len(names)
         label = "item" if count == 1 else "items"
@@ -32,6 +32,7 @@ class InventoryVerbHandler:
             f"{player.name}'s sack contains ({count} {label}): "
             f"{', '.join(names)}"
         )
+
 
     def take(
         self,
@@ -45,10 +46,9 @@ class InventoryVerbHandler:
         player = game.current_player
 
         # ------------------------------------------------------------
-        # 1. Take ALL
+        # 1. TAKE ALL (use the base-class ALL handler)
         # ------------------------------------------------------------
         if target is None and "all" in words:
-            # Collect all pickupable items in room or open boxes
             pickupable: list[Item] = []
 
             # Items on floor
@@ -63,74 +63,74 @@ class InventoryVerbHandler:
                         if getattr(item, "is_gettable", True):
                             pickupable.append(item)
 
-            if not pickupable:
-                return "There is nothing here you can take."
-
-            taken_names: list[str] = []
-            messages: list[str] = []
-
-            # Take each item using the single-item path
-            for item in list(pickupable):
-                result = self.take(ctx, target=item, words=("all",))
-                if result:
-                    messages.append(result)
-                taken_names.append(item.get_noun_name())
-
-            # Summary line
-            summary = (
-                f"{player.name} takes {len(taken_names)} "
-                f"item{'s' if len(taken_names) != 1 else ''}: "
-                f"{', '.join(taken_names)}."
-            )
-
-            return "\n".join(messages + [summary])
+            return self.handle_all(ctx, pickupable, self.take, "take")
 
         # ------------------------------------------------------------
-        # 2. Normal Take (single item)
+        # 2. Missing target
         # ------------------------------------------------------------
-        if target is None:
-            return "What do you want to take?"
+        if target is None and not words:
+            return self.missing_target("take")
 
-        # Already in inventory
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome = self.run_special_handler(target, "take", words, ctx)
+        if outcome is not None:
+            return outcome
+
+        # ------------------------------------------------------------
+        # 4. Already in inventory
+        # ------------------------------------------------------------
         if target in player.sack.contents:
-            return f"You already have the {target.get_noun_name()}."
+            return f"You already have {target.display_name()}."
 
-        # Is it in the room?
-        in_room = target in room.items
+        # ------------------------------------------------------------
+        # 5. Determine where the item is
+        # ------------------------------------------------------------
+        location = self.find_item_location(ctx, target)
 
-        # Is it in an open box?
-        found_box = next(
-            (
-                box
-                for box in room.boxes
-                if box.is_openable and box.is_open and target in box.contents
-            ),
-            None,
-        )
+        # Not in room, not in inventory, not in any open box
+        if location is None:
+            name = self.resolve_noun_or_word(target, words)
+            if name:
+                return f"I see no {name} here."
+            return self.missing_target("take")
 
-        # If it's here but not gettable
-        if in_room or found_box:
-            if not getattr(target, "is_gettable", True):
-                refuse = getattr(target, "get_refuse_string", None)
-                return refuse or f"You can't take the {target.get_noun_name()}."
+        # ------------------------------------------------------------
+        # 6. If it's here but not gettable
+        # ------------------------------------------------------------
+        if not getattr(target, "is_gettable", True) or isinstance(target, Box):
+            refuse = getattr(target, "get_refuse_string", None)
+            return refuse or f"You can't take {target.display_name()}."
 
-        # Take from room
-        if in_room:
+        # ------------------------------------------------------------
+        # 7. Take from room
+        # ------------------------------------------------------------
+        if location == "room":
             room.items.remove(target)
             player.sack.contents.append(target)
-            return f"You take the {target.get_noun_name()}."
+            return f"You take {target.display_name()}."
 
-        # Take from open box
-        if found_box:
+        # ------------------------------------------------------------
+        # 8. Take from open box
+        # ------------------------------------------------------------
+        if location == "box":
+            # Find the box again (find_item_location doesn't return it)
+            found_box = next(
+                box for box in room.boxes
+                if box.is_openable and box.is_open and target in box.contents
+            )
             found_box.contents.remove(target)
             player.sack.contents.append(target)
             return (
-                f"You take the {target.get_noun_name()} "
-                f"from the {found_box.get_noun_name()}."
+                f"You take {target.display_name()} "
+                f"from {found_box.display_name()}."
             )
 
-        return "You don't see that here."
-
+        # ------------------------------------------------------------
+        # 9. Should never reach here
+        # ------------------------------------------------------------
+        return "DEBUG: Take says I don't know how to do that."
 
 
     def drop(
@@ -149,46 +149,36 @@ class InventoryVerbHandler:
         # ------------------------------------------------------------
         if target is None and "all" in words:
             inventory_items = list(player.sack.contents)
-
-            if not inventory_items:
-                return "You aren't carrying anything."
-
-            dropped_names: list[str] = []
-            messages: list[str] = []
-
-            # Drop each item using the single-item path
-            for item in inventory_items:
-                result = self.drop(ctx, target=item, words=("all",))
-                if result:
-                    messages.append(result)
-                dropped_names.append(item.get_noun_name())
-
-            # Summary line
-            summary = (
-                f"{player.name} drops {len(dropped_names)} "
-                f"item{'s' if len(dropped_names) != 1 else ''}: "
-                f"{', '.join(dropped_names)}."
-            )
-
-            return "\n".join(messages + [summary])
+            return self.handle_all(ctx, inventory_items, self.drop, "drop")
 
         # ------------------------------------------------------------
-        # 2. Normal DROP (single item)
+        # 2. Missing target
         # ------------------------------------------------------------
-        if target is None:
-            return "What do you want to drop?"
+        if target is None and not words:
+            return self.missing_target("drop")
 
-        # Must be an item
-        if not isinstance(target, Item):
-            return f"You can't drop the {target.get_noun_name()}."
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome = self.run_special_handler(target, "drop", words, ctx)
+        if outcome is not None:
+            return outcome
+
+        # ------------------------------------------------------------
+        # 4. Determine where the item is
+        # ------------------------------------------------------------
+        location = self.find_item_location(ctx, target)
 
         # Not in inventory
-        if target not in player.sack.contents:
-            return f"You aren't carrying the {target.get_noun_name()}."
+        if location != "inventory":
+            name = self.resolve_noun_or_word(target, words)
+            if name:
+                return f"You aren't carrying {name}."
+            return self.missing_target("drop")
 
-        # Perform the drop
+        # ------------------------------------------------------------
+        # 5. Perform the drop
+        # ------------------------------------------------------------
         player.sack.contents.remove(target)
         room.items.append(target)
-
-        return f"You drop the {target.get_noun_name()}."
-
+        return f"You drop {target.display_name()}."

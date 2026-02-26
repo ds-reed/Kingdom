@@ -161,6 +161,8 @@ Ensures:
 
 
 
+---- remove dead code throughout
+
 1) Next session priority: Fix issues from testing
     [x] Cave was only giving short description so no mention of the pool after first entry 
     [x] Look should always show long description. (is this a general issue?)   

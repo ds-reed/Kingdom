@@ -67,6 +67,7 @@
             ],
             "boxes": [
                 {
+                    "canonical_name": "lunch bag",
                     "box_name": "a greasy brown lunch bag",
                     "is_openable": true,
                     "is_open": false,

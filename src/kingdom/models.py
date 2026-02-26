@@ -165,6 +165,7 @@ def _serialize_item(item: "Item") -> dict:
 
 def _serialize_box(box: "Box") -> dict:
     payload = {
+        "canonical_name": box.canonical_name(), 
         "box_name": box.box_name,
         "items": [_serialize_item(item) for item in box.contents],
     }
@@ -629,6 +630,11 @@ class Item(Noun):
 
         return super().handle_verb(verb_name, *args, **kwargs)
 
+    def canonical_name(self):
+        return getattr(self, "noun_name", None) or self.name
+
+    def display_name(self):
+        return self.name
 
 
 
@@ -637,6 +643,7 @@ class Box(Noun):
 
     def __init__(
         self,
+        canonical_name,
         box_name,
         capacity=None,
         presence_string=None,
@@ -654,8 +661,9 @@ class Box(Noun):
         open_exit_destination=None,
     ):
         super().__init__()
-        self.name = box_name  # Noun uses 'name'
+        self.noun_name = canonical_name
         self.box_name = box_name
+        self.name = box_name
         self.contents = []
         self.capacity = capacity  # None = unlimited
         self.presence_string = presence_string
@@ -728,12 +736,24 @@ class Box(Noun):
         if announce:
             print(f" {self.box_name}: {item.name} has been added to the treasury.")
 
+    def canonical_name(self):
+        return getattr(self, "noun_name")
+
+    def display_name(self):
+        return self.box_name
+
+
 
 class Player:
     """A player character who can collect items in their sack (max 10 items)."""
     def __init__(self, name):
         self.name = name
-        self.sack = Box(f"{name}'s Sack", capacity=10)
+        self.sack = Box(
+            canonical_name=f"{name}'s sack",
+            box_name=f"{name}'s sack",
+            capacity=10
+        )
+
 
     def take(self, from_container, item):
         """The player takes an item from a box or room."""
@@ -773,6 +793,15 @@ class Player:
         print(f"{self.name} drops {item.name}.")
         self.sack.contents.remove(item)
         item.current_box = None
+
+    def canonical_name(self):
+        # Players don’t need articles or alternate names
+        return self.name.lower()
+
+    def display_name(self):
+        # Player names are already display-ready
+        return self.name
+
 
 
 class Room(Noun):
@@ -899,6 +928,14 @@ class Room(Noun):
             f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, items={items_str}, "
             f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
+    
+    def canonical_name(self):
+    # rooms currently only have "name"
+        return getattr(self, "noun_name", None) or self.name.lower()
+
+    def display_name(self):
+        return self.name
+
 
 
 class Game(Noun):
@@ -1139,7 +1176,8 @@ def _construct_boxes(data):
     Box.all_boxes.clear()  # Clear existing boxes for a clean load
     for entry in data:
         new_box = Box(
-            entry["box_name"],
+            entry["canonical_name"], # canonical_name (parser-facing)
+            entry["box_name"], # box_name (display-facing)
             presence_string=entry.get("presence_string"),
             is_openable=entry.get("is_openable", False),
             is_open=entry.get("is_open", False),
@@ -1182,7 +1220,8 @@ def _construct_rooms(data):
         # Add boxes to the room
         for box_data in entry.get("boxes", []):
             box = Box(
-                box_data.get("box_name"),
+                canonical_name=box_data.get("canonical_name"),
+                box_name=box_data.get("box_name"),
                 presence_string=box_data.get("presence_string"),
                 is_openable=box_data.get("is_openable", False),
                 is_open=box_data.get("is_open", False),
