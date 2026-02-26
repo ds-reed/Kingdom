@@ -3,10 +3,12 @@
 Defines Noun, Item, Box, Room, Player, Game, and related helpers.
 Handles world loading, serialization, and runtime entity management.
 """
+
+from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Iterable, Optional
-
+from enum import Enum, auto
 from dataclasses import dataclass
 
 
@@ -37,6 +39,45 @@ class GameOver(Exception):
 
 class QuitGame(Exception):
     pass
+
+class LocationType(Enum):
+    """Where an item can physically be in the game world."""
+    INVENTORY     = auto()   # directly in player's sack/inventory
+    ROOM_FLOOR    = auto()   # loose on the room floor
+    BOX_IN_ROOM   = auto()   # the box/container itself is present in the room
+    INSIDE_BOX    = auto()   # inside a box (or other container)
+
+@dataclass(frozen=True)
+class ItemLocation:
+    """Precise, type-safe description of an item's location."""
+    type: LocationType
+    container: Optional['Box'] = None   # only relevant for INSIDE_BOX
+
+    def is_accessible(self) -> bool:
+        """Quick default rule — override or extend per verb if needed."""
+        match self.type:
+            case LocationType.INVENTORY | LocationType.ROOM_FLOOR | LocationType.BOX_IN_ROOM:
+                return True
+            case LocationType.INSIDE_BOX:
+                # Assuming Box has .is_open (bool) or similar
+                return self.container is not None and self.container.is_open
+            case _:
+                return False
+
+    def describe(self) -> str:
+        """Human-readable phrase for messages."""
+        match self.type:
+            case LocationType.INVENTORY:
+                return "in your inventory"
+            case LocationType.ROOM_FLOOR:
+                return "here on the ground"
+            case LocationType.BOX_IN_ROOM:
+                return "here (as a container)"
+            case LocationType.INSIDE_BOX if self.container:
+                return f"inside the {self.container.display_name()}"
+            case _:
+                return "somewhere strange"
+            
 
 def build_dispatch_context(
     state: "GameActionState",
@@ -710,31 +751,36 @@ class Box(Noun):
             return self.presence_string
         return f"There is {self.box_name} here."
 
-    def add_item(self, item, announce=True):
+    def add_item(self, item):
         if item is None: 
-            print("ERROR: add_item received None — item lookup failed in loader!") 
-            return
+            print("DEBUG: add_item received None") 
+            return 
         if self.capacity is not None and len(self.contents) >= self.capacity:
-            if announce:
-                print(f" {self.box_name}:  box is full!")
-            return
-
+            print(f"DEBUG: Cannot add {item.name} to {self.box_name} - capacity reached")
+            return # no room in box
         if item.current_box == self:
-            if announce:
-                print(f" {self.box_name}: I already own {item.name}!")
-            return
+            print(f"DEBUG: {item.name} is already in {self.box_name}")
+            return # already in this box
 
-        # Handle the move logic (Seizing from another box)
+        # Handle the move logic (moving from another box)
         if item.current_box is not None:
-            if announce:
-                print(f" {self.box_name}: Seizing {item.name} from {item.current_box.box_name}!")
             item.current_box.contents.remove(item)
 
         # Update states
         self.contents.append(item)
         item.current_box = self
-        if announce:
-            print(f" {self.box_name}: {item.name} has been added to the treasury.")
+
+        return 
+    
+    def has_item(self, item) -> bool:
+        return item in self.contents
+
+    def remove_item(self, item):
+        if item in self.contents:
+            self.contents.remove(item)
+            item.current_box = None
+            return 
+
 
     def canonical_name(self):
         return getattr(self, "noun_name")
@@ -749,57 +795,24 @@ class Player:
     def __init__(self, name):
         self.name = name
         self.sack = Box(
-            canonical_name=f"{name}'s sack",
+            canonical_name="inventory",
             box_name=f"{name}'s sack",
             capacity=10
         )
 
+    def add_to_sack(self, item): 
+        return self.sack.add_item(item)
 
-    def take(self, from_container, item):
-        """The player takes an item from a box or room."""
-        # Determine which type of container we're dealing with
-        if isinstance(from_container, Box):
-            contents = from_container.contents
-            container_name = from_container.box_name
-        elif isinstance(from_container, Room):
-            contents = from_container.items
-            container_name = from_container.name
-        else:
-            raise TypeError("from_container must be a Box or Room")
-
-        assert item in contents, f"{item.name} isn't even in {container_name}!"
-
-        # Check if item is gettable
-        if not item.is_gettable:
-            print(f"{self.name} tries to pick up {item.name}...")
-            print(f"{item.refuse_string}")
-            return
-
-        # Check sack capacity
-        if len(self.sack.contents) >= self.sack.capacity:
-            print(f"{self.name}'s sack is full (max {self.sack.capacity} items)!")
-            return
-
-        print(f"{self.name} takes {item.name} from {container_name}.")
-        contents.remove(item)
-        self.sack.contents.append(item)
-        item.current_box = self.sack
-
-    def drop(self, item):
-        """The player drops an item from their sack."""
-        if item not in self.sack.contents:
-            print(f"{self.name} doesn't have {item.name}!")
-            return
-        print(f"{self.name} drops {item.name}.")
-        self.sack.contents.remove(item)
-        item.current_box = None
+    def remove_from_sack(self, item):
+        return self.sack.remove_item(item)
+    
+    def has_item(self, item) -> bool:
+        return self.sack.has_item(item)
 
     def canonical_name(self):
-        # Players don’t need articles or alternate names
         return self.name.lower()
 
     def display_name(self):
-        # Player names are already display-ready
         return self.name
 
 
@@ -826,7 +839,7 @@ class Room(Noun):
         self.minigame = None
         Room.all_rooms.append(self)
 
-    def add_item(self, item):
+    def add_item(self, item) -> bool:
         """Add an Item instance or create one from a string name."""
         if isinstance(item, Item):
             self.items.append(item)
@@ -834,12 +847,28 @@ class Room(Noun):
             self.items.append(Item(item))
         else:
             raise TypeError("Room.add_item expects an Item or str")
+        return True
 
-    def add_box(self, box):
+    def add_box(self, box) -> bool:
         """Add a Box instance to this room."""
         if not isinstance(box, Box):
             raise TypeError("Room.add_box expects a Box instance")
         self.boxes.append(box)
+        return True
+    
+    def remove_item(self, item) -> bool:
+        """Remove an Item instance from this room."""
+        if item in self.items:
+            self.items.remove(item)
+            return True
+        return False
+    
+    def remove_box(self, box) -> bool:
+        """Remove a Box instance from this room."""
+        if box in self.boxes:
+            self.boxes.remove(box)
+            return True
+        return False
 
     def add_direction(self, direction):
         if not isinstance(direction, str):
@@ -1098,7 +1127,7 @@ class Game(Noun):
         if player_data:
             for item_json in player_data.get("inventory", []):
                 item = _construct_item_from_spec(item_json)
-                player.sack.add_item(item, announce=False)
+                player.sack.add_item(item)
 
         # --- 6. Restore current room ---
         if room_name and room_name in self.rooms:
@@ -1192,7 +1221,7 @@ def _construct_boxes(data):
         )
         for item_spec in entry.get("items", []):
             new_item = _construct_item_from_spec(item_spec)
-            new_box.add_item(new_item, announce=False)
+            new_box.add_item(new_item)
     return Box.all_boxes
 
 
@@ -1236,7 +1265,7 @@ def _construct_rooms(data):
             )
             for item_spec in box_data.get("items", []):
                 item_obj = _construct_item_from_spec(item_spec)
-                box.add_item(item_obj, announce=False)
+                box.add_item(item_obj)
             room.add_box(box)
         room.swim_exits = entry.get("swim_exits", {})
 

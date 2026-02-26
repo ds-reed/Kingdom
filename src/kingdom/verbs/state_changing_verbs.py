@@ -346,7 +346,7 @@ class StateVerbHandler:
         if getattr(target, "eaten_success_string", None):
             return_msg = target.eaten_success_string
 
-        # 4. Post-mutation side effect: remove item from inventory
+        # 4. Post-mutation side effect: remove item from inventory   # note for when refactoring - we can eat things that are in the room, not just inventory, so we'll need to look for it and remove it from the appropriate place
         inventory = ctx.game.current_player.sack.contents
         if target in inventory:
             inventory.remove(target)

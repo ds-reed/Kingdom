@@ -171,7 +171,7 @@ class RoomRenderer:
         return f"There are exits {self.join_with_and(phrases)}."
 
 
-def render_current_room(state, clear=False):
+def render_current_room(state, display=True, clear=False):
 
     room = state.current_room
     if room is None:
@@ -188,7 +188,10 @@ def render_current_room(state, clear=False):
     renderer = RoomRenderer()
     lines = renderer.room_display_lines(room)
 
-    ui.render_room(lines, clear=clear)
+    if display:
+        ui.render_room(lines, clear=clear)         # this doesn't belong here. Need to track down where function is used and add ui calls there instead.
+
+    return lines
 
 
 

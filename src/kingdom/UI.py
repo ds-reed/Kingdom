@@ -6,7 +6,6 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 
 """
 
-from turtle import clear
 from typing import Any, Sequence
 from kingdom.models import Game, Room, Item, Box
 from kingdom.terminal_style import trs80_clear_and_show_room, trs80_print, TRS80_WHITE
@@ -77,6 +76,7 @@ class UI:
         if self.confirm("Quit without saving? "):
            return True # Confirmed
         return False # Cancelled
+    
     
     def render_room(self, lines: list[str], clear: bool = True):
         trs80_clear_and_show_room(lines, clear=clear)

@@ -16,20 +16,19 @@ class InventoryVerbHandler(VerbHandler):
 
         sack = getattr(player, "sack", None)
         if sack is None:
-            return "You have no inventory."
+            return "DEBUG: player missing sack."
 
         contents = sack.contents
         if not contents:
-            return f"{player.name}'s sack is empty."
+            return f"You don't have anything."
 
-        # Use display names under the new naming scheme
         names = [item.display_name() for item in contents]
 
         count = len(names)
         label = "item" if count == 1 else "items"
 
         return (
-            f"{player.name}'s sack contains ({count} {label}): "
+            f"You have ({count} {label}): "
             f"{', '.join(names)}"
         )
 
@@ -49,21 +48,21 @@ class InventoryVerbHandler(VerbHandler):
         # 1. TAKE ALL (use the base-class ALL handler)
         # ------------------------------------------------------------
         if target is None and "all" in words:
-            pickupable: list[Item] = []
+            getable: list[Item] = []
 
             # Items on floor
             for item in room.items:
                 if getattr(item, "is_gettable", True):
-                    pickupable.append(item)
+                    getable.append(item)
 
             # Items in open boxes
             for box in room.boxes:
                 if box.is_openable and box.is_open:
                     for item in box.contents:
                         if getattr(item, "is_gettable", True):
-                            pickupable.append(item)
+                            getable.append(item)
 
-            return self.handle_all(ctx, pickupable, self.take, "take")
+            return self.handle_all(ctx, getable, self.take, "take")
 
         # ------------------------------------------------------------
         # 2. Missing target
@@ -81,7 +80,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 4. Already in inventory
         # ------------------------------------------------------------
-        if target in player.sack.contents:
+        if player.has_item(target):
             return f"You already have {target.display_name()}."
 
         # ------------------------------------------------------------
@@ -107,8 +106,8 @@ class InventoryVerbHandler(VerbHandler):
         # 7. Take from room
         # ------------------------------------------------------------
         if location == "room":
-            room.items.remove(target)
-            player.sack.contents.append(target)
+            room.remove_item(target)
+            player.add_to_sack(target)
             return f"You take {target.display_name()}."
 
         # ------------------------------------------------------------
@@ -120,8 +119,8 @@ class InventoryVerbHandler(VerbHandler):
                 box for box in room.boxes
                 if box.is_openable and box.is_open and target in box.contents
             )
-            found_box.contents.remove(target)
-            player.sack.contents.append(target)
+            found_box.remove_item(target)
+            player.add_to_sack(target)
             return (
                 f"You take {target.display_name()} "
                 f"from {found_box.display_name()}."
@@ -179,6 +178,6 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 5. Perform the drop
         # ------------------------------------------------------------
-        player.sack.contents.remove(target)
-        room.items.append(target)
+        player.remove_from_sack(target)
+        room.add_item(target)
         return f"You drop {target.display_name()}."
