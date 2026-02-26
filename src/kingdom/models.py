@@ -808,6 +808,9 @@ class Player:
     
     def has_item(self, item) -> bool:
         return self.sack.has_item(item)
+    
+    def get_inventory_items(self):
+        return self.sack.contents
 
     def canonical_name(self):
         return self.name.lower()
@@ -839,6 +842,15 @@ class Room(Noun):
         self.minigame = None
         Room.all_rooms.append(self)
 
+    def __repr__(self):
+        items_str = [it.name for it in self.items if it is not None]
+        boxes_str = [b.box_name for b in self.boxes]
+        connections_str = {direction: room.name for direction, room in self.connections.items()}
+        return (
+            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, items={items_str}, "
+            f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
+        )
+
     def add_item(self, item) -> bool:
         """Add an Item instance or create one from a string name."""
         if isinstance(item, Item):
@@ -869,6 +881,22 @@ class Room(Noun):
             self.boxes.remove(box)
             return True
         return False
+    
+    def has_item(self, item) -> bool:
+        """Check if an Item instance is in this room."""
+        return item in self.items
+    
+    def has_box(self, box) -> bool:
+        """Check if a Box instance is in this room."""
+        return box in self.boxes
+    
+    def find_containing_box(self, item) -> Box | None:
+        """Return the Box instance that contains the given Item, or None if not found."""
+        for box in self.boxes:
+            if item in box.contents:
+                return box
+        return None
+
 
     def add_direction(self, direction):
         if not isinstance(direction, str):
@@ -949,14 +977,7 @@ class Room(Noun):
             return self.minigame(*args, **kwargs)
         return None
 
-    def __repr__(self):
-        items_str = [it.name for it in self.items if it is not None]
-        boxes_str = [b.box_name for b in self.boxes]
-        connections_str = {direction: room.name for direction, room in self.connections.items()}
-        return (
-            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, items={items_str}, "
-            f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
-        )
+
     
     def canonical_name(self):
     # rooms currently only have "name"
@@ -1081,7 +1102,6 @@ class Game(Noun):
         Noun.all_nouns.clear()           
 
 
-
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))
             rooms = _construct_rooms(data.get('rooms', []))
@@ -1195,6 +1215,14 @@ class Game(Noun):
 
 #----- functions for constructing objects from JSON data -----
 
+def _load_directions(json_data):
+    directions = json_data.get("directions", {})
+    for canonical, info in directions.items():
+        DIRECTIONS.register(
+            canonical,
+            synonyms=info.get("aliases", []),
+            reverse=info.get("reverse")
+        )
 
 def _construct_boxes(data):
     """Construct Box and Item objects from loaded JSON data list.

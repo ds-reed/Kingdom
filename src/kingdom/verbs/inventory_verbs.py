@@ -1,6 +1,6 @@
 # inventory Verbs
 
-from kingdom.models import DispatchContext, Noun, Verb, Item, Box
+from kingdom.models import DispatchContext, Noun, Verb, Item, Box, Room, Game, Player, LocationType
 from kingdom.verbs.verb_handler import VerbHandler
 
 class InventoryVerbHandler(VerbHandler):
@@ -12,13 +12,9 @@ class InventoryVerbHandler(VerbHandler):
     ) -> str:
         player = ctx.game.current_player
         if not player:
-            return "No current player."
+            return "DEBUG: No current player."
 
-        sack = getattr(player, "sack", None)
-        if sack is None:
-            return "DEBUG: player missing sack."
-
-        contents = sack.contents
+        contents = player.get_inventory_items()
         if not contents:
             return f"You don't have anything."
 
@@ -63,7 +59,7 @@ class InventoryVerbHandler(VerbHandler):
                             getable.append(item)
 
             return self.handle_all(ctx, getable, self.take, "take")
-
+        
         # ------------------------------------------------------------
         # 2. Missing target
         # ------------------------------------------------------------
@@ -78,34 +74,32 @@ class InventoryVerbHandler(VerbHandler):
             return outcome
 
         # ------------------------------------------------------------
-        # 4. Already in inventory
+        # 4. Determine where item is 
         # ------------------------------------------------------------
-        if player.has_item(target):
-            return f"You already have {target.display_name()}."
-
-        # ------------------------------------------------------------
-        # 5. Determine where the item is
-        # ------------------------------------------------------------
-        location = self.find_item_location(ctx, target)
-
+        loc = self.locate_item(ctx, target)
         # Not in room, not in inventory, not in any open box
-        if location is None:
+        if loc is None:
             name = self.resolve_noun_or_word(target, words)
             if name:
                 return f"I see no {name} here."
             return self.missing_target("take")
 
+
+        if loc.type == LocationType.INVENTORY:
+            return f"You already have {target.display_name()}."
+
         # ------------------------------------------------------------
         # 6. If it's here but not gettable
         # ------------------------------------------------------------
-        if not getattr(target, "is_gettable", True) or isinstance(target, Box):
+        if not getattr(target, "is_gettable", True) \
+                    or isinstance(target, Box):  #can't take boxes for now
             refuse = getattr(target, "get_refuse_string", None)
             return refuse or f"You can't take {target.display_name()}."
 
         # ------------------------------------------------------------
         # 7. Take from room
         # ------------------------------------------------------------
-        if location == "room":
+        if loc.type == LocationType.ROOM_FLOOR:
             room.remove_item(target)
             player.add_to_sack(target)
             return f"You take {target.display_name()}."
@@ -113,12 +107,9 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 8. Take from open box
         # ------------------------------------------------------------
-        if location == "box":
-            # Find the box again (find_item_location doesn't return it)
-            found_box = next(
-                box for box in room.boxes
-                if box.is_openable and box.is_open and target in box.contents
-            )
+        if loc.type == LocationType.INSIDE_BOX:
+            # Find the box again (loc.container should have it)
+            found_box = loc.container
             found_box.remove_item(target)
             player.add_to_sack(target)
             return (
@@ -147,7 +138,7 @@ class InventoryVerbHandler(VerbHandler):
         # 1. DROP ALL
         # ------------------------------------------------------------
         if target is None and "all" in words:
-            inventory_items = list(player.sack.contents)
+            inventory_items = player.get_inventory_items()
             return self.handle_all(ctx, inventory_items, self.drop, "drop")
 
         # ------------------------------------------------------------
@@ -166,10 +157,10 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 4. Determine where the item is
         # ------------------------------------------------------------
-        location = self.find_item_location(ctx, target)
+        loc = self.locate_item(ctx, target)
 
         # Not in inventory
-        if location != "inventory":
+        if loc.type != LocationType.INVENTORY:
             name = self.resolve_noun_or_word(target, words)
             if name:
                 return f"You aren't carrying {name}."

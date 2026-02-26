@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
-from kingdom.models import DispatchContext, Noun, Item, Room
+from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game
 
 
 class VerbHandler:
@@ -93,30 +93,34 @@ class VerbHandler:
 
         return "\n".join(messages + [summary])
 
-# looks for item in inventory, room or in boxes or a box itself if asked for.
-    def find_item_location(self, ctx: DispatchContext, item: Noun):
+    # looks for item in inventory, room or in boxes or a box itself if asked for.
+    def locate_item(self, ctx: DispatchContext, item: Noun) -> Optional[ItemLocation]:
         """
-        Returns 'inventory', 'room', 'box', or None.
+        Determine exactly where an item is located, returning a rich ItemLocation
+        or None if the item cannot be found in the current context.
         """
         player = self.player(ctx)
         room = self.room(ctx)
 
-        # Player inventory
-        if item in player.sack.contents:
-            return "inventory"
+        if room is None:
+            return None  # rare safety case
 
-        # Items on the floor
-        if item in room.items:
-            return "room"
+        # 1. Directly in player's inventory / sack
+        if player.has_item(item):                  # ← use your Player helper method
+            return ItemLocation(LocationType.INVENTORY)
 
-        # Boxes in the room (the missing case!)
-        if item in room.boxes:
-            return "box"
+        # 2. Loose on the room floor
+        if room.has_item(item):      # ← use your Room helper
+            return ItemLocation(LocationType.ROOM_FLOOR)
 
-        # Items inside boxes
-        for box in room.boxes:
-            if item in box.contents:
-                return "box"
+        # 3. The item is a box/container and is present in the room itself
+        if isinstance(item, Box) and room.has_box(item):   # ← use your Room helper
+            return ItemLocation(LocationType.BOX_IN_ROOM)
+
+        # 4. Item is inside some box/container in the room
+        containing_box = room.find_containing_box(item)   # ← use your Room helper
+        if containing_box is not None:
+            return ItemLocation(LocationType.INSIDE_BOX, container=containing_box)
 
         return None
 
