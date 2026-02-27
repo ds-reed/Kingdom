@@ -157,7 +157,6 @@ class VerbHandler:
 
 
 
-
     # ------------------------------------------------------------
     # Message assembly
     # ------------------------------------------------------------
@@ -178,6 +177,7 @@ class VerbHandler:
         from kingdom.item_behaviors import try_item_special_handler
 
         outcome = try_item_special_handler(target, verb, words, ctx)
-        if outcome and outcome.stop:
-            return outcome.message or ""
+        if outcome:
+            return outcome
+        
         return None

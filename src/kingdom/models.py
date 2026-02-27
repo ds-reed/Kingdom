@@ -499,16 +499,9 @@ class DirectionNoun(Noun):
         """
         global _direction_nouns_by_reference, _direction_nouns_by_canonical
 
-        
         if DirectionNoun._direction_nouns_by_reference:
-            print("DEBUG: Directions already initialized — skipping")
             return
         
-        print("DEBUG: Initializing direction nouns...")
-        # ... creation code ...
-        print(f"DEBUG: Created {len(DirectionNoun._direction_nouns_by_reference)} direction nouns")
-        print(f"DEBUG: Noun.all_nouns now has {len(Noun.all_nouns)} total nouns")
-
         # Build nouns for canonical directions
         for canonical in DIRECTIONS.canonical:
             dn = DirectionNoun(canonical, canonical)
@@ -787,13 +780,13 @@ class Box(Noun):
 
     def add_item(self, item):
         if item is None: 
-            print("DEBUG: add_item received None") 
+            print("ERROR: add_item received None") 
             return 
         if self.capacity is not None and len(self.contents) >= self.capacity:
-            print(f"DEBUG: Cannot add {item.name} to {self.box_name} - capacity reached")
+            print(f"ERROR: Cannot add {item.name} to {self.box_name} - capacity reached")
             return # no room in box
         if item.current_box == self:
-            print(f"DEBUG: {item.name} is already in {self.box_name}")
+            print(f"ERROR: {item.name} is already in {self.box_name}")
             return # already in this box
 
         # Handle the move logic (moving from another box)
@@ -1137,9 +1130,6 @@ class Game(Noun):
 
         _load_directions(data) 
         DirectionNoun.ensure_direction_nouns()
-
-        print(f"DEBUG: After loading directions — canonical count: {len(DIRECTIONS.canonical)}")
-        print(f"DEBUG: Aliases count: {len(DIRECTIONS.aliases)}")
 
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))

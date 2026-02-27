@@ -35,9 +35,9 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
-        state = ctx.state
-        game = ctx.game
-        room = state.current_room
+        state = self.state(ctx)
+        game = self.game(ctx)  
+        room = self.room(ctx)
         player = self.player(ctx)
 
         # ------------------------------------------------------------
@@ -70,8 +70,8 @@ class InventoryVerbHandler(VerbHandler):
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome = self.run_special_handler(target, "take", words, ctx)
-        if outcome is not None:
-            return outcome
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return outcome.message or ""
 
         # ------------------------------------------------------------
         # 4. Determine where item is 
@@ -151,8 +151,8 @@ class InventoryVerbHandler(VerbHandler):
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome = self.run_special_handler(target, "drop", words, ctx)
-        if outcome is not None:
-            return outcome
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return outcome.message or ""
 
         # ------------------------------------------------------------
         # 4. Determine where the item is

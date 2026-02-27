@@ -6,7 +6,6 @@ This module centralizes movement verb logic for clarity and maintainability.
 """
 
 from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
-from kingdom.terminal_style import TRS80_WHITE, trs80_print, trs80_clear_and_show_room
 from kingdom.renderer import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
 
@@ -27,7 +26,6 @@ class MovementVerbHandler(VerbHandler):
         """
         state = context.state
         game = context.game
-        lines=[]
         
         if state.current_room is None:
             return "DEBUG: You are nowhere. Cannot move."
@@ -51,7 +49,7 @@ class MovementVerbHandler(VerbHandler):
 
         # Render
 
-        lines.append(f"You {success_verb} {canonical}.")
+        lines=[f"You {success_verb} {canonical}."]
         lines.extend(render_current_room(state, clear= False, display=True))
 
         return self.build_message(*lines)
@@ -70,7 +68,6 @@ class MovementVerbHandler(VerbHandler):
 
 
         result= self.perform_movement(context, direction, self.room(context).connections, "go", "go")
-        print(result)
         return result
 
 
@@ -89,7 +86,7 @@ class MovementVerbHandler(VerbHandler):
         # 1. Resolve direction
         if target is not None and hasattr(target, "canonical_direction"):
             direction = target.canonical_direction
-        elif words[0] is not None and hasattr(words[0], "canonical_direction"):       # swim exits are not seen by noun object binder right now, so we also check the first word for a direction match  
+        elif words and words[0] is not None and hasattr(words[0], "canonical_direction"):       # swim exits are not seen by noun object binder right now, so we also check the first word for a direction match  
             direction = words[0].canonical_direction
         else:
             return "You splash around aimlessly."
@@ -106,10 +103,8 @@ class MovementVerbHandler(VerbHandler):
     # Drowning logic (unchanged)
     # ------------------------------------------------------------
     def _check_swim_constraints(self, game):
-        """Return an error string or raise GameOver if player cannot swim."""
-        player = game.require_player(return_error=True)
-        if isinstance(player, str):
-            return player
+
+        player = self.player(ctx)
 
         heavy_item = next(
             (item for item in player.sack.contents if getattr(item, "too_heavy_to_swim", False)),
@@ -123,19 +118,15 @@ class MovementVerbHandler(VerbHandler):
         return None
 
 
-    def teleport(self, context, target: Noun, words: list[str]):
+    def teleport(self, ctx, target: Noun, words: list[str]):
         """Teleport to any room by name or number. No target → list rooms."""
-        state = context.state
-        game = context.game
-
-        if state.current_room is None:
-            return "No current room — cannot teleport."
+        state = self.state(ctx)
+        game = self.game(ctx)
+        room = self.room(ctx)
 
         # No argument → show list
         if not words and target is None:
             room_list = sorted(game.rooms.values(), key=lambda r: r.name)
-            if not room_list:
-                return "No rooms in the world yet."
 
             lines = ["Debug teleport — available rooms:"]
             for i, room in enumerate(room_list, 1):
@@ -192,8 +183,9 @@ class MovementVerbHandler(VerbHandler):
         state.current_room = target_room
         target_room.visited = True
 
-        render_current_room(state, clear=True)
-        print()
+        lines = [f"You teleport from {old_room_name} to {target_room.name}."]
+        lines.extend(render_current_room(state, clear= False, display=True))
+        return self.build_message(*lines)
 
         
 

@@ -10,11 +10,18 @@ This module is the single source of truth for item-driven puzzle logic.
 from dataclasses import dataclass
 from typing import Callable, Optional
 
+from enum import Enum, auto
+
+class VerbControl(Enum):
+    CONTINUE = auto()  # fall through to default behavior
+    SKIP = auto()      # skip this item but continue ALL
+    STOP = auto()      # abort the entire verb
+
+
 @dataclass
 class VerbOutcome:
-    """Standardized return type for item behavior handlers."""
+    control: VerbControl = VerbControl.CONTINUE
     message: Optional[str] = None
-    stop: bool = False
 
 
 
@@ -77,42 +84,7 @@ def try_item_special_handler(
 
 
 # ------------------------------------------------------------
-# Central special-handling pipeline
-# ------------------------------------------------------------
-
-def run_special_handling(
-    ctx: "DispatchContext",
-    target: object,
-    verb: str,
-    words: tuple[str, ...]
-) -> Optional[VerbOutcome]:
-    """
-    Runs item-specific special handling for a verb.
-
-    If the item defines a special handler for this verb, dispatch to it.
-    If the handler returns a VerbOutcome, the verb is intercepted.
-    If it returns None, normal verb logic continues.
-    """
-
-    handler_name = getattr(target, "special_handlers", {}).get(verb)
-    if not handler_name:
-        return None
-
-    handler = get_behavior(handler_name)
-    if not handler:
-        return None
-
-    result = handler(target, verb, words, ctx)
-
-    # Unified return contract
-    if isinstance(result, VerbOutcome):
-        return result
-
-    return None
-
-
-# ------------------------------------------------------------
-# Puzzle helpers (kept exactly as-is)
+# Puzzle helpers 
 # ------------------------------------------------------------
 
 def _spawn_room_item(
@@ -190,7 +162,7 @@ def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, n
 def open_bean(item, verb_name, words, ctx):
 
     print("Ha Ha - you tried to open a magical bean!")  # or log it
-    return VerbOutcome(message="you reached me!!!!", stop=True)  # or return None to use generic
+    return VerbOutcome(message="you reached me!!!!", control=VerbControl.SKIP)   
 
 # ----------------- the fish ---------------------------------
 
@@ -203,7 +175,7 @@ def eat_fish(item, verb, words, ctx):
     if item not in inventory:
         return VerbOutcome(
             message="YOU HAVE NO FISH!",
-            stop=True
+            control=VerbControl.SKIP
         )
     
     room = ctx.state.current_room
@@ -211,7 +183,7 @@ def eat_fish(item, verb, words, ctx):
     # Check if vomit already exists to prevent duplicates
     for obj in room.items: 
         if getattr(obj, "noun_name", None) == "vomit": 
-            return VerbOutcome( message="You made quite a mess here!", stop=True )
+            return VerbOutcome( message="You made quite a mess here!", control=VerbControl.SKIP )
         
     # spawn vomit if it doesn't already exist
     vomit = _spawn_room_item(ctx, 
@@ -224,7 +196,7 @@ def eat_fish(item, verb, words, ctx):
     # Final message - TRS80 old-school style
     return VerbOutcome(
         message="YOU BARELY GET THE FISH TO YOUR NOSE WHEN YOU VOMIT VIOLENTLY ON A NEARBY WALL.",
-        stop=True
+        control=VerbControl.STOP
     )
 
 
@@ -240,7 +212,7 @@ def rub_lamp(item, verb, words, ctx):
     if item not in inventory:
         return VerbOutcome(
             message="YOU HAVE NO LAMP!",
-            stop=True
+            control=VerbControl.STOP
         )
 
     room = ctx.state.current_room
@@ -266,14 +238,14 @@ def rub_lamp(item, verb, words, ctx):
                 "'MYPCLY JUBURUAY MIT DE DIGNIC PIC?' and looks at you inquiringly. "
                 "This means (in magic Arabic), 'I will grant you one wish.'"
             ),
-            stop=True
+            control=VerbControl.STOP
         )
 
     # Default case: lamp gets shinier
     item.name = "a battered but shiny brass lamp"
     return VerbOutcome(
         message="You have a feeling of accomplishment as you rub the lamp. It looks shinier now.",
-        stop=True
+        control=VerbControl.SKIP
     )
 
 # ----------------- the Djinni ---------------------------------
@@ -326,6 +298,6 @@ def _djinni_scripted_action(item, verb, words, ctx):
     # ------------------------------------------------------------
     return VerbOutcome(
         message="\n".join(message_lines),
-        stop=True
+        control=VerbControl.STOP
     )
 

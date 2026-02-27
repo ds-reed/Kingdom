@@ -172,7 +172,6 @@ def main(args: argparse.Namespace | None = None):
         # Build the game
         game = Game.get_instance()
         _ensure_score(game)
-        print(f"DEBUG: setting up game world from {data_path}...")
         game.setup_world(data_path)
 
         print()
@@ -256,8 +255,6 @@ def main(args: argparse.Namespace | None = None):
             if verb is None:
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
                 continue
-
-            print(f"DEBUG: Executing verb '{verb_word}' with target={target_noun} and args={args}")
 
             try:
                 result = verb.execute(

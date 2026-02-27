@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Optional, Iterable
 
-from kingdom.item_behaviors import try_item_special_handler, VerbOutcome
-
+from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 
 from kingdom.models import Noun, DispatchContext, Player
 
@@ -85,7 +84,7 @@ class StateVerbHandler:
 
         # 3. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or ""
 
         # 4. Unified state-change pipeline
@@ -167,7 +166,7 @@ class StateVerbHandler:
         
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or ""
 
         # 3. Unified state-change pipeline (special handlers + noun override + mutation)
@@ -210,7 +209,7 @@ class StateVerbHandler:
         
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Required key (if any)
@@ -255,7 +254,7 @@ class StateVerbHandler:
 
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Required ignition source
@@ -299,7 +298,7 @@ class StateVerbHandler:
 
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
@@ -332,7 +331,7 @@ class StateVerbHandler:
 
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
@@ -372,7 +371,7 @@ class StateVerbHandler:
 
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
@@ -407,7 +406,7 @@ class StateVerbHandler:
 
         # 2. Unified special-handling pipeline
         outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
@@ -435,7 +434,7 @@ class StateVerbHandler:
 
         outcome = try_item_special_handler(target, "make", words, ctx)
 
-        if outcome and outcome.stop:
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or ""
 
         return "Nothing happens."
