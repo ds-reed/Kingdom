@@ -16,7 +16,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, context, direction, exit_dict, verb_name, success_verb):
+    def perform_movement(self, ctx, direction, exit_dict, verb_name, success_verb):
         """
         Shared movement engine.
 
@@ -24,8 +24,8 @@ class MovementVerbHandler(VerbHandler):
         verb_name: str ("go", "swim") for error messages
         success_verb: str ("go", "swim") for success messages
         """
-        state = context.state
-        game = context.game
+        state = self.state(ctx)
+        game = self.game(ctx)
         
         if state.current_room is None:
             return "DEBUG: You are nowhere. Cannot move."
@@ -58,7 +58,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, context, target, words):
+    def go(self, ctx, target, words):
         
         if target is None:
             return "Go where?"
@@ -67,7 +67,7 @@ class MovementVerbHandler(VerbHandler):
             direction = target.canonical_direction
 
 
-        result= self.perform_movement(context, direction, self.room(context).connections, "go", "go")
+        result= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
         return result
 
 
@@ -75,34 +75,38 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # SWIM verb (directional swim_exits)
     # ------------------------------------------------------------
-    def swim(self, context, target: Noun, words: list[str]):
-        state = context.state
-        game = context.game
-        room = state.current_room
+    def swim(self, ctx, target: Noun, words: list[str]):
+        state = self.state(ctx) 
+        game = self.game(ctx)
+        room = self.room(ctx)
+
+        print(f"DEBUG: SWIM called with target={target} and words={words}")
 
         if room is None:
-            return "DEBUG: There is nowhere to swim."
+            return "ERROR: There is nowhere to swim."
 
         # 1. Resolve direction
         if target is not None and hasattr(target, "canonical_direction"):
             direction = target.canonical_direction
-        elif words and words[0] is not None and hasattr(words[0], "canonical_direction"):       # swim exits are not seen by noun object binder right now, so we also check the first word for a direction match  
-            direction = words[0].canonical_direction
+        elif words and words[0] is not None:
+            noun_id = Noun.by_name(words[0])
+            if hasattr(noun_id, "canonical_direction"):
+                direction = noun_id.canonical_direction
         else:
             return "You splash around aimlessly."
 
         # 2. Drowning logic
-        constraint_error = self._check_swim_constraints(game)
+        constraint_error = self._check_swim_constraints(ctx)
         if constraint_error:
             return constraint_error
 
         # 3. Use swim-only exits
-        return self.perform_movement(context, direction, room.swim_exits, "swim", "swim")
+        return self.perform_movement(ctx, direction, room.swim_exits, "swim", "swim")
 
     # ------------------------------------------------------------
-    # Drowning logic (unchanged)
+    # Drowning logic 
     # ------------------------------------------------------------
-    def _check_swim_constraints(self, game):
+    def _check_swim_constraints(self, ctx):
 
         player = self.player(ctx)
 

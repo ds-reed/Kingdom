@@ -411,13 +411,32 @@ class Noun:
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
 
-
-        # ⭐ 3. Behavior handlers
         for handler in getattr(self, "behavior_handlers", []):
             handled_result = handler(self, verb_name, args, dispatch_context)
             if handled_result is not None:
                 return handled_result
 
+        return None
+
+    @classmethod
+    def by_name(cls, name: str, *, exact: bool = False) -> 'Noun | None':
+        """
+        Find a noun by name, noun_name, or descriptive phrase.
+        Returns first match or None.
+        
+        exact=True → only matches exact get_name()
+        """
+        name_lower = name.lower().strip()
+        if not name_lower:
+            return None
+
+        for noun in cls.all_nouns:
+            if exact:
+                if noun.get_name().lower() == name_lower:
+                    return noun
+            else:
+                if noun.matches_reference(name):
+                    return noun
         return None
 
 
