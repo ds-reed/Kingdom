@@ -15,13 +15,14 @@ from enum import Enum, auto
 class VerbControl(Enum):
     CONTINUE = auto()  # fall through to default behavior
     SKIP = auto()      # skip this item but continue ALL
-    STOP = auto()      # abort the entire verb
+    STOP = auto()      # abort the entire verb // not implemented
 
 
 @dataclass
 class VerbOutcome:
     control: VerbControl = VerbControl.CONTINUE
     message: Optional[str] = None
+
 
 
 

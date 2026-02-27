@@ -5,7 +5,7 @@ from typing import Optional, Iterable, Callable
 
 from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game
 from kingdom.models import DIRECTIONS
-
+from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
 class VerbHandler:
     """
@@ -58,7 +58,7 @@ class VerbHandler:
         return None
 
     # ------------------------------------------------------------
-    # ALL-handling framework
+    # ALL-handling framework 
     # ------------------------------------------------------------
     def handle_all(
         self,
@@ -68,7 +68,7 @@ class VerbHandler:
         verb_name: str,
     ) -> str:
         """
-        Generic ALL handler:
+        Generic ALL handler:  
         - loops through items
         - calls the single-item handler
         - accumulates messages

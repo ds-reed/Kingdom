@@ -340,4 +340,150 @@ Ensure that rooms do not contain items that have been moved into containers.
 ## 9. Celebrate
 - [ ] Enjoy the fact that adding a new item attribute now requires updating **ONE** place instead of nine.
 
+# potential json simplification 
 
+Summary commentary (for your document)Unlisted verbs → automatic default/generic behavior ("You can't X that", or standard state change if applicable)
+actions_refused → explicitly blocks a verb + provides custom refusal text (replaces old flags like is_gettable: false + get_refuse_string)
+actions_handled → marks a verb as having custom logic + names the handler function (replaces old special_handlers dict)
+state_descriptions → passive flavor text based on current state (used in look/examine/render)
+Minimalism → most items have empty or missing actions_refused/handled sections — no need to list every verb
+Extensibility → easily add new verbs by adding one entry in one section on one item
+Deprecation note → old flags (is_gettable, is_openable, etc.) can be phased out over time in favor of actions_refused.get.enabled = false / actions_handled.open.enabled = true
+
+This structure should give you a good, documented starting point for your notes. Let me know when you're ready to implement loading/parsing for it, or if you'd like a version with one or two more fields added (e.g. required_item, score_on_discovery, etc.). 
+
+Option 3 – Dedicated data classes (my strong recommendation for where you're heading)Create small dataclasses for each verb's configuration, then attach them to the item.
+
+      from dataclasses import dataclass, field
+      from typing import Optional, Callable, Any
+
+      @dataclass
+      class VerbConfig:
+          enabled: bool = True
+          handler: Optional[str] = None               # name of special handler function
+          messages: dict[str, str] = field(default_factory=dict)
+          requires: dict[str, Any] = field(default_factory=dict)  # e.g. {"unlocked": True, "item": "key"}
+
+      @dataclass
+      class ItemConfig:
+          name: str
+          noun_name: str
+          is_gettable: bool = True
+          actions: dict[str, VerbConfig] = field(default_factory=dict)
+          state_descriptions: dict[str, str] = field(default_factory=dict)
+
+  # based on the json below. Not issues unresolved in below - want to have default handlers if not explicitly mentioned as enabled or refused.
+  # also need a concept of a shared state between the verbs that toggle the same state (open,close), (light, extinguish
+  # idea - may organize around states insead i.e. open (Open sets true, Close sets false, open_action message, close_action message, open_state message, close_state message)
+  # but try to remove the verb names from the messages
+
+  # another idea  -  just adopt a unified naming scheme for now, even if it isn't proper grammer
+     is_open, can_open, is_open_msg, is_open_not_msg, open_action_msg, open_not_action_msg, is_light, is_not_light, can_light, is_eat, can_eat, 
+
+    {
+        "name": "rusty iron trapdoor",
+        "noun_name": "trapdoor",
+        "is_gettable": false,
+
+        "actions": {
+            "open": {
+                "enabled": true,
+                "handler": "open_trapdoor",
+                "messages": {
+                    "success": "The trapdoor creaks open.",
+                    "already": "It's already open."
+                },
+                "requires": {
+                    "unlocked": true
+                }
+            },
+            "close": {
+                "enabled": true,
+                "messages": {
+                    "success": "You slam the trapdoor shut."
+                }
+            },
+            "unlock": {
+                "enabled": true,
+                "messages": {
+                    "fail_no_key": "The trapdoor is locked tight. You'll need a key."
+                },
+                "requires": {
+                    "item": "small brass key"
+                }
+            },
+            "eat": {
+                "enabled": false,
+                "messages": {
+                    "fail": "You can't eat iron."
+                }
+            }
+        },
+
+        "state_descriptions": {
+            "locked": "a rusty iron trapdoor... closed and locked.",
+            "unlocked_closed": "...closed but unlocked.",
+            "open": "...open, revealing a dark shaft below."
+        }
+    }
+
+
+#loading code becomes
+      item.actions = {}
+      for verb_name, data in item_data.get("actions", {}).items():
+          item.actions[verb_name] = VerbConfig(**data)
+
+# usage in handler
+
+      config = target.actions.get("open")
+      if not config or not config.enabled:
+          return self.msg(f"You can't open the {target.get_noun_name()}.")
+
+      if handler_name := config.handler:
+          outcome = try_item_special_handler(target, "open", words, ctx, handler_name)
+          if outcome:
+              return outcome
+
+      # Default open logic...
+      if config.requires.get("unlocked") and getattr(target, "is_locked", False):
+          return self.msg(config.messages.get("locked") or "It's locked.")
+
+
+
+# after refinement discussion
+
+
+{
+    "name": "a rusty iron trapdoor",
+    "noun_name": "trapdoor",
+
+    "can_get": false,
+
+    "can_open": true,
+    "can_rev_open": true,
+    "is_open": false,
+
+    "open_action_msg": "The trapdoor creaks open, revealing a dark shaft below.",
+    "open_already_msg": "It's already open.",
+    "open_rev_action_msg": "You slam the trapdoor shut.",
+    "open_rev_already_msg": "It's already closed.",
+
+    "can_unlock": true,
+    "can_rev_unlock": true,
+    "is_locked": true,
+
+    "unlock_action_msg": "The lock clicks open.",
+    "unlock_already_msg": "It's already unlocked.",
+    "unlock_rev_action_msg": "You lock the trapdoor securely.",
+    "unlock_rev_already_msg": "It's already locked.",
+
+    "state_descriptions": {
+        "locked": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
+        "not_locked": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
+        "open": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
+        "not_open": "a rusty iron trapdoor in the middle of the floor. The trap door is closed."
+    },
+
+    "open_exit_direction": "down",
+    "open_exit_destination": "Blank Chamber"
+}
