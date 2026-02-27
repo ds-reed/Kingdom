@@ -137,6 +137,9 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "close_action_description", None):
         payload["close_action_description"] = item.close_action_description
 
+    if getattr(item, "examine_string", None):
+        payload["examine_string"] = item.examine_string
+
     if getattr(item, "open_exit_direction", None):
         payload["open_exit_direction"] = item.open_exit_direction
 
@@ -274,6 +277,7 @@ def _construct_item_from_spec(item_spec) -> "Item":
         closed_state_description=item_spec.get("closed_state_description"),
         open_action_description=item_spec.get("open_action_description"),
         close_action_description=item_spec.get("close_action_description"),
+        examine_string=item_spec.get("examine_string"),
         open_exit_direction=item_spec.get("open_exit_direction"),
         open_exit_destination=item_spec.get("open_exit_destination"),
         is_lockable=item_spec.get("is_lockable", False),
@@ -576,6 +580,7 @@ class Item(Noun):
         closed_state_description=None,
         open_action_description=None,
         close_action_description=None,
+        examine_string=None,
         open_exit_direction=None,
         open_exit_destination=None,
         is_lockable=False,
@@ -618,6 +623,7 @@ class Item(Noun):
         self.closed_state_description = closed_state_description
         self.open_action_description = open_action_description
         self.close_action_description = close_action_description
+        self.examine_string = examine_string
         self.open_exit_direction = (
             str(open_exit_direction).strip().lower()
             if open_exit_direction is not None and str(open_exit_direction).strip()
@@ -746,6 +752,7 @@ class Box(Noun):
         locked_description=None,
         open_exit_direction=None,
         open_exit_destination=None,
+        examine_string=None,
     ):
         super().__init__()
         self.noun_name = canonical_name
@@ -760,6 +767,7 @@ class Box(Noun):
         self.closed_state_description = closed_state_description
         self.open_action_description = open_action_description
         self.close_action_description = close_action_description
+        self.examine_string = examine_string
         self.is_lockable = bool(is_lockable)
         self.is_locked = bool(is_locked)
         self.unlock_key = (
@@ -872,12 +880,13 @@ class Room(Noun):
     all_rooms = []  # Class variable to track every room created
     DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
-    def __init__(self, name, description, visited=False, is_dark=False, dark_description=None, discover_points=10):
+    def __init__(self, name, description, visited=False, is_dark=False, has_water=False, dark_description=None, discover_points=10):
         super().__init__()
         self.name = name
         self.description = description
         self.visited = bool(visited)
         self.is_dark = bool(is_dark)
+        self.has_water = bool(has_water)
         self.dark_description = dark_description or None
         self.discover_points = max(0, discover_points)
         self.swim_exits: dict[str, "Room"] = {}
@@ -893,7 +902,7 @@ class Room(Noun):
         boxes_str = [b.box_name for b in self.boxes]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
             f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
@@ -1233,6 +1242,7 @@ class Game(Noun):
                     for direction, destination in room.connections.items()},
                 'hidden_directions': list(room.hidden_directions),
                 'is_dark': room.is_dark,
+                'has_water': room.has_water,
                 'dark_description': room.dark_description,
                 'discover_points': room.discover_points,
             }
@@ -1288,6 +1298,7 @@ def _construct_boxes(data):
             is_open=entry.get("is_open", False),
             open_action_description=entry.get("open_action_description"),
             close_action_description=entry.get("close_action_description"),
+            examine_string=entry.get("examine_string"),
             opened_state_description=entry.get("opened_state_description"),
             closed_state_description=entry.get("closed_state_description"),
             is_lockable=entry.get("is_lockable", False),
@@ -1316,6 +1327,7 @@ def _construct_rooms(data):
             entry.get("description", ""),
             visited=entry.get("visited", False),
             is_dark=entry.get("is_dark", False),
+            has_water=entry.get("has_water", False),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
         )        
@@ -1338,6 +1350,7 @@ def _construct_rooms(data):
                 is_locked=box_data.get("is_locked", False),
                 unlock_key=box_data.get("unlock_key"),
                 locked_description=box_data.get("locked_description"),
+                examine_string=box_data.get("examine_string"),
             )
             for item_spec in box_data.get("items", []):
                 item_obj = _construct_item_from_spec(item_spec)

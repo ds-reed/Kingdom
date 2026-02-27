@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
-from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game
+from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun
 from kingdom.models import DIRECTIONS
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
@@ -44,18 +44,55 @@ class VerbHandler:
     # ------------------------------------------------------------
     # Noun / word resolution
     # ------------------------------------------------------------
-    def resolve_noun_or_word(self, target: Optional[Noun], words: Iterable[str]):
+    def resolve_noun_or_word(
+        self,
+        target: Optional[Noun],
+        words: Iterable[str],
+        interest: list[str] = [],
+    ) -> dict:
         """
-        Generic helper for verbs that accept either a noun or a raw word.
-        Subclasses can override for verb-specific logic.
+        Resolve either a noun, direction (highest priority) or any keywords of interest
+        found in the leftover words. Returns a dict with structured results.
         """
+
+        result = {
+            "noun": None,
+            "direction": None,
+            "keywords": set(),
+            "raw": tuple(words),
+        }
+        # 1. If we already have a resolved target
         if target is not None:
-            return target.canonical_name()
+            if isinstance(target, DirectionNoun):    #check the special case of direction noun first, and resolve it immediately if so.
+                direction = target.canonical_direction
+                result["noun"] = target
+                result["direction"] = direction
+                return result
+            else:
+                # Regular noun — early return
+                result["noun"] = target
+                return result
 
-        if words:
-            return words[0]
 
-        return None
+        # 2. No resolved target → scan words for direction (even if not in legal candidates)
+        for w in words:
+            lw = w.lower().strip()
+            if self.is_direction(lw):
+                canon = self.canonical_direction(lw)
+                if canon:
+                    result["direction"] = canon
+                    # Optionally store the raw word that matched
+                    result["direction_raw"] = w
+                    break  # take the first direction word found
+
+        # 3. If no direction, look for keywords of interest
+        interest_set = {w.lower() for w in interest}
+        for w in words:
+            lw = w.lower()
+            if lw in interest_set and lw not in result["keywords"]:
+                result["keywords"].add(lw)
+
+        return result
 
     # ------------------------------------------------------------
     # ALL-handling framework 
@@ -156,15 +193,41 @@ class VerbHandler:
         return None
 
 
-
     # ------------------------------------------------------------
     # Message assembly
     # ------------------------------------------------------------
-    def build_message(self, *parts: Optional[str]) -> str:
+    def build_message(self, *parts) -> str:
         """
-        Combine non-empty message parts into a single string.
+        Combine non-empty message parts into a single string with newlines.
+        
+        Accepts:
+        - strings
+        - a single list (flat or nested)
+        - a mix of strings and lists (any depth)
+
         """
-        return "\n".join(p for p in parts if p)
+        def flatten(items):
+            """Recursively flatten any nesting of lists/strings/None."""
+            result = []
+            for item in items:
+                if item is None:
+                    continue
+                if isinstance(item, str):
+                    if item.strip():  # skip empty/whitespace-only strings
+                        result.append(item)
+                elif isinstance(item, (list, tuple)):
+                    result.extend(flatten(item))
+                else:
+                    # Convert anything else to string (safety)
+                    s = str(item).strip()
+                    if s:
+                        result.append(s)
+            return result
+
+        # Flatten everything that was passed
+        flat_parts = flatten(parts)
+
+        return "\n".join(flat_parts)
 
     # ------------------------------------------------------------
     # Special handler pipeline

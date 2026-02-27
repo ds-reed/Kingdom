@@ -1,5 +1,7 @@
 # meta verbs include things like HELP and DEBUG that don't interact in any way with the world state. I may consolidate this later  
 
+from unittest import result
+
 from kingdom.models import DispatchContext, Noun, Verb
 from kingdom.verbs.verb_handler import VerbHandler
 
@@ -9,101 +11,123 @@ class MetaVerbHandler(VerbHandler):
     # DEBUG
     # ------------------------------------------------------------
     def DEBUG(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
-       
+        # Resolve either a noun or keywords of interest
+        parse = self.resolve_noun_or_word(
+            target,
+            words,
+            interest=["room", "player"]
+        )
 
+        def debug_noun(noun: Noun | None) -> str:
+            lines = []
+            lines.append(f"id: {id(noun)}")
+            lines.append(f"class: {noun.__class__.__name__}")
 
-        # Special cases: room / player
-        if target is None and words:
-            if words[0] == "room":
-                room = ctx.state.current_room
-                if room is None:
-                    return "No current room."
-                return self.debug_noun(room)
+            # Dump attributes
+            for k, v in vars(noun).items():
+                lines.append(f"{k}: {v!r}")
 
-            if words[0] == "player":
-                player = getattr(ctx.game, "current_player", None)
-                if player is None:
-                    return "No current player."
-                return self.debug_noun(player)
-            
-            else:
-                return self.debug_words(words)
+            return lines
 
-        # Default: debug the noun passed
-        return self.debug_noun(target)
+        def debug_words(words: tuple[str, ...]) -> str:
 
-    def debug_noun(self, noun: Noun | None) -> str:
-        if noun is None:
-            return "No target noun was passed."
+            lines = ["debugging words..."]
 
-        lines = []
-        lines.append(f"id: {id(noun)}")
-        lines.append(f"class: {noun.__class__.__name__}")
+            for word in words:
+                matching_nouns = [noun for noun in Noun.all_nouns if noun.get_noun_name() == word]
 
-        # Dump attributes
-        for k, v in vars(noun).items():
-            lines.append(f"{k}: {v!r}")
+                for noun in matching_nouns:
+                    lines.append(f"id: {id(noun)}")
+                    lines.append(f"class: {noun.__class__.__name__}")
+                    for k, v in vars(noun).items():
+                        lines.append(f"{k}: {v!r}")
 
-        return "\n".join(lines)
+            return lines
 
-    def debug_words(self, words: tuple[str, ...]) -> str:
-        print(f"DEBUGGING WORDS: {words}")
+        # Case 1: A noun was resolved by the parser
+        noun = parse["noun"]
+        if noun is not None:
+            return self.build_message(debug_noun(noun))
 
-        lines = []
+        # Case 2: Keywords found in leftover words
+        keywords = parse["keywords"]
 
-        for word in words:
-            matching_nouns = [noun for noun in Noun.all_nouns if noun.get_noun_name() == word]
+        if "room" in keywords:
+            room = self.room(ctx)
+            return_msg = "No current room." if room is None else debug_noun(room)
+            return self.build_message(return_msg)
 
-            for noun in matching_nouns:
-                lines.append(f"id: {id(noun)}")
-                lines.append(f"class: {noun.__class__.__name__}")
-                for k, v in vars(noun).items():
-                    lines.append(f"{k}: {v!r}")
+        if "player" in keywords:
+            player = self.player(ctx)
+            return_msg = "No current player." if player is None else debug_noun(player)
+            return self.build_message(return_msg)
 
-        return "\n".join(lines)
+        # Case 3: No noun, no keywords → debug raw words
+        return self.build_message(debug_words(parse["raw"]))
+
 
     # ------------------------------------------------------------
     # HELP
     # ------------------------------------------------------------
     def help(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
-        # No topic: show general help
-        if not words:
-            return self.default_help_text()
-
-        topic = words[0]
-
-        # "help commands" or "help verbs"
-        if topic in ("commands", "verbs", "all"):
-            return self.list_all_verbs()
-
-        return f"Help is not available for '{topic}'."
-
-    # ------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------
-    def default_help_text(self) -> str:
-        return (
-            "You can try commands like:\n"
-            "  - look\n"
-            "  - go <direction>\n"
-            "  - take <item>\n"
-            "  - drop <item>\n"
-            "  - inventory\n"
-            "  - save\n"
-            "  - load\n"
-            "  - score\n"
-            "  - help\n"
-            "Type 'help commands' to see all available verbs."
+        # Resolve either a noun or keywords of interest
+        result = self.resolve_noun_or_word(
+            target,
+            words,
+            interest=["commands", "verbs", "all"]
         )
 
-    def list_all_verbs(self) -> str:
-        names = {
-            verb.name
-            for verb in Verb.all_verbs
-            if not verb.hidden
-        }
-        parts = sorted(names)
-        return "Available commands: " + ", ".join(parts)
+        def default_help_text() -> str:
+            return(
+                "You can try commands like:\n"
+                "  - look\n"
+                "  - go <direction>\n"
+                "  - take <item>\n"
+                "  - drop <item>\n"
+                "  - inventory\n"
+                "  - save\n"
+                "  - load\n"
+                "  - score\n"
+                "  - help\n"
+                "\n"
+                "Type 'help commands' to see all available verbs."
+            )
+
+        def help_all_verbs() -> list[str]:
+            lines = ["Available commands:"]
+            names = {
+                verb.name
+                for verb in Verb.all_verbs
+                if not verb.hidden
+            }
+            lines.extend(f"  - {name}" for name in sorted(names))
+            return lines
+        
+  
+        # Case 1: A noun was resolved by the parser
+        noun = result["noun"]
+        if noun is not None:
+            return self.build_message(f"There is no more information available for '{noun.display_name()}'.")
+  
+        # Case 2: Keywords found in leftover words
+
+        keywords = result["keywords"]
+
+        # "help commands" or "help verbs"
+        if keywords:
+            if "commands" in keywords or "verbs" in keywords or "all" in keywords:
+                return self.build_message(help_all_verbs())
+            else:
+                return self.build_message(f"Help is not available for '{' '.join(keywords)}'.")
+    
+        # Case 3: Raw words with no matches
+        raw = result["raw"]
+        if raw:
+            return self.build_message(f"Help is not available for '{' '.join(raw)}'.")
+        
+        # Case 4: No noun, no keywords, no raw words → default help text
+        
+        return self.build_message(default_help_text())
 
 
     # ------------------------------------------------------------
@@ -115,9 +139,9 @@ class MetaVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = ()
     ) -> str:
-        game = ctx.game
+        game = self.game(ctx)
         if game is None:
             return "Score is unavailable."
-        return f"Your current score is: {game.score}"
+        return self.build_message(f"Your current score is: {game.score}")
 
 

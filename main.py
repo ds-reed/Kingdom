@@ -178,7 +178,7 @@ def main(args: argparse.Namespace | None = None):
         hero_name = trs80_prompt("Enter hero name: ").strip() or "Hero"
         game.set_current_player(Player(hero_name))
         print()
-        trs80_print(f"Welcome, {hero_name}!", style=TRS80_WHITE)
+        trs80_print(f"Welcome {hero_name}!", style=TRS80_WHITE)
         print()
 
         save_path = base_dir / "data" / f"{hero_name}-save.json"

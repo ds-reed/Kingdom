@@ -5,6 +5,8 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
+from unittest import result
+
 from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
 from kingdom.renderer import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
@@ -16,7 +18,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, ctx, direction, exit_dict, verb_name, success_verb):
+    def perform_movement(self, ctx, canonical, exit_dict, verb_name, success_verb):
         """
         Shared movement engine.
 
@@ -26,16 +28,8 @@ class MovementVerbHandler(VerbHandler):
         """
         state = self.state(ctx)
         game = self.game(ctx)
-        
-        if state.current_room is None:
-            return "DEBUG: You are nowhere. Cannot move."
-        
-        canonical = self.canonical_direction(direction)
-        if not canonical:
-            return f"You can't {verb_name} that way."
 
         next_room = exit_dict.get(canonical)
-
         if next_room is None:
             return f"You can't {verb_name} {canonical} from here."
 
@@ -48,78 +42,72 @@ class MovementVerbHandler(VerbHandler):
             next_room.visited = True
 
         # Render
+        lines = [f"You {success_verb} {canonical}."]
+        lines.extend(render_current_room(state, display=False))
 
-        lines=[f"You {success_verb} {canonical}."]
-        lines.extend(render_current_room(state, clear= False, display=True))
-
-        return self.build_message(*lines)
+        return lines
 
 
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
     def go(self, ctx, target, words):
-        
-        if target is None:
-            return "Go where?"
-        
-        if target is not None and hasattr(target, "canonical_direction"):
-            direction = target.canonical_direction
+
+        parsed = self.resolve_noun_or_word(target, words, interest=[])
+
+        direction = parsed["direction"]
+
+        if direction is None:
+            return self.build_message("Go where?")
+
+        outcome= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
+        return self.build_message(outcome)
 
 
-        result= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
-        return result
-
-
-
-    # ------------------------------------------------------------
-    # SWIM verb (directional swim_exits)
-    # ------------------------------------------------------------
     def swim(self, ctx, target: Noun, words: list[str]):
-        state = self.state(ctx) 
-        game = self.game(ctx)
         room = self.room(ctx)
 
-        print(f"DEBUG: SWIM called with target={target} and words={words}")
+        def check_swim_constraints(ctx):
+            player = self.player(ctx)
+            inventory = player.get_inventory_items()
 
-        if room is None:
-            return "ERROR: There is nowhere to swim."
+            heavy_item = next(
+                (item for item in inventory if getattr(item, "too_heavy_to_swim", False)),
+                None
+            )
+            if heavy_item is not None:
+                raise GameOver(
+                    f"{heavy_item.get_noun_name()} drags you under as you try to swim. You drown. GAME OVER."
+                )
 
-        # 1. Resolve direction
-        if target is not None and hasattr(target, "canonical_direction"):
-            direction = target.canonical_direction
-        elif words and words[0] is not None:
-            noun_id = Noun.by_name(words[0])
-            if hasattr(noun_id, "canonical_direction"):
-                direction = noun_id.canonical_direction
-        else:
-            return "You splash around aimlessly."
+            return None
 
-        # 2. Drowning logic
-        constraint_error = self._check_swim_constraints(ctx)
+        # 1. Room must allow swimming
+        if not getattr(room, "has_water", False):
+            return self.build_message("There is nowhere to swim here.")
+
+        # 2. Drowning / constraint logic
+        constraint_error = check_swim_constraints(ctx)
         if constraint_error:
             return constraint_error
 
-        # 3. Use swim-only exits
-        return self.perform_movement(ctx, direction, room.swim_exits, "swim", "swim")
+        # 3. Parse direction
+        parsed = self.resolve_noun_or_word(target, words, interest=[])
+        direction = parsed["direction"]
 
-    # ------------------------------------------------------------
-    # Drowning logic 
-    # ------------------------------------------------------------
-    def _check_swim_constraints(self, ctx):
+        if direction is None:
+            return self.build_message("You splash around aimlessly.")
 
-        player = self.player(ctx)
-
-        heavy_item = next(
-            (item for item in player.sack.contents if getattr(item, "too_heavy_to_swim", False)),
-            None
+        # 4. Perform swim movement using swim_exits
+        outcome = self.perform_movement(
+            ctx,
+            direction,
+            room.swim_exits,
+            verb_name="swim",
+            success_verb="swim"
         )
-        if heavy_item is not None:
-            raise GameOver(
-                f"{heavy_item.get_noun_name()} drags you under as you try to swim. You drown. GAME OVER."
-            )
 
-        return None
+        return self.build_message(outcome)
 
 
     def teleport(self, ctx, target: Noun, words: list[str]):
@@ -132,7 +120,7 @@ class MovementVerbHandler(VerbHandler):
         if not words and target is None:
             room_list = sorted(game.rooms.values(), key=lambda r: r.name)
 
-            lines = ["Debug teleport — available rooms:"]
+            lines = ["Teleport — available rooms:"]
             for i, room in enumerate(room_list, 1):
                 lines.append(f"  {i:2d}. {room.name}")
             lines.append("")
@@ -141,21 +129,10 @@ class MovementVerbHandler(VerbHandler):
             return "\n".join(lines)
 
         # Resolve target room
-        target_room = None
+        desired_room = None
 
-        # 1. Direct noun target
-        if target is not None:
-            if isinstance(target, Room):
-                target_room = target
-            else:
-                query = target.get_noun_name().lower()
-                for r in game.rooms.values():
-                    if query in r.name.lower() or query in r.get_noun_name().lower():
-                        target_room = r
-                        break
-
-        # 2. Words fallback
-        if target_room is None and words:
+        # 1. find desired room from words because only nouns in the current room or inventory are considered targets by the parser
+        if desired_room is None and words:
             query = " ".join(words).strip().lower()
 
             # Number?
@@ -163,40 +140,36 @@ class MovementVerbHandler(VerbHandler):
                 idx = int(query) - 1
                 rooms_sorted = sorted(game.rooms.values(), key=lambda r: r.name)
                 if 0 <= idx < len(rooms_sorted):
-                    target_room = rooms_sorted[idx]
+                    desired_room = rooms_sorted[idx]
             except ValueError:
                 pass
 
             # Name prefix/partial match
-            if target_room is None:
+            if desired_room is None:
                 matches = [
                     r for r in game.rooms.values()
                     if query in r.name.lower() or query in r.get_noun_name().lower()
                 ]
                 if len(matches) == 1:
-                    target_room = matches[0]
+                    desired_room = matches[0]
                 elif len(matches) > 1:
                     names = ", ".join(r.name for r in matches)
-                    return f"Ambiguous room name — matches: {names}"
+                    return self.build_message(f"Ambiguous room name — matches: {names}")
 
-        if target_room is None:
-            return "No matching room. Use 'teleport' alone to list rooms."
+        if desired_room is None:
+            return self.build_message("No matching room. Use 'teleport' alone to list rooms.")
+        
+        if desired_room is room:
+            return self.build_message(f"You are already in {room.name}.")
 
         # Perform the teleport
-        old_room_name = state.current_room.name
-        state.current_room = target_room
-        target_room.visited = True
+        old_room_name = room.get_noun_name()
+        state.current_room = desired_room
+        new_room_name = desired_room.get_noun_name()
+        desired_room.visited = True
 
-        lines = [f"You teleport from {old_room_name} to {target_room.name}."]
-        lines.extend(render_current_room(state, clear= False, display=True))
-        return self.build_message(*lines)
+        lines = [f"You teleport from {old_room_name} to {new_room_name}."]
+        lines.extend(render_current_room(state, display=False))
+        return self.build_message(lines)
 
-        
-
-
-
-
-
-
-
-        # Add more movement verbs as needed
+    

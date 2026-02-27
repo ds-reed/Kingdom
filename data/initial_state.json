@@ -88,6 +88,7 @@
                             "name": "a cheery orange carrot",
                             "noun_name": "carrot",
                             "is_edible": true,
+                            "examine_string": "The carrot cheerfully waves hello!",
                             "eaten_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
                         },
                         {
@@ -137,6 +138,7 @@
             "name": "Colossal Cave",
             "description": "A colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
             "discover_points": 10,
+            "has_water": true,
             "swim_exits": {
                 "west": "Pool Ledge"
             },
@@ -158,6 +160,7 @@
             "discover_points": 10,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
+            "has_water": true,
             "swim_exits": {
                 "east": "Colossal Cave"
             },
