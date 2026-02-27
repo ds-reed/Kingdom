@@ -1,4 +1,11 @@
 {
+    "directions": { "north": { "reverse": "south", "aliases": ["n"] },
+                    "south": { "reverse": "north", "aliases": ["s"] },
+                    "east": { "reverse": "west", "aliases": ["e"] },
+                    "west": { "reverse": "east", "aliases": ["w"] },
+                    "up": { "reverse": "down", "aliases": ["u"] },
+                    "down": { "reverse": "up", "aliases": ["d"] }
+    },
     "score": 0,
     "start_room": "Tower Cell",
     "rooms": [

@@ -6,26 +6,13 @@ This module centralizes movement verb logic for clarity and maintainability.
 """
 
 from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
-from kingdom.parser import normalize_direction_token
 from kingdom.terminal_style import TRS80_WHITE, trs80_print, trs80_clear_and_show_room
 from kingdom.renderer import render_current_room
-
-_DIRECTION_ORDER = {
-    "up": 0,
-    "down": 1,
-    "north": 2,
-    "south": 3,
-    "east": 4,
-    "west": 5,
-}
-
-_VERTICAL_DIRECTION_LABELS = {
-    "up": "above",
-    "down": "below",
-}
+from kingdom.verbs.verb_handler import VerbHandler
 
 
-class MovementVerbHandler:
+
+class MovementVerbHandler(VerbHandler):
 
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
@@ -40,11 +27,15 @@ class MovementVerbHandler:
         """
         state = context.state
         game = context.game
-
+        lines=[]
+        
         if state.current_room is None:
-            return f"There is nowhere to {verb_name}."
+            return "DEBUG: You are nowhere. Cannot move."
+        
+        canonical = self.canonical_direction(direction)
+        if not canonical:
+            return f"You can't {verb_name} that way."
 
-        canonical = normalize_direction_token(direction)
         next_room = exit_dict.get(canonical)
 
         if next_room is None:
@@ -59,37 +50,30 @@ class MovementVerbHandler:
             next_room.visited = True
 
         # Render
-        trs80_print(f"You {success_verb} {canonical}.", style=TRS80_WHITE)
-        render_current_room(state, clear=False)
-        print()
-        return ""
 
-    # ------------------------------------------------------------
-    # Direction resolution
-    # ------------------------------------------------------------
-    def resolve_direction(self, target, words):
-        """Extract direction from noun or raw text."""
-        if target is not None:
-            direction = getattr(target, "canonical_direction", None)
-            if direction is None and hasattr(target, "get_noun_name"):
-                return normalize_direction_token(target.get_noun_name())
-            return direction
+        lines.append(f"You {success_verb} {canonical}.")
+        lines.extend(render_current_room(state, clear= False, display=True))
 
-        if words:
-            return normalize_direction_token(words[0])
+        return self.build_message(*lines)
 
-        return None
 
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, context, target: Noun, words: list[str]):
-        direction = self.resolve_direction(target, words)
-        if not direction:
+    def go(self, context, target, words):
+        
+        if target is None:
             return "Go where?"
+        
+        if target is not None and hasattr(target, "canonical_direction"):
+            direction = target.canonical_direction
 
-        room = context.state.current_room
-        return self.perform_movement(context, direction, room.connections, "go", "go")
+
+        result= self.perform_movement(context, direction, self.room(context).connections, "go", "go")
+        print(result)
+        return result
+
+
 
     # ------------------------------------------------------------
     # SWIM verb (directional swim_exits)
@@ -100,11 +84,14 @@ class MovementVerbHandler:
         room = state.current_room
 
         if room is None:
-            return "There is nowhere to swim."
+            return "DEBUG: There is nowhere to swim."
 
         # 1. Resolve direction
-        direction = self.resolve_direction(target, words)
-        if not direction:
+        if target is not None and hasattr(target, "canonical_direction"):
+            direction = target.canonical_direction
+        elif words[0] is not None and hasattr(words[0], "canonical_direction"):       # swim exits are not seen by noun object binder right now, so we also check the first word for a direction match  
+            direction = words[0].canonical_direction
+        else:
             return "You splash around aimlessly."
 
         # 2. Drowning logic
@@ -130,11 +117,10 @@ class MovementVerbHandler:
         )
         if heavy_item is not None:
             raise GameOver(
-                "The gold bar drags you under as you try to swim. You drown. GAME OVER."
+                f"{heavy_item.get_noun_name()} drags you under as you try to swim. You drown. GAME OVER."
             )
 
         return None
-
 
 
     def teleport(self, context, target: Noun, words: list[str]):

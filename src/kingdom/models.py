@@ -357,19 +357,6 @@ class Verb:
         return f"Verb({self.name})"
 
 
-DIRECTION_ALIASES = {
-    "north": ("n",),
-    "south": ("s",),
-    "east": ("e",),
-    "west": ("w",),
-    "up": ("u", "above"),
-    "down": ("d", "below"),
-}
-
-_DIRECTION_NOUNS_BY_REFERENCE: dict[str, "DirectionNoun"] = {}
-_DIRECTION_NOUNS_BY_CANONICAL: dict[str, list["DirectionNoun"]] = {}
-
-
 class Noun:
     """Parent class for all game world entities (items, boxes, rooms)."""
     all_nouns = []  # Class variable to track every noun created
@@ -434,85 +421,132 @@ class Noun:
         return None
 
 
+class DirectionRegistry:
+    def __init__(self):
+        self.canonical = set()
+        self.aliases = {}          # alias -> canonical
+        self.reverse = {}          # canonical -> canonical reverse
+
+    def register(self, canonical: str, *, synonyms=None, reverse=None):
+        canonical = canonical.lower().strip()
+        self.canonical.add(canonical)
+
+        if synonyms:
+            for s in synonyms:
+                self.aliases[s.lower().strip()] = canonical
+
+        if reverse:
+            reverse = reverse.lower().strip()
+            self.reverse[canonical] = reverse
+            self.reverse[reverse] = canonical
+            self.canonical.add(reverse)
+
+    def to_canonical(self, token: str) -> str:
+        token = token.lower().strip()
+        return self.aliases.get(token, token)
+
+    def reverse_of(self, canonical: str) -> str | None:
+        canonical = canonical.lower().strip()
+        return self.reverse.get(canonical)
+
+    def is_direction(self, token: str) -> bool:
+        return self.to_canonical(token) in self.canonical
+
+    def all_directions(self):
+        return sorted(self.canonical)
+
+DIRECTIONS = DirectionRegistry()
+
+
 class DirectionNoun(Noun):
-    """Noun representation of a direction token (e.g., north, n)."""
+    """
+    Minimal noun representation of a direction token.
+    No verb-handling logic; parser handles implicit GO.
+    """
 
     def __init__(self, reference_name: str, canonical_direction: str):
         super().__init__()
         self.name = reference_name
         self.noun_name = reference_name
-        self.descriptive_phrase = canonical_direction
         self.canonical_direction = canonical_direction
 
     def matches_reference(self, reference: str) -> bool:
-        candidate = " ".join(_normalize_tokens(reference))
-        if not candidate:
-            return False
-        return candidate in {self.name, self.noun_name, self.canonical_direction}
+        """
+        A direction noun matches if the reference token canonicalizes
+        to the same canonical direction.
+        """
+        ref = reference.lower().strip()
+        canon = DIRECTIONS.to_canonical(ref)
+        return canon == self.canonical_direction
 
-    def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
-        if verb_name != "":
-            return super().can_handle_verb(verb_name, *args, **kwargs)
+    def canonical_name(self):
+        return self.canonical_direction
+    
+    def noun_name(self):
+        return self.noun_name
+    
+    # ----------------------------------------------------------------------
+    # Registry-driven direction noun generation
+    # ----------------------------------------------------------------------
 
-        dispatch_context = kwargs.get("dispatch_context")
-        state = dispatch_context.state if isinstance(dispatch_context, DispatchContext) else None
-        current_room = getattr(state, "current_room", None)
-        if current_room is None:
-            return False, "There is nowhere to go."
-
-        if self.canonical_direction not in current_room.available_directions():
-            return False, f"You can't go {self.canonical_direction} from here."
-
-        return True, None
-
-    def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
-        if verb_name != "":
-            return super().handle_verb(verb_name, *args, **kwargs)
-
-        dispatch_context = kwargs.get("dispatch_context")
-        state = dispatch_context.state if isinstance(dispatch_context, DispatchContext) else None
-        current_room = getattr(state, "current_room", None)
-        if current_room is None:
-            return "There is nowhere to go."
-
-        destination = current_room.get_connection(self.canonical_direction)
-        if destination is None:
-            return f"You can't go {self.canonical_direction} from here."
-
-        state.current_room = destination
-        return f"You go {self.canonical_direction}."
+    _direction_nouns_by_reference: dict[str, DirectionNoun] = {}
+    _direction_nouns_by_canonical: dict[str, list[DirectionNoun]] = {}
 
 
-def ensure_direction_nouns() -> dict[str, DirectionNoun]:
-    """Create direction nouns once and return reference-token lookup."""
-    if _DIRECTION_NOUNS_BY_REFERENCE:
-        return _DIRECTION_NOUNS_BY_REFERENCE
+    def ensure_direction_nouns():
+        """
+        Build direction nouns from the DirectionRegistry.
+        """
+        global _direction_nouns_by_reference, _direction_nouns_by_canonical
 
-    for canonical, aliases in DIRECTION_ALIASES.items():
-        _DIRECTION_NOUNS_BY_CANONICAL[canonical] = []
-        all_names = set([canonical])
-        if isinstance(aliases, (list, tuple, set)):
-            all_names.update(aliases)
-        elif isinstance(aliases, str):
-            all_names.add(aliases)
-        for reference_name in all_names:
-            direction_noun = DirectionNoun(reference_name, canonical)
-            _DIRECTION_NOUNS_BY_REFERENCE[reference_name] = direction_noun
-            _DIRECTION_NOUNS_BY_CANONICAL[canonical].append(direction_noun)
+        
+        if DirectionNoun._direction_nouns_by_reference:
+            print("DEBUG: Directions already initialized — skipping")
+            return
+        
+        print("DEBUG: Initializing direction nouns...")
+        # ... creation code ...
+        print(f"DEBUG: Created {len(DirectionNoun._direction_nouns_by_reference)} direction nouns")
+        print(f"DEBUG: Noun.all_nouns now has {len(Noun.all_nouns)} total nouns")
 
-    return _DIRECTION_NOUNS_BY_REFERENCE
+        # Build nouns for canonical directions
+        for canonical in DIRECTIONS.canonical:
+            dn = DirectionNoun(canonical, canonical)
+            DirectionNoun._direction_nouns_by_reference[canonical] = dn
+            DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(dn)
+
+        # Build nouns for aliases
+        for alias, canonical in DIRECTIONS.aliases.items():
+            dn = DirectionNoun(alias, canonical)
+            DirectionNoun._direction_nouns_by_reference[alias] = dn
+            DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(dn)
 
 
-def get_direction_nouns_for_available_exits(room: "Room | None") -> list[DirectionNoun]:
-    """Return direction noun tokens valid for the current room exits."""
-    ensure_direction_nouns()
-    if room is None:
-        return []
+    def get_direction_noun(token: str) -> DirectionNoun | None:
+        """
+        Return a DirectionNoun for a token if it is a known direction.
+        """
+        DirectionNoun.ensure_direction_nouns()
+        token = token.lower().strip()
+        return DirectionNoun._direction_nouns_by_reference.get(token)
 
-    nouns: list[DirectionNoun] = []
-    for direction in room.available_directions(visible_only=True):
-        nouns.extend(_DIRECTION_NOUNS_BY_CANONICAL.get(str(direction).lower(), []))
-    return nouns
+
+    def get_direction_nouns_for_available_exits(room) -> list[DirectionNoun]:
+        """
+        Return direction nouns corresponding to the exits available in the room.
+        Useful for parser hints, autocompletion, etc.
+        """
+        DirectionNoun.ensure_direction_nouns()
+        if room is None:
+            return []
+
+        nouns: list[DirectionNoun] = []
+        for canonical in room.available_directions(visible_only=True):
+            canonical = canonical.lower().strip()
+            nouns.extend(DirectionNoun._direction_nouns_by_canonical.get(canonical, []))
+
+        return nouns
+
 
 class Item(Noun):
     all_items = []  # Class variable to track every item created
@@ -1101,6 +1135,11 @@ class Game(Noun):
         Item.all_items.clear()
         Noun.all_nouns.clear()           
 
+        _load_directions(data) 
+        DirectionNoun.ensure_direction_nouns()
+
+        print(f"DEBUG: After loading directions — canonical count: {len(DIRECTIONS.canonical)}")
+        print(f"DEBUG: Aliases count: {len(DIRECTIONS.aliases)}")
 
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))

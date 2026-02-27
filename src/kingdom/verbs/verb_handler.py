@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
 from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game
+from kingdom.models import DIRECTIONS
 
 
 class VerbHandler:
@@ -123,6 +124,38 @@ class VerbHandler:
             return ItemLocation(LocationType.INSIDE_BOX, container=containing_box)
 
         return None
+
+    # ------------------------------------------------------------
+    # Direction helpers
+    # ------------------------------------------------------------
+    def is_direction(self, token: str) -> bool:
+        """
+        True if the token is a known direction or alias.
+        """
+        if not token:
+            return False
+        return DIRECTIONS.is_direction(token)
+
+    def canonical_direction(self, token: str) -> str | None:
+        """
+        Return the canonical direction for a token, or None if not a direction.
+        """
+        if not token:
+            return None
+        if not DIRECTIONS.is_direction(token):
+            return None
+        return DIRECTIONS.to_canonical(token)
+
+    def extract_direction_from_words(self, words: Iterable[str]) -> str | None:
+        """
+        Look at leftover words and return the first canonical direction if present.
+        """
+        for w in words:
+            if DIRECTIONS.is_direction(w):
+                return DIRECTIONS.to_canonical(w)
+        return None
+
+
 
 
     # ------------------------------------------------------------

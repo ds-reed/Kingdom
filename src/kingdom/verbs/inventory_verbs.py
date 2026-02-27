@@ -10,7 +10,7 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
-        player = ctx.game.current_player
+        player = self.player(ctx)
         if not player:
             return "DEBUG: No current player."
 
@@ -38,7 +38,7 @@ class InventoryVerbHandler(VerbHandler):
         state = ctx.state
         game = ctx.game
         room = state.current_room
-        player = game.current_player
+        player = self.player(ctx)
 
         # ------------------------------------------------------------
         # 1. TAKE ALL (use the base-class ALL handler)
@@ -99,7 +99,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 7. Take from room
         # ------------------------------------------------------------
-        if loc.type == LocationType.ROOM_FLOOR:
+        if loc.type is LocationType.ROOM_FLOOR:
             room.remove_item(target)
             player.add_to_sack(target)
             return f"You take {target.display_name()}."
@@ -107,7 +107,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 8. Take from open box
         # ------------------------------------------------------------
-        if loc.type == LocationType.INSIDE_BOX:
+        if loc.type is LocationType.INSIDE_BOX:
             # Find the box again (loc.container should have it)
             found_box = loc.container
             found_box.remove_item(target)
@@ -129,10 +129,10 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
-        state = ctx.state
-        game = ctx.game
-        room = state.current_room
-        player = game.current_player
+        state = self.state(ctx)
+        game = self.game(ctx)
+        room = self.room(ctx)
+        player = self.player(ctx)
 
         # ------------------------------------------------------------
         # 1. DROP ALL

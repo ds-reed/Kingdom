@@ -8,20 +8,11 @@ import re
 from typing import Iterable
 
 from kingdom.models import Noun, Verb
+from kingdom.models import DIRECTIONS, DirectionNoun
+
 
 
 WORD_PATTERN = re.compile(r"[a-zA-Z0-9']+")
-
-DIRECTION_ALIASES = {
-    "n": "north",
-    "s": "south",
-    "e": "east",
-    "w": "west",
-    "u": "up",
-    "d": "down",
-    "above": "up",
-    "below": "down",
-}
 
 @dataclass(frozen=True)
 class ParseMatch:
@@ -55,11 +46,6 @@ def normalize_text(text: str) -> str:
 def tokenize(text: str) -> list[str]:
     normalized = normalize_text(text)
     return WORD_PATTERN.findall(normalized)
-
-
-def normalize_direction_token(direction: str) -> str:
-    token = direction.strip().lower()
-    return DIRECTION_ALIASES.get(token, token)
 
 
 def parse_command(
@@ -98,6 +84,17 @@ def resolve_command(
 ) -> ResolvedCommand | None:
     parse_result = parse_command(text, known_verbs=known_verbs, known_nouns=known_nouns)
     primary_verb = parse_result.primary_verb
+
+    # Implicit GO: single direction token
+    tokens = parse_result.tokens
+    if len(tokens) == 1 and DIRECTIONS.is_direction(tokens[0]):
+        dn = DirectionNoun.get_direction_noun(tokens[0])
+        return ResolvedCommand(
+            verb="go",
+            args=[dn.canonical_direction],
+            parse=parse_result,
+        )
+
 
     if primary_verb is None:
         return None

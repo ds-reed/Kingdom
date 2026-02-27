@@ -15,8 +15,9 @@ sys.path.append("./src")
 from kingdom.models import Game, Player, GameOver, QuitGame, GameActionState, build_dispatch_context
 from kingdom.renderer import RoomRenderer, render_current_room
 
-from kingdom.parser import DIRECTION_ALIASES  #needed for implicit noun action handling, remove when implicts are refactored
-from kingdom.models import get_direction_nouns_for_available_exits, ensure_direction_nouns
+from kingdom.models import DIRECTIONS, DirectionNoun
+
+
 from kingdom.actions import build_verbs
 import kingdom.item_behaviors as item_behaviors
 
@@ -47,7 +48,7 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
     yield game
 
     if state.current_room is not None:
-        for direction_noun in get_direction_nouns_for_available_exits(state.current_room):
+        for direction_noun in DirectionNoun.get_direction_nouns_for_available_exits(state.current_room):
             yield direction_noun
 
         yield state.current_room
@@ -76,39 +77,6 @@ def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -
             if candidate.matches_reference(noun_match.text):
                 return candidate
 
-    return None
-
-
-def _try_implicit_noun_action(game: Game, state: GameActionState, raw_command: str, dispatch_context: "DispatchContext") -> str | None:
-    parse_result = parse_command(raw_command, known_verbs=[], known_nouns=iter_known_noun_names(game))
-    if not parse_result.nouns:
-        return None
-
-    local_candidates = list(_iter_local_target_candidates(game, state))
-    for noun_match in parse_result.nouns:
-        for candidate in local_candidates:
-            if candidate.matches_reference(noun_match.text):
-                canonical_direction = getattr(candidate, "canonical_direction", None)
-                if isinstance(canonical_direction, str):
-                    # Always call go_action, even if no exit exists, to get a meaningful response.
-                     return adapt_method(movement.go)(canonical_direction,dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
-                can_handle, refusal_message = candidate.can_handle_verb(
-                    "",
-                    dispatch_context=dispatch_context,
-                )
-                if not can_handle:
-                    return refusal_message or "I don't understand that command."
-
-                handled_result = candidate.handle_verb(
-                    "",
-                    dispatch_context=dispatch_context,
-                )
-                if handled_result is not None:
-                    return handled_result
-    # If a direction noun was entered but not matched, try go_action directly.
-    for noun_match in parse_result.nouns:
-        if noun_match.text in DIRECTION_ALIASES or noun_match.text in Room.DIRECTIONS:
-            return adapt_method(movement.go)(noun_match.text, dispatch_context=dispatch_context)   #remove adapter later when movement verbs are fully integrated
     return None
 
 
@@ -204,9 +172,8 @@ def main(args: argparse.Namespace | None = None):
         # Build the game
         game = Game.get_instance()
         _ensure_score(game)
-
+        print(f"DEBUG: setting up game world from {data_path}...")
         game.setup_world(data_path)
-        ensure_direction_nouns()
 
         print()
         hero_name = trs80_prompt("Enter hero name: ").strip() or "Hero"
@@ -270,18 +237,16 @@ def main(args: argparse.Namespace | None = None):
                 known_verbs=verbs.keys(),
                 known_nouns=iter_known_noun_names(game),
             )
+
+
             if resolved_command is None:
-   #             implicit_result = _try_implicit_noun_action(game, action_state, command, dispatch_context)
-   #             if implicit_result is not None:
-   #                 if implicit_result:
-   #                     trs80_print(implicit_result, style=TRS80_WHITE)
-   #                 continue
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
                 continue
 
             verb_word = resolved_command.verb
             args = resolved_command.args
             target_noun = _resolve_target_noun(game, action_state, resolved_command)
+
 
             if recovery_mode and verb_word not in recovery_allowed_verbs:
                 trs80_print("You are dead. Load a saved game or quit.", style=TRS80_WHITE)
@@ -291,6 +256,8 @@ def main(args: argparse.Namespace | None = None):
             if verb is None:
                 trs80_print("I don't understand that command.", style=TRS80_WHITE)
                 continue
+
+            print(f"DEBUG: Executing verb '{verb_word}' with target={target_noun} and args={args}")
 
             try:
                 result = verb.execute(
