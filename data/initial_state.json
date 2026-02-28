@@ -90,7 +90,7 @@
                             "noun_name": "carrot",
                             "is_edible": true,
                             "examine_string": "The carrot cheerfully waves hello!",
-                            "eaten_success_string": "THE CHEERY ORANGE CARROT SCREAMS AS YOU FORCE IT DOWN YOUR HIDEOUS THROAT. HIS SCREAMS DIE OUT TO A GURGLE AS HE IS DRIVEN INTO THE PIT OF YOUR GREEDY STOMACH."
+                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
                         },
                         {
                             "name": "a suspicious looking fish",
@@ -106,7 +106,9 @@
                             "name": "a battered and dull brass lamp",
                             "noun_name": "lamp",
                             "is_rubbable": true,
+                            "is_rubbed": false,
                             "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rubbed_state_description": "a battered and shiny brass lamp.",
                             "special_handlers": {"rub": "rub_lamp"},
                             "trigger_room": "Blank Chamber"
                         },

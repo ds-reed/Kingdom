@@ -592,3 +592,55 @@ Prioritize readable, natural English in JSON keys and messages
   "open_refuse_if_locked": "The door won't budge — it's locked tight.",
   "examine_locked": "The door is secured with a large iron lock that looks very old."
 }
+
+
+
+
+------------- make a template next time for the verb updates. Here is a sample ----------
+To create a reusable template (code snippet) in VS Code for your state-changing verb methods (like open, close, light, eat, rub, etc.), the best built-in way is to use User Snippets. These are quick to set up, work only for Python files (or globally), and let you type a short prefix → Tab → and get a mostly-filled-out method skeleton.Step-by-step: Create a Snippet for Your Verb PatternOpen the Command Palette
+Press Ctrl+Shift+P (Windows/Linux) or Cmd+Shift+P (macOS)
+Type and select
+Preferences: Configure User Snippets
+Choose the scope  Select python.json (recommended — snippets will only appear in .py files)
+or  
+New Global Snippets file (if you want them everywhere, name it e.g. text-adventure-verbs.json)
+
+VS Code opens/creates the file (something like C:\Users\YourName\AppData\Roaming\Code\User\snippets\python.json or equivalent on macOS/Linux).
+Paste one of the snippet definitions below into the file (inside the outer { … } braces).
+You can add multiple snippets — just separate them with commas.Recommended starting point — a fairly complete skeleton for a stateful verb (open/close/light style):
+
+{
+  "State Verb - full state change": {
+    "prefix": "verbstate",
+    "scope": "python",
+    "body": [
+      "def ${1:verb}(self, ctx: DispatchContext, target: Optional[Noun] = None, words: tuple[str, ...] = ()) -> str:",
+      "",
+      "    parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])",
+      "    keywords = parse[\"keywords\"]",
+      "",
+      "    # 1. Verb modifier checks",
+      "    if \"all\" in keywords or \"everything\" in keywords:",
+      "        return self.build_message(\"One at a time, please.\")",
+      "",
+      "    # 2. Missing target check",
+      "    if target is None:",
+      "        return self.build_message(self.missing_target(\"${1:verb}\"))",
+      "",
+      "    # 3. Special handler pipeline",
+      "    outcome: VerbOutcome | None = try_item_special_handler(target, \"${1:verb}\", words, ctx)",
+      "    if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):",
+      "        return self.build_message(outcome.message or \"\")",
+      "",
+      "    # 4. Main logic",
+      "    cant_msg = self.basic_checks(",
+      "        target,",
+      "        capability_attr=\"is_${2:capability}\",",
+      "        current_state_attr=\"${3:is_state_attr}\",",
+      "        desired_state=${4|True,False|},",
+      "        verb_phrase=\"${1:verb}\",",
+      "        already_msg=\"${5:already_msg}\",",
+    ],
+    "description": "Skeleton for a state-changing verb handler method (open/close/light style)"
+  }
+}

@@ -54,6 +54,4 @@ class UIVerbHandler(VerbHandler):
             
         if raw: return self.build_message("I don't understand what you want to look at.")
 
-        ctx.ui.render_room(render_current_room(ctx.game.state, display=False), clear=False)
-
-        return  
+        return self.build_message(renderer.describe_room(room))

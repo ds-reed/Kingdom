@@ -33,7 +33,7 @@ class StateVerbHandler(VerbHandler):
             return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
         return None
 
-    def lookup_required_item_id(self, ctx, required_noun_name, verb_phrase) -> Noun | None:
+    def lookup_required_item_id(self, required_noun_name, verb_phrase) -> Noun | None:
         required = Item.get_by_name(required_noun_name)
         if required is None:
              print(f"Error: Required noun '{required_noun_name}' not found in game data for {verb_phrase}.")
@@ -198,7 +198,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or ""
+            return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -291,7 +291,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
+            return self.build_message(outcome.message or "")
 
 
         # ------------------------------------------------------------
@@ -312,7 +312,7 @@ class StateVerbHandler(VerbHandler):
 
         #  Required key (if any)
         key_name = getattr(target, "unlock_key", None)
-        key_id = self.lookup_required_item_id(ctx, key_name, "unlock") 
+        key_id = self.lookup_required_item_id(key_name, "unlock") 
 
         if key_name and key_id:
             no_key_msg = self.require_item(
@@ -465,12 +465,12 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
+            return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Main logic
         # ------------------------------------------------------------
-        refusal = self.basic_checks(
+        cant_msg = self.basic_checks(
             target,
             capability_attr="is_lightable",
             current_state_attr="is_lit",
@@ -478,8 +478,8 @@ class StateVerbHandler(VerbHandler):
             verb_phrase="extinguish",
             already_msg="extinguished",
         )
-        if refusal:
-            return refusal
+        if cant_msg:
+            return self.build_message(cant_msg)
 
         # change the state
         result_msg = self.apply_state_change(
@@ -539,30 +539,23 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
+            return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Main logic
         # ------------------------------------------------------------       
-        refusal = self.basic_checks(
+        cant_msg = self.basic_checks(
             target,
             capability_attr="is_edible",
-            desired_state=True,
             verb_phrase="eat",
         )
-        if refusal:
-            return refusal
+        if cant_msg:
+            return self.build_message(cant_msg)
 
-        # state-change pipeline
-        return_msg = self.apply_state_change(
-            ctx=ctx,
-            target=target,
-            verb_phrase="eat",
-            state_attr=None,
-            desired_state=None,
-        )   
+        # state-change pipeline - no state change for eat - just get the message
+
         if getattr(target, "eaten_success_string", None):
-            return_msg = target.eaten_success_string
+            result_msg = target.eaten_success_string
 
         # 4. Post-mutation side effect: remove item from inventory  
 
@@ -571,8 +564,17 @@ class StateVerbHandler(VerbHandler):
         if room.has_item(target):
             room.remove_item(target)
 
-        return self.build_message(return_msg)
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
 
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        return self.build_message(parts)
+    
 
     def rub(
         self,
@@ -580,33 +582,60 @@ class StateVerbHandler(VerbHandler):
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
-        # 1. Basic capability checks
-        refusal = self.basic_checks(
+        
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
+        keywords = parse["keywords"]        
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("Hmmm...")
+
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("rub"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, ctx)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------   
+        cant_msg = self.basic_checks(
             target,
             capability_attr="is_rubbable",
+            current_state_attr="is_rubbed",
             desired_state=True,
             verb_phrase="rub",
         )
-        if refusal:
-            return refusal
+        if cant_msg:
+            return self.build_message(cant_msg)
 
-        # 2. Unified special-handling pipeline
-        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
-
-        # 3. Unified state-change pipeline
-        return_message = self.apply_state_change(
+        # state-change pipeline
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
             verb_phrase="rub",
             state_attr="is_rubbed",
             desired_state=True,
         )   
-        
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
 
-        return self.build_message((outcome.message if outcome else None) or return_message or "")
-     
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        return self.build_message(parts)
 
     def say(
         self,
@@ -614,23 +643,44 @@ class StateVerbHandler(VerbHandler):
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
-        # 1. Basic capability checks
-        refusal = self.basic_checks(
+        
+        parse = self.resolve_noun_or_word(words, interest=['wish'])
+        keywords = parse["keywords"]        
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+        if "wish" in keywords:    # special case for djinni lamp
+            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
+            if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+                return self.build_message(outcome.message or "") 
+            return self.build_message("Nothing happens.")
+        
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message("You speak to the wind; the wind does not hear. The wind cannot hear")
+
+        cant_msg = self.basic_checks(
             target,
             capability_attr="is_verbally_interactive",
-            desired_state=True,
-            verb_phrase="say",
+  #          desired_state=True,
+            verb_phrase="speak to",
         )
-        if refusal:
-            return "You speak to the wind; the wind does not hear. The wind cannot hear." if target is None else refusal
-
-        # 2. Unified special-handling pipeline
+        if cant_msg:
+            return self.build_message(cant_msg)
+        
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
+            return self.build_message(outcome.message or "") 
 
-        # 3. Unified state-change pipeline
-        return_message = self.apply_state_change(
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------   
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
             verb_phrase="say",
@@ -638,23 +688,64 @@ class StateVerbHandler(VerbHandler):
             desired_state=True,
         )
         
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
 
-        return self.build_message((outcome.message if outcome else None) or return_message or "")
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        return self.build_message(parts)
                 
 
     def make(self, ctx, target=None, words=()):
 
-        # Implicit Djinni targeting - clean this all up when we can do other things with make
+        room = self.room(ctx)
+        parse = self.resolve_noun_or_word(words, interest=['wish', 'all', 'everything'])
+        keywords = parse["keywords"]        
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("Busy, busy making everything! Maybe focus on one thing at a time?")
+        
+        if "wish" in keywords:    # special case for djinni lamp
+            required = self.lookup_required_item_id("djinni", "make wish")
+            if target is None and room.has_item(required): target = required  
+            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, ctx)
+            if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+                return self.build_message(outcome.message or "") 
+            return self.build_message("Nothing happens.")
+
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
         if target is None:
-            room = ctx.state.current_room
-            for obj in room.items:
-                if getattr(obj, "noun_name", None) == "djinni":
-                    target = obj
-                    break
+            return self.build_message(self.missing_target("make"))
 
-        outcome = try_item_special_handler(target, "make", words, ctx)
-
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or ""
+            return self.build_message(outcome.message or "")
 
-        return "Nothing happens."
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------   
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_makeable",
+            desired_state=True,
+            verb_phrase="make",
+        )
+
+        if cant_msg:
+            return self.build_message(cant_msg)
+
+# nothing to make yet, so not implementing a state change here.
+
+

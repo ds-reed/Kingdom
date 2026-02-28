@@ -133,7 +133,7 @@ def _serialize_item(item: "Item") -> dict:
 
     if getattr(item, "lit_state_description", None):
         payload["lit_state_description"] = item.lit_state_description
-        
+
     if getattr(item, "unlit_state_description", None):
         payload["unlit_state_description"] = item.unlit_state_description
 
@@ -200,8 +200,14 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "is_rubbable", False):
         payload["is_rubbable"] = True
 
+    if getattr(item, "is_rubbed", False):
+        payload["is_rubbed"] = True
+
     if getattr(item, "rub_success_string", None):
         payload["rub_success_string"] = item.rub_success_string
+
+    if getattr(item, "rubbed_state_description", None):
+        payload["rubbed_state_description"] = item.rubbed_state_description
 
     if getattr(item, "too_heavy_to_swim", False):
         payload["too_heavy_to_swim"] = True
@@ -301,7 +307,9 @@ def _construct_item_from_spec(item_spec) -> "Item":
         can_ignite=item_spec.get("can_ignite", False),
         ignite_success_string=item_spec.get("ignite_success_string"),
         is_rubbable=item_spec.get("is_rubbable", False),
+        is_rubbed=item_spec.get("is_rubbed", False),
         rub_success_string=item_spec.get("rub_success_string"),
+        rubbed_state_description=item_spec.get("rubbed_state_description"),
         trigger_room=item_spec.get("trigger_room"),
         too_heavy_to_swim=item_spec.get("too_heavy_to_swim", False),
         eat_refuse_string=item_spec.get("eat_refuse_string"),
@@ -615,6 +623,8 @@ class Item(Noun):
         can_ignite=False,
         ignite_success_string=None,
         is_rubbable=False,
+        is_rubbed=False,
+        rubbed_state_description=None,
         rub_success_string=None,
         trigger_room=None,
         too_heavy_to_swim=False,
@@ -676,6 +686,8 @@ class Item(Noun):
         self.can_ignite = bool(can_ignite)
         self.ignite_success_string = ignite_success_string
         self.is_rubbable = bool(is_rubbable)
+        self.is_rubbed = bool(is_rubbed)
+        self.rubbed_state_description = rubbed_state_description
         self.rub_success_string = rub_success_string
         self.trigger_room = str(trigger_room).strip() if trigger_room is not None and str(trigger_room).strip() else None
         self.too_heavy_to_swim = bool(too_heavy_to_swim)

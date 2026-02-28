@@ -175,7 +175,7 @@ def eat_fish(item, verb, words, ctx):
 
     if item not in inventory:
         return VerbOutcome(
-            message="YOU HAVE NO FISH!",
+            message="You have no fish.",
             control=VerbControl.SKIP
         )
     
@@ -196,7 +196,7 @@ def eat_fish(item, verb, words, ctx):
 
     # Final message - TRS80 old-school style
     return VerbOutcome(
-        message="YOU BARELY GET THE FISH TO YOUR NOSE WHEN YOU VOMIT VIOLENTLY ON A NEARBY WALL.",
+        message="You barely get the fish to your nose when you vomit violently on a nearby wall.",
         control=VerbControl.STOP
     )
 
@@ -212,7 +212,7 @@ def rub_lamp(item, verb, words, ctx):
     # Must be holding the lamp
     if item not in inventory:
         return VerbOutcome(
-            message="YOU HAVE NO LAMP!",
+            message="You have no lamp.",
             control=VerbControl.STOP
         )
 
@@ -234,10 +234,10 @@ def rub_lamp(item, verb, words, ctx):
 
         return VerbOutcome(
             message=(
-                "The air fills with smoke. After it clears you cannot believe your eyes: "
-                "a djinni has appeared before you. He mutters some words, "
-                "'MYPCLY JUBURUAY MIT DE DIGNIC PIC?' and looks at you inquiringly. "
-                "This means (in magic Arabic), 'I will grant you one wish.'"
+                "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
+                "The smoke solidifies into a an imposing djinni!\n"
+                "He intones: 'MYPCLY JUBURUAY MIT DE DIGNIC PIC?' and looks at you inquiringly.\n"
+                "(This means in magic Arabic, 'I will grant you one wish.')"
             ),
             control=VerbControl.STOP
         )
