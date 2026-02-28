@@ -53,7 +53,11 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     def go(self, ctx, target, words):
 
-        parsed = self.resolve_noun_or_word(target, words, interest=[])
+        print(f"DEBUG: MovementVerbHandler.go called with target={target} and words={words}")
+
+        parsed = self.resolve_noun_or_word(words, interest=[])
+
+        print(f"DEBUG: Parsed movement verb input: {parsed}" )
 
         direction = parsed["direction"]
 
@@ -77,7 +81,7 @@ class MovementVerbHandler(VerbHandler):
             )
             if heavy_item is not None:
                 raise GameOver(
-                    f"{heavy_item.get_noun_name()} drags you under as you try to swim. You drown. GAME OVER."
+                    f"{heavy_item.canonical_name()} drags you under as you try to swim. You drown. GAME OVER."
                 )
 
             return None
@@ -92,7 +96,7 @@ class MovementVerbHandler(VerbHandler):
             return constraint_error
 
         # 3. Parse direction
-        parsed = self.resolve_noun_or_word(target, words, interest=[])
+        parsed = self.resolve_noun_or_word(words, interest=[])
         direction = parsed["direction"]
 
         if direction is None:
@@ -122,7 +126,7 @@ class MovementVerbHandler(VerbHandler):
 
             lines = ["Teleport — available rooms:"]
             for i, room in enumerate(room_list, 1):
-                lines.append(f"  {i:2d}. {room.name}")
+                lines.append(f"  {i:2d}. {room.canonical_name()}")
             lines.append("")
             lines.append("Usage: teleport <name or number>")
             lines.append("       goto 7")
@@ -138,7 +142,7 @@ class MovementVerbHandler(VerbHandler):
             # Number?
             try:
                 idx = int(query) - 1
-                rooms_sorted = sorted(game.rooms.values(), key=lambda r: r.name)
+                rooms_sorted = sorted(game.rooms.values(), key=lambda r: r.canonical_name())
                 if 0 <= idx < len(rooms_sorted):
                     desired_room = rooms_sorted[idx]
             except ValueError:
@@ -148,24 +152,24 @@ class MovementVerbHandler(VerbHandler):
             if desired_room is None:
                 matches = [
                     r for r in game.rooms.values()
-                    if query in r.name.lower() or query in r.get_noun_name().lower()
+                    if query in r.display_name().lower() or query in r.canonical_name().lower()
                 ]
                 if len(matches) == 1:
                     desired_room = matches[0]
                 elif len(matches) > 1:
-                    names = ", ".join(r.name for r in matches)
+                    names = ", ".join(r.canonical_name() for r in matches)
                     return self.build_message(f"Ambiguous room name — matches: {names}")
 
         if desired_room is None:
-            return self.build_message("No matching room. Use 'teleport' alone to list rooms.")
+            return self.build_message("No matching room. Type 'teleport' to list rooms.")
         
         if desired_room is room:
-            return self.build_message(f"You are already in {room.name}.")
+            return self.build_message(f"You are already in {room.canonical_name()}.")
 
         # Perform the teleport
-        old_room_name = room.get_noun_name()
+        old_room_name = room.canonical_name()
         state.current_room = desired_room
-        new_room_name = desired_room.get_noun_name()
+        new_room_name = desired_room.canonical_name()
         desired_room.visited = True
 
         lines = [f"You teleport from {old_room_name} to {new_room_name}."]

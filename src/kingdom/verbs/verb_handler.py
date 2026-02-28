@@ -12,6 +12,23 @@ class VerbHandler:
     Base class for all verb handlers.
     Provides shared helpers for accessing context, resolving nouns/words,
     common refusal patterns, ALL-handling, and message assembly.
+
+    It supports a standard pipeline for verb excution as follows:
+    1. The parser identifies the verb and resolves a target noun.
+    2. The verb dispatcher calls the corresponding method on the appropriate 
+       VerbHandler subclass, passing the DispatchContext, target noun, and leftover words.
+    3. The verb handler method uses the following flow
+         - First call self.resolve_noun_or_word() to parse the target noun and any keywords 
+           of interest from the leftover words.
+         - Next check for keywords in the leftover words to modify behavior if appropriate
+         - Then call self.run_special_handler() to check for any item-specific special 
+           handling that should take precedence over default verb logic.
+         - If no special handling occurs, perform main logic based on the resolved target 
+           and context.
+         - Finally, returns a message  (string, list of strings, list of lists...) to be 
+           displayed to the player using the self.build_message() helper
+        -  Note: internal helper functions should return strings or lists and not call 
+                 build_message directly 
     """
 
     # ------------------------------------------------------------
@@ -36,23 +53,38 @@ class VerbHandler:
         return f"{verb.capitalize()} what?"
 
     def not_here(self, noun: Noun) -> str:
-        return f"You don't see the {noun.display_name()} here."
+        return f"You don't see any {noun.canonical_name()} here."   #calling with non-target may provide spoilers. Need to refine with a 'found' flag on item in the future.
 
     def not_in_inventory(self, noun: Noun) -> str:
-        return f"You aren't carrying the {noun.display_name()}."
+        return f"You don't have any {noun.canonical_name()}."       #calling with non-target may provide spoilers. Need to refine with a 'found' flag on item in the future.
 
     # ------------------------------------------------------------
     # Noun / word resolution
     # ------------------------------------------------------------
     def resolve_noun_or_word(
         self,
-        target: Optional[Noun],
         words: Iterable[str],
         interest: list[str] = [],
     ) -> dict:
         """
-        Resolve either a noun, direction (highest priority) or any keywords of interest
-        found in the leftover words. Returns a dict with structured results.
+        This internal resolution system is in place until we upgrade the parser. Right now, 
+        verbs get passed a target noun and a list of leftover words. The target noun has
+        been pre-resolved to be a valid target Item or DirectionNoun for the room the player
+        is in. (i.e. only nouns that are present in the room or valid directions will be passed as
+        the target argument.) 
+        
+        This function allows verb handlers to resolve an item or direction from the leftover words.
+
+        It also enables verbs to modify their behavior based on keywords in the leftover words, 
+        e.g. "look inside"  
+
+        The function returns a dict with the following keys:
+        - "noun": the resolved Noun (or None if no noun found in words)
+        - "direction": the resolved canonical direction string (or None if no direction found)
+        - "keywords": a set of any keywords of interest that were found in the words
+        - "raw": a tuple of the original leftover words
+
+        Note that the target noun is not handled in the resolution - we just parse the leftover words.
         """
 
         result = {
@@ -61,41 +93,26 @@ class VerbHandler:
             "keywords": set(),
             "raw": tuple(words),
         }
-        # 1. If we already have a resolved target
-        if target is not None:
-            if isinstance(target, DirectionNoun):    #check the special case of direction noun first, and resolve it immediately if so.
-                direction = target.canonical_direction
-                result["noun"] = target
-                result["direction"] = direction
-                return result
-            else:
-                # Regular noun — early return
-                result["noun"] = target
-                return result
-
-
-        # 2. No resolved target → scan words for direction (even if not in legal candidates)
+        
+        interest_set = {w.lower() for w in interest}
+        
         for w in words:
             lw = w.lower().strip()
+            matching_nouns = [noun for noun in Noun.all_nouns if noun.canonical_name() == lw]
+            if matching_nouns and result["noun"] is None:  # take the first match if multiple - can only handle one right now
+                result["noun"] = matching_nouns[0]            
             if self.is_direction(lw):
                 canon = self.canonical_direction(lw)
-                if canon:
+                if canon and result["direction"] is None:  # take the first match if multiple - can only handle one right now
                     result["direction"] = canon
-                    # Optionally store the raw word that matched
-                    result["direction_raw"] = w
-                    break  # take the first direction word found
-
-        # 3. If no direction, look for keywords of interest
-        interest_set = {w.lower() for w in interest}
-        for w in words:
-            lw = w.lower()
             if lw in interest_set and lw not in result["keywords"]:
-                result["keywords"].add(lw)
+                result["keywords"].add(lw)                  # supports multiple keywords, but order is not preserved (use a list if order matters)
+
 
         return result
 
     # ------------------------------------------------------------
-    # ALL-handling framework 
+    # ALL-handling framework  - needs a re-write
     # ------------------------------------------------------------
     def handle_all(
         self,
@@ -124,12 +141,7 @@ class VerbHandler:
                 messages.append(result)
             names.append(item.canonical_name())
 
-        summary = (
-            f"You {verb_name} {len(names)} "
-            f"item{'s' if len(names) != 1 else ''}: {', '.join(names)}."
-        )
-
-        return "\n".join(messages + [summary])
+        return "\n".join(messages)
 
     # looks for item in inventory, room or in boxes or a box itself if asked for.
     def locate_item(self, ctx: DispatchContext, item: Noun) -> Optional[ItemLocation]:

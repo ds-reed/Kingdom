@@ -1,7 +1,7 @@
 # inventory Verbs
 
-from kingdom.models import DispatchContext, Noun, Verb, Item, Box, Room, Game, Player, LocationType
-from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.models import DispatchContext, Noun, Item, Box, Room, Game, Player, LocationType
+from kingdom.verbs.verb_handler import VerbHandler, VerbControl
 
 class InventoryVerbHandler(VerbHandler):
     def inventory(
@@ -11,19 +11,17 @@ class InventoryVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
     ) -> str:
         player = self.player(ctx)
-        if not player:
-            return "DEBUG: No current player."
-
         contents = player.get_inventory_items()
+
         if not contents:
-            return f"You don't have anything."
+            return self.build_message("You don't have anything.")
 
         names = [item.display_name() for item in contents]
 
         count = len(names)
         label = "item" if count == 1 else "items"
 
-        return (
+        return self.build_message(
             f"You have ({count} {label}): "
             f"{', '.join(names)}"
         )
@@ -40,61 +38,61 @@ class InventoryVerbHandler(VerbHandler):
         room = self.room(ctx)
         player = self.player(ctx)
 
+        parse = self.resolve_noun_or_word(words, interest=['all'])
+        keywords = parse["keywords"]
+
+        # don't handle non-target nouns for now to avoid spoilers. Can add a 'found' flag in the future to screen out unfound items.
+
         # ------------------------------------------------------------
         # 1. TAKE ALL (use the base-class ALL handler)
         # ------------------------------------------------------------
-        if target is None and "all" in words:
+        if target is None and "all" in keywords:
             getable: list[Item] = []
 
-            # Items on floor
+            # Items on floor - need a function in the room class to get all gettable items to handle boxes and other containers in the future
             for item in room.items:
-                if getattr(item, "is_gettable", True):
-                    getable.append(item)
+                getable.append(item)
 
-            # Items in open boxes
+            # Items in open boxes - need a function in the room class to get all gettable items to handle nested boxes and other containers in the future
             for box in room.boxes:
                 if box.is_openable and box.is_open:
                     for item in box.contents:
-                        if getattr(item, "is_gettable", True):
-                            getable.append(item)
+                        getable.append(item)
+                else:
+                    getable.append(box)  # if box isn't open, we still try to take it and let the refusal message come from the box's special handler
 
             return self.handle_all(ctx, getable, self.take, "take")
         
         # ------------------------------------------------------------
         # 2. Missing target
         # ------------------------------------------------------------
-        if target is None and not words:
-            return self.missing_target("take")
+        if target is None:
+            if not words:
+                return self.build_message(self.missing_target("drop"))
+            return self.build_message(f"I see no {' '.join(words)} here.")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome = self.run_special_handler(target, "take", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or ""
+        if target is not None: 
+            outcome = self.run_special_handler(target, "take", words, ctx)
+            if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+                return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
-        # 4. Determine where item is 
+        # 4. Determine if item is already in inventory
         # ------------------------------------------------------------
         loc = self.locate_item(ctx, target)
-        # Not in room, not in inventory, not in any open box
-        if loc is None:
-            name = self.resolve_noun_or_word(target, words)
-            if name:
-                return f"I see no {name} here."
-            return self.missing_target("take")
-
-
         if loc.type == LocationType.INVENTORY:
-            return f"You already have {target.display_name()}."
+            return self.build_message(f"You already have {target.display_name()}.")
 
         # ------------------------------------------------------------
-        # 6. If it's here but not gettable
+        # 5. If it's here but not gettable
         # ------------------------------------------------------------
         if not getattr(target, "is_gettable", True) \
                     or isinstance(target, Box):  #can't take boxes for now
             refuse = getattr(target, "get_refuse_string", None)
-            return refuse or f"You can't take {target.display_name()}."
+            return self.build_message(refuse or f"You can't take {target.display_name()}.")
 
         # ------------------------------------------------------------
         # 7. Take from room
@@ -102,7 +100,7 @@ class InventoryVerbHandler(VerbHandler):
         if loc.type is LocationType.ROOM_FLOOR:
             room.remove_item(target)
             player.add_to_sack(target)
-            return f"You take {target.display_name()}."
+            return self.build_message(f"You take {target.display_name()}.")
 
         # ------------------------------------------------------------
         # 8. Take from open box
@@ -112,7 +110,7 @@ class InventoryVerbHandler(VerbHandler):
             found_box = loc.container
             found_box.remove_item(target)
             player.add_to_sack(target)
-            return (
+            return self.build_message(
                 f"You take {target.display_name()} "
                 f"from {found_box.display_name()}."
             )
@@ -120,7 +118,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 9. Should never reach here
         # ------------------------------------------------------------
-        return "DEBUG: Take says I don't know how to do that."
+        return self.build_message("DEBUG: Take says I don't know how to do that.")
 
 
     def drop(
@@ -134,25 +132,30 @@ class InventoryVerbHandler(VerbHandler):
         room = self.room(ctx)
         player = self.player(ctx)
 
+        parse = self.resolve_noun_or_word(words, interest=['all'])
+        keywords = parse["keywords"]
+
         # ------------------------------------------------------------
         # 1. DROP ALL
         # ------------------------------------------------------------
-        if target is None and "all" in words:
+        if target is None and "all" in keywords:
             inventory_items = player.get_inventory_items()
             return self.handle_all(ctx, inventory_items, self.drop, "drop")
 
         # ------------------------------------------------------------
         # 2. Missing target
         # ------------------------------------------------------------
-        if target is None and not words:
-            return self.missing_target("drop")
+        if target is None:
+            if not words:
+                return self.build_message(self.missing_target("drop"))
+            return self.build_message(f"You have no {' '.join(words)}.")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome = self.run_special_handler(target, "drop", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or ""
+        if outcome: 
+            return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Determine where the item is
@@ -161,14 +164,14 @@ class InventoryVerbHandler(VerbHandler):
 
         # Not in inventory
         if loc.type != LocationType.INVENTORY:
-            name = self.resolve_noun_or_word(target, words)
+            name = target.display_name()
             if name:
-                return f"You aren't carrying {name}."
-            return self.missing_target("drop")
+                return self.build_message(f"You aren't carrying {name}.")
+            return self.build_message(self.missing_target("drop"))
 
         # ------------------------------------------------------------
         # 5. Perform the drop
         # ------------------------------------------------------------
         player.remove_from_sack(target)
         room.add_item(target)
-        return f"You drop {target.display_name()}."
+        return self.build_message(f"You drop {target.display_name()}.")
