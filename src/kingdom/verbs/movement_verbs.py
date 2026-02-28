@@ -5,12 +5,9 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
-from unittest import result
-
 from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
 from kingdom.renderer import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
-
 
 
 class MovementVerbHandler(VerbHandler):
@@ -18,20 +15,20 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, ctx, canonical, exit_dict, verb_name, success_verb):
+    def perform_movement(self, ctx, canonical, exit_dict, verb_phrase, success_verb_phrase):
         """
         Shared movement engine.
 
         exit_dict: dict[str, Room] (e.g., room.connections or room.swim_exits)
-        verb_name: str ("go", "swim") for error messages
-        success_verb: str ("go", "swim") for success messages
+        verb_phrase: str ("go", "swim") for error messages
+        success_verb_phrase: str ("go", "swim") for success messages
         """
         state = self.state(ctx)
         game = self.game(ctx)
 
         next_room = exit_dict.get(canonical)
         if next_room is None:
-            return f"You can't {verb_name} {canonical} from here."
+            return f"You can't {verb_phrase} {canonical} from here."
 
         # Move
         state.current_room = next_room
@@ -39,10 +36,9 @@ class MovementVerbHandler(VerbHandler):
         # Scoring
         if not next_room.visited:
             game.score += getattr(next_room, "discover_points", 0)
-            next_room.visited = True
 
         # Render
-        lines = [f"You {success_verb} {canonical}."]
+        lines = [f"You {success_verb_phrase} {canonical}."]
         lines.extend(render_current_room(state, display=False))
 
         return lines
@@ -53,19 +49,16 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     def go(self, ctx, target, words):
 
-        print(f"DEBUG: MovementVerbHandler.go called with target={target} and words={words}")
-
         parsed = self.resolve_noun_or_word(words, interest=[])
-
-        print(f"DEBUG: Parsed movement verb input: {parsed}" )
 
         direction = parsed["direction"]
 
         if direction is None:
             return self.build_message("Go where?")
 
-        outcome= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
-        return self.build_message(outcome)
+        result_msg= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
+
+        return self.build_message(result_msg)
 
 
     def swim(self, ctx, target: Noun, words: list[str]):
@@ -103,15 +96,16 @@ class MovementVerbHandler(VerbHandler):
             return self.build_message("You splash around aimlessly.")
 
         # 4. Perform swim movement using swim_exits
-        outcome = self.perform_movement(
+        result_msg = self.perform_movement(
             ctx,
             direction,
             room.swim_exits,
-            verb_name="swim",
-            success_verb="swim"
+            verb_phrase="swim",
+            success_verb_phrase="swim"
         )
 
-        return self.build_message(outcome)
+        return self.build_message(result_msg)
+
 
 
     def teleport(self, ctx, target: Noun, words: list[str]):

@@ -49,14 +49,24 @@ class VerbHandler:
     # ------------------------------------------------------------
     # Standard refusal helpers
     # ------------------------------------------------------------
-    def missing_target(self, verb: str) -> str:
-        return f"{verb.capitalize()} what?"
+    def missing_target(self, verb_phrase: str) -> str:
+        return f"{verb_phrase.capitalize()} what?"
 
     def not_here(self, noun: Noun) -> str:
         return f"You don't see any {noun.canonical_name()} here."   #calling with non-target may provide spoilers. Need to refine with a 'found' flag on item in the future.
 
     def not_in_inventory(self, noun: Noun) -> str:
         return f"You don't have any {noun.canonical_name()}."       #calling with non-target may provide spoilers. Need to refine with a 'found' flag on item in the future.
+
+    def cannot(self, noun: Noun, verb_phrase: str) -> str:
+        return f"You can't {verb_phrase} the {noun.canonical_name()}."
+    
+    def already(self, noun: Noun, msg: str) -> str:
+        return f"The {noun.canonical_name()} is already {msg}."
+    
+    def unrecognized_word(self, object_word: str) -> str:           
+        return f"I see no {object_word} here."
+    
 
     # ------------------------------------------------------------
     # Noun / word resolution
@@ -204,6 +214,13 @@ class VerbHandler:
                 return DIRECTIONS.to_canonical(w)
         return None
 
+    def get_reverse_of(self, direction: str) -> Optional[str]:
+        """
+        Return the canonical reverse of a direction, or None if not a direction or no reverse.
+        """
+        if not self.is_direction(direction):
+            return None
+        return DIRECTIONS.reverse_of(direction)
 
     # ------------------------------------------------------------
     # Message assembly

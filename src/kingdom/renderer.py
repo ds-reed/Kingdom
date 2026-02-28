@@ -23,7 +23,11 @@ class RoomRenderer:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
 
-        desc = room.description.strip() if room.description else room.name
+        if not room.description:
+            desc = f"You are in {room.name}."
+        else:            
+            desc = f"You are {room.description}"
+
         exits = room.available_directions(visible_only=True)
         exits_text = self.build_visible_exits_text(exits)
 
@@ -48,8 +52,10 @@ class RoomRenderer:
         lines: list[str] = []
 
         # Room description
-        if room.description:
-            lines.append(room.description)
+        if room.visited or not room.description:
+            lines.append(f"You are in {room.name}.")
+        else:            
+            lines.append(f"You are {room.description}")
 
         # Items
         if room.items:

@@ -131,6 +131,12 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "closed_state_description", None):
         payload["closed_state_description"] = item.closed_state_description
 
+    if getattr(item, "lit_state_description", None):
+        payload["lit_state_description"] = item.lit_state_description
+        
+    if getattr(item, "unlit_state_description", None):
+        payload["unlit_state_description"] = item.unlit_state_description
+
     if getattr(item, "open_action_description", None):
         payload["open_action_description"] = item.open_action_description
 
@@ -275,6 +281,8 @@ def _construct_item_from_spec(item_spec) -> "Item":
         is_open=item_spec.get("is_open", False),
         opened_state_description=item_spec.get("opened_state_description"),
         closed_state_description=item_spec.get("closed_state_description"),
+        lit_state_description=item_spec.get("lit_state_description"),
+        unlit_state_description=item_spec.get("unlit_state_description"),
         open_action_description=item_spec.get("open_action_description"),
         close_action_description=item_spec.get("close_action_description"),
         examine_string=item_spec.get("examine_string"),
@@ -490,7 +498,7 @@ class DirectionNoun(Noun):
     def __init__(self, reference_name: str, canonical_direction: str):
         super().__init__()
         self.name = reference_name
-        self.noun_name = reference_name
+        self._noun_name = reference_name
         self.canonical_direction = canonical_direction
 
     def matches_reference(self, reference: str) -> bool:
@@ -506,7 +514,7 @@ class DirectionNoun(Noun):
         return self.canonical_direction
     
     def noun_name(self):
-        return self.noun_name
+        return self._noun_name
     
     # ----------------------------------------------------------------------
     # Registry-driven direction noun generation
@@ -566,7 +574,16 @@ class DirectionNoun(Noun):
 
 class Item(Noun):
     all_items = []  # Class variable to track every item created
+    _by_name = {}                     # name → Item   ← new
 
+    @classmethod
+    def get_by_name(cls, name: str) -> 'Item | None':
+        """Look up item by name (case-insensitive)"""
+        if not name:
+            return None
+        key = str(name).strip().lower()
+        return cls._by_name.get(key)
+    
     def __init__(
         self,
         name,
@@ -578,6 +595,8 @@ class Item(Noun):
         is_open=False,
         opened_state_description=None,
         closed_state_description=None,
+        lit_state_description=None,
+        unlit_state_description=None,
         open_action_description=None,
         close_action_description=None,
         examine_string=None,
@@ -610,6 +629,10 @@ class Item(Noun):
         self.name = str(name).strip()
         self.descriptive_phrase = self.name
         self.noun_name = str(noun_name).strip().lower() if noun_name else _derive_noun_name(self.name)
+        key = self.noun_name.lower()           
+        if key in Item._by_name:
+            print(f"Warning: duplicate item name '{key}' — overwriting previous")
+        Item._by_name[key] = self
         explicit_behavior_ids = tuple(str(identifier).strip() for identifier in (behavior_ids or []) if str(identifier).strip())
         self.explicit_behavior_ids = explicit_behavior_ids
         self.current_box = None
@@ -621,6 +644,8 @@ class Item(Noun):
         self.is_open = bool(is_open)
         self.opened_state_description = opened_state_description
         self.closed_state_description = closed_state_description
+        self.lit_state_description = lit_state_description
+        self.unlit_state_description = unlit_state_description
         self.open_action_description = open_action_description
         self.close_action_description = close_action_description
         self.examine_string = examine_string
@@ -669,6 +694,11 @@ class Item(Noun):
                 return self.opened_state_description
             if not self.is_open and self.closed_state_description:
                 return self.closed_state_description
+        if self.is_lightable:
+            if self.is_lit and self.lit_state_description:
+                return self.lit_state_description
+            if not self.is_lit and self.unlit_state_description:
+                return self.unlit_state_description
         if self.presence_string:
             return self.presence_string
         return f"There is {self.name} here."
@@ -878,7 +908,9 @@ class Room(Noun):
     # A Room that can hold `Item` objects and connect to other Rooms.
   
     all_rooms = []  # Class variable to track every room created
-    DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
+    DIRECTIONS = []  # Class variable to track all directions used across rooms
+
+
 
     def __init__(self, name, description, visited=False, is_dark=False, has_water=False, dark_description=None, discover_points=10):
         super().__init__()
@@ -1158,6 +1190,8 @@ class Game(Noun):
 
         _load_directions(data) 
         DirectionNoun.ensure_direction_nouns()
+
+        Room.DIRECTIONS = DIRECTIONS.canonical
 
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))

@@ -13,7 +13,7 @@ import sys
 sys.path.append("./src")
 
 from kingdom.models import Game, Player, GameOver, QuitGame, GameActionState, build_dispatch_context
-from kingdom.renderer import RoomRenderer, render_current_room
+from kingdom.renderer import render_current_room
 
 from kingdom.models import DIRECTIONS, DirectionNoun
 
@@ -224,10 +224,13 @@ def main(args: argparse.Namespace | None = None):
         recovery_mode = False
         recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "help", "commands"}
 
+
         while True:
             print()
             command = trs80_prompt("Enter command: ")
             print()
+
+            current_room = action_state.current_room
             if not command:
                 continue
 
@@ -303,6 +306,7 @@ def main(args: argparse.Namespace | None = None):
 
             if result:
                 trs80_print(result, style=TRS80_WHITE)
+                current_room.visited = True
     finally:
         stop_session_logging(log_file, original_stdout, original_stderr)
 

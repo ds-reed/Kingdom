@@ -2,58 +2,66 @@ from __future__ import annotations
 from typing import Callable, Optional, Iterable
 
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
+from kingdom.verbs.verb_handler import VerbHandler
 
-from kingdom.models import Noun, DispatchContext, Player
+from kingdom.models import Noun, Item, DispatchContext, DirectionRegistry
 
-def basic_checks(target, words, *,capability_attr, current_state_attr=None, desired_state=None, verb, already_msg=None):
-    if target is None:
-        if words and words[0]:
-            return f"I see no {words[0]} here."
+
+
+
+class StateVerbHandler(VerbHandler):
+
+    # ------------------------------------------------------------
+    # state change helper
+    # ------------------------------------------------------------
+    
+    def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None):
+
+        if capability_attr and not getattr(target, capability_attr, False):
+            return self.cannot(target, verb_phrase)
+
+        if current_state_attr is not None:
+            current = getattr(target, current_state_attr, None)
+            if current == desired_state:
+                return self.already(target, already_msg)
+
+        return None
+
+    def require_item(self, ctx, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
+        player = self.player(ctx)
+        if not player.has_item(required_item_id):
+            return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
+        return None
+
+    def lookup_required_item_id(self, ctx, required_noun_name, verb_phrase) -> Noun | None:
+        required = Item.get_by_name(required_noun_name)
+        if required is None:
+             print(f"Error: Required noun '{required_noun_name}' not found in game data for {verb_phrase}.")
+             return None
+        return required                
+
+    def apply_state_change(
+        self,
+        ctx,
+        target,
+        verb_phrase,
+        *,
+        state_attr=None,
+        desired_state=None,
+        used_item=None,
+    ):
+
+        # 1. Apply the state change
+        if state_attr is not None:
+            setattr(target, state_attr, desired_state)
+
+        # 2. Build the message
+        if used_item:
+            return f"You {verb_phrase} {target.display_name()} with {used_item}."
         else:
-            return f"{verb.capitalize()} what?"
+            return f"You {verb_phrase} {target.display_name()}."
 
-    if capability_attr and not getattr(target, capability_attr, False):
-        return f"You can't {verb} the {target.get_noun_name()}."
-
-    if current_state_attr is not None:
-        current = getattr(target, current_state_attr, None)
-        if current == desired_state:
-            return f"The {target.get_noun_name()} is already {already_msg}."
-
-    return None
-
-def require_item(ctx, *, noun, required_noun_name, verb):
-    inventory = ctx.game.current_player.sack.contents
-    for item in inventory:
-        if getattr(item, "noun_name", "").lower() == required_noun_name.lower():
-            return item  # success
-    return f"You don't have the {required_noun_name} to {verb} the {noun.get_noun_name()}."
-
-
-def apply_state_change(
-    ctx,
-    target,
-    verb,
-    *,
-    state_attr=None,
-    desired_state=None,
-    used_item=None,
-):
-
-    # 1. Optional mutation
-    if state_attr is not None:
-        setattr(target, state_attr, desired_state)
-
-    # 2. Build the message
-    if used_item:
-        return f"You {verb} {target.get_name()} with {used_item.get_name()}."
-    else:
-        return f"You {verb} {target.get_name()}."
-
-
-
-class StateVerbHandler:
-
+#----------------- the core state-changing verbs -------------------------
 
     def open(
         self,
@@ -62,86 +70,101 @@ class StateVerbHandler:
         words: tuple[str, ...] = (),
     ) -> str:
 
-        # 1. Basic capability + already-open checks
-        refusal = basic_checks(
+        room = self.room(ctx)
+        game = self.game(ctx)
+        
+        parse = self.resolve_noun_or_word(words, interest=['sesame', 'all', 'everything'])
+        keywords = parse["keywords"]
+
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "sesame" in keywords:
+            return self.build_message("Nothing happens.")
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("One at a time, please.")
+        
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("open"))
+        
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------
+
+        cant_msg = self.basic_checks(
             target,
-            words=words,
             capability_attr="is_openable",
             current_state_attr="is_open",
             desired_state=True,
-            verb="open",
+            verb_phrase="open",
             already_msg="open",
         )
-        if refusal:
-            return refusal
-
-        # 2. Locked refusal (special case)
-        if getattr(target, "is_lockable", False) and getattr(target, "is_locked", False):
-            return (
+        if cant_msg:
+            return self.build_message(cant_msg)
+        
+        # Lock check 
+        if getattr(target, "is_locked", False):
+            return self.build_message(
                 getattr(target, "locked_description", None)
-                or f"The {target.get_noun_name()} is locked."
+                or f"The {target.canonical_name()} is locked."
             )
 
-        # 3. Unified special-handling pipeline
-        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or ""
-
-        # 4. Unified state-change pipeline
-        result = apply_state_change(
+        # change the state
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="open",
+            verb_phrase="open",
             state_attr="is_open",
             desired_state=True,
         )
 
-        # 5. Post-mutation side effect: reveal exit if configured
-        revealed_text = ""
+        # Post-change side effect: reveal exit if configured
+        side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
         destination = getattr(target, "open_exit_destination", None)
 
         if direction and destination:
-            room = ctx.state.current_room
-            game = ctx.game
             destination_room = game.rooms.get(destination)
 
             if room and destination_room:
                 room.connections[direction] = destination_room
+                reverse = self.get_reverse_of(direction)
+                destination_room.connections[reverse] = room
 
-                reverse = {
-                    "north": "south",
-                    "south": "north",
-                    "east": "west",
-                    "west": "east",
-                    "up": "down",
-                    "down": "up",
-                }.get(direction)
+                side_effect_msg = f"You notice a passage leading {direction}."
 
-                if reverse:
-                    destination_room.connections[reverse] = room
-
-                revealed_text = f"You notice a passage leading {direction}."
-
-        # 6. Build the final return string
+        # ------------- Build the final return string ----------------
         parts: list[str] = []
 
         # Action text (from special handler or state-change)
         if outcome and outcome.message:
             parts.append(outcome.message)
-        elif result:
-            parts.append(result)
+        elif result_msg:
+            parts.append(result_msg)
 
         # State-based description (opened_state_description)
         opened_desc = getattr(target, "opened_state_description", None)
-        if opened_desc and getattr(target, "is_open", False):
-            parts.append(opened_desc)
+        if opened_desc:
+            parts.append(f"You see {opened_desc}")
+        else:
+            parts.append(f"The {target.canonical_name()} is opened.")
 
         # Revealed exit text
-        if revealed_text:
-            parts.append(revealed_text)
+        if side_effect_msg:
+            parts.append(side_effect_msg)
 
-        return "\n".join(parts) if parts else ""
+        return self.build_message(parts)
 
 
     def close(
@@ -151,41 +174,92 @@ class StateVerbHandler:
         words: tuple[str, ...] = (),
     ) -> str:
 
-        # 1. Basic capability + already-closed checks
-        refusal = basic_checks(
-            target,
-            words=words,
-            capability_attr="is_openable",
-            current_state_attr="is_open",
-            desired_state=False,
-            verb="close",
-            already_msg="closed",
-        )
-        if refusal:
-            return refusal
+        room = self.room(ctx)
+        game = self.game(ctx)
         
-        # 2. Unified special-handling pipeline
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
+        keywords = parse["keywords"]
+
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("One at a time, please.")
+        
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("close"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or ""
 
-        # 3. Unified state-change pipeline (special handlers + noun override + mutation)
-        return_message  = apply_state_change(
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_openable",
+            current_state_attr="is_open",
+            desired_state=False,
+            verb_phrase="close",
+            already_msg="closed",
+        )
+        if cant_msg:
+            return self.build_message(cant_msg)
+
+        # change the state
+        result_msg  = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="close",
+            verb_phrase="close",
             state_attr="is_open",
             desired_state=False,
         )
 
-        # 4. Post-mutation side effects: hide exit if configured
-        if getattr(target, "close_hides_exit", False) and getattr(target, "open_exit_direction", None):
-            direction = target.open_exit_direction
-            room = ctx.state.current_room
-            if room:
-                room.connections.pop(direction, None)
+        side_effect_msg = ""
+        direction = getattr(target, "open_exit_direction", None)
+        destination = getattr(target, "open_exit_destination", None)
 
-        return (outcome.message if outcome else None) or return_message or ""
+        if direction and destination:
+            destination_room = game.rooms.get(destination)
+
+            if room and destination_room:
+                room.connections.pop(direction, None)   # should use room_remove_exit function when we have it
+
+                reverse = self.get_reverse_of(direction)
+                destination_room.connections.pop(reverse, None)   # should use room_remove_exit function when we have it
+
+                side_effect_msg = f"You seal off the passage leading {direction}."
+
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        # State-based description (closed_state_description)
+        state_desc = getattr(target, "closed_state_description", None)
+        if state_desc:
+            parts.append(f"You see {state_desc}")
+        else:
+            parts.append(f"The {target.canonical_name()} is closed.")
+
+        # Hidden exit text
+        if side_effect_msg:
+            parts.append(side_effect_msg)
+
+        return self.build_message(parts)
 
     def unlock(
         self,
@@ -194,88 +268,172 @@ class StateVerbHandler:
         words: tuple[str, ...],
     ) -> str:
 
-        # 1. Basic capability + already-unlocked checks
-        refusal = basic_checks(
-            target,
-            words=words,
-            capability_attr="is_lockable",
-            current_state_attr="is_locked",
-            desired_state=False,
-            verb="unlock",
-            already_msg="unlocked",
-        )
-        if refusal:
-            return refusal
+        room = self.room(ctx)
+        game = self.game(ctx)
         
-        # 2. Unified special-handling pipeline
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
+        keywords = parse["keywords"]
+
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("One at a time, please.")
+
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("unlock"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
-        # 3. Required key (if any)
-        key_name = getattr(target, "unlock_key", None)
-        if key_name:
-            key_or_refusal = require_item(
-                ctx,
-                noun=target,
-                required_noun_name=key_name,
-                verb="unlock",
-            )
-            if isinstance(key_or_refusal, str):
-                return key_or_refusal
-            key_item = key_or_refusal
-        else:
-            key_item = None
 
-        # 4. Unified state-change pipeline
-        return_message = apply_state_change(
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_lockable",
+            current_state_attr="is_locked",
+            desired_state=False,
+            verb_phrase="unlock",
+            already_msg="unlocked",
+        )
+
+        if cant_msg:
+            return self.build_message(cant_msg)
+        
+
+        #  Required key (if any)
+        key_name = getattr(target, "unlock_key", None)
+        key_id = self.lookup_required_item_id(ctx, key_name, "unlock") 
+
+        if key_name and key_id:
+            no_key_msg = self.require_item(
+                ctx,
+                required_item_id=key_id,
+                noun=target,
+                verb_phrase="unlock",
+            )
+        if no_key_msg:                
+            return self.build_message(no_key_msg)
+
+        # Change the state
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="unlock",
+            verb_phrase="unlock",
             state_attr="is_locked",
             desired_state=False,
-            used_item=key_item,
+            used_item=key_name,
         )
-        return (outcome.message if outcome else None) or return_message or ""
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        # State-based description (unlocked_state_description)
+        state_desc = getattr(target, "unlocked_state_description", None)
+        if state_desc:
+            parts.append(f"You see {state_desc}")
+        else:
+            parts.append(f"The {target.canonical_name()} is unlocked.")
+
+        return self.build_message(parts)
     
     def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
-        # 1. Basic capability + already-lit checks
-        refusal = basic_checks(
+
+        room = self.room(ctx)
+        game = self.game(ctx)
+        player = self.player(ctx)
+        inventory = player.sack.contents
+        
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
+        keywords = parse["keywords"]
+
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("You manically try to light everything at once, but soon calm down and focus on one thing at a time.")
+        
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("light"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, ctx)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------
+        cant_msg = self.basic_checks(
             target,
-            words=words,
             capability_attr="is_lightable",
             current_state_attr="is_lit",
             desired_state=True,
-            verb="light",
+            verb_phrase="light",
             already_msg="lit",
         )
-        if refusal:
-            return refusal
+        if cant_msg:
+            return self.build_message(cant_msg)
 
-        # 2. Unified special-handling pipeline
-        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
-
-        # 3. Required ignition source
+        # Required ignition source
         ignition_source = next(
-            (item for item in ctx.game.current_player.sack.contents
+            (item for item in inventory
             if getattr(item, "can_ignite", False)),
             None
         )
         if not ignition_source:
-            return f"You have nothing to light the {target.get_noun_name()} with."
+            return self.build_message(f"You have nothing to light the {target.canonical_name()} with.")
+        
+        lighter_name = ignition_source.display_name()
 
-        # 4. Unified state-change pipeline
-        return_message = apply_state_change(
+        # change state
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="light",
+            verb_phrase="light",
             state_attr="is_lit",
             desired_state=True,
-            used_item=ignition_source,
+            used_item=lighter_name,
         )
-        return (outcome.message if outcome else None) or return_message or ""
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        # State-based description (lit_state_description)
+        state_desc = getattr(target, "lit_state_description", None)
+        if state_desc:
+            parts.append(f"You see {state_desc}")
+        else:
+             parts.append(f"The {target.canonical_name()} is lit.")
+
+        return self.build_message(parts)
+
 
     def extinguish(
         self,
@@ -283,33 +441,72 @@ class StateVerbHandler:
         target: Optional[Noun],
         words: tuple[str, ...],
     ) -> str:
-        # 1. Basic capability + already-extinguished checks
-        refusal = basic_checks(
+        
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything', 'hands', 'hand'])
+        keywords = parse["keywords"]        
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("One at a time, please.")
+        
+        if "hands" in keywords or "hand" in keywords:
+            return self.build_message("Ouch! You decide that's a bad idea.")
+        
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("extinguish"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return outcome.message or "" 
+
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------
+        refusal = self.basic_checks(
             target,
-            words=words,
             capability_attr="is_lightable",
             current_state_attr="is_lit",
             desired_state=False,    
-            verb="extinguish",
+            verb_phrase="extinguish",
             already_msg="extinguished",
         )
         if refusal:
             return refusal
 
-        # 2. Unified special-handling pipeline
-        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return outcome.message or "" 
-
-        # 3. Unified state-change pipeline
-        return_message = apply_state_change(
+        # change the state
+        result_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="extinguish",
+            verb_phrase="extinguish",
             state_attr="is_lit",
             desired_state=False,
         )
-        return (outcome.message if outcome else None) or return_message or ""
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        # State-based description (unlit_state_description)
+        state_desc = getattr(target, "unlit_state_description", None)
+        if state_desc:
+            parts.append(f"You see {state_desc}")
+        else:
+             parts.append(f"The {target.canonical_name()} is freshly charred and blackened, with a faint wisp of smoke still rising from it.")
+
+        return self.build_message(parts)
     
 
     def eat(
@@ -318,38 +515,63 @@ class StateVerbHandler:
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
-        # 1. Basic capability checks
-        refusal = basic_checks(
-            target,
-            words=words,
-            capability_attr="is_edible",
-            desired_state=True,
-            verb="eat",
-        )
-        if refusal:
-            return refusal
+        
+        player = self.player(ctx)
+        room = self.room(ctx)
 
-        # 2. Unified special-handling pipeline
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
+        keywords = parse["keywords"]        
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("You must be starving! One thing at a time, please.")
+
+        # ------------------------------------------------------------
+        # 2. Missing target check
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("eat"))
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, ctx)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return outcome.message or "" 
 
-        # 3. Unified state-change pipeline
-        return_msg = apply_state_change(
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------       
+        refusal = self.basic_checks(
+            target,
+            capability_attr="is_edible",
+            desired_state=True,
+            verb_phrase="eat",
+        )
+        if refusal:
+            return refusal
+
+        # state-change pipeline
+        return_msg = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="eat",
+            verb_phrase="eat",
             state_attr=None,
             desired_state=None,
         )   
         if getattr(target, "eaten_success_string", None):
             return_msg = target.eaten_success_string
 
-        # 4. Post-mutation side effect: remove item from inventory   # note for when refactoring - we can eat things that are in the room, not just inventory, so we'll need to look for it and remove it from the appropriate place
-        inventory = ctx.game.current_player.sack.contents
-        if target in inventory:
-            inventory.remove(target)
-        return return_msg
+        # 4. Post-mutation side effect: remove item from inventory  
+
+        if player.has_item(target):
+            player.remove_from_sack(target)
+        if room.has_item(target):
+            room.remove_item(target)
+
+        return self.build_message(return_msg)
 
 
     def rub(
@@ -359,12 +581,11 @@ class StateVerbHandler:
         words: tuple[str, ...] = (),
     ) -> str:
         # 1. Basic capability checks
-        refusal = basic_checks(
+        refusal = self.basic_checks(
             target,
-            words=words,
             capability_attr="is_rubbable",
             desired_state=True,
-            verb="rub",
+            verb_phrase="rub",
         )
         if refusal:
             return refusal
@@ -375,16 +596,16 @@ class StateVerbHandler:
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
-        return_message = apply_state_change(
+        return_message = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="rub",
+            verb_phrase="rub",
             state_attr="is_rubbed",
             desired_state=True,
         )   
         
 
-        return (outcome.message if outcome else None) or return_message or ""
+        return self.build_message((outcome.message if outcome else None) or return_message or "")
      
 
     def say(
@@ -394,12 +615,11 @@ class StateVerbHandler:
         words: tuple[str, ...] = (),
     ) -> str:
         # 1. Basic capability checks
-        refusal = basic_checks(
+        refusal = self.basic_checks(
             target,
-            words=words,
             capability_attr="is_verbally_interactive",
             desired_state=True,
-            verb="say",
+            verb_phrase="say",
         )
         if refusal:
             return "You speak to the wind; the wind does not hear. The wind cannot hear." if target is None else refusal
@@ -410,16 +630,16 @@ class StateVerbHandler:
             return outcome.message or "" 
 
         # 3. Unified state-change pipeline
-        return_message = apply_state_change(
+        return_message = self.apply_state_change(
             ctx=ctx,
             target=target,
-            verb="say",
+            verb_phrase="say",
             state_attr="has_been_spoken_to",
             desired_state=True,
         )
         
 
-        return (outcome.message if outcome else None) or return_message or ""
+        return self.build_message((outcome.message if outcome else None) or return_message or "")
                 
 
     def make(self, ctx, target=None, words=()):

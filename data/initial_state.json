@@ -28,14 +28,15 @@
         },
         {
             "name": "Tower Cell",
-            "description": "A cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
             "discover_points": 0,
             "items": [
                 {
                     "name": "an old wooden torch",
                     "noun_name": "torch",
                     "is_lightable": true,
-                    "is_lit": false
+                    "is_lit": false,
+                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls."
                 },
                 {
                     "name": "a single shiny bean",
@@ -124,7 +125,7 @@
         },
         {
             "name": "Blank Chamber",
-            "description": "An oddly blank room with smooth stone walls. There is nothing here.",
+            "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
             "discover_points": 10,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
@@ -136,7 +137,7 @@
         },
         {
             "name": "Colossal Cave",
-            "description": "A colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
+            "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
             "discover_points": 10,
             "has_water": true,
             "swim_exits": {
@@ -156,7 +157,7 @@
         },
         {
             "name": "Pool Ledge",
-            "description": "You stand on a narrow ledge across the pool.",
+            "description": "on a narrow ledge across the pool.",
             "discover_points": 10,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
@@ -177,7 +178,7 @@
         },
         {
             "name": "Demo Landing",
-            "description": "You emerge into Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
+            "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
             "discover_points": 10,
             "items": [
                 {
@@ -196,7 +197,7 @@
         },
         {
             "name": "Whispering Grove",
-            "description": "Tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
+            "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
             "discover_points": 10,
             "items": [],
             "boxes": [],
@@ -207,7 +208,7 @@
         },
         {
             "name": "Mirror Hall",
-            "description": "A long hall of black glass reflects scenes that do not quite match your movements.",
+            "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
             "discover_points": 10,
             "items": [],
             "boxes": [],
@@ -218,7 +219,7 @@
         },
         {
             "name": "Clockwork Court",
-            "description": "Bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
+            "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
             "discover_points": 10,
             "items": [],
             "boxes": [],
@@ -229,7 +230,7 @@
         },
         {
             "name": "Lantern Overlook",
-            "description": "Hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
+            "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
             "discover_points": 10,
             "items": [],
             "boxes": [],

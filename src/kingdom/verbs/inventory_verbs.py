@@ -11,12 +11,12 @@ class InventoryVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
     ) -> str:
         player = self.player(ctx)
-        contents = player.get_inventory_items()
+        inventory = player.get_inventory_items()
 
-        if not contents:
+        if not inventory:
             return self.build_message("You don't have anything.")
 
-        names = [item.display_name() for item in contents]
+        names = [item.display_name() for item in inventory]
 
         count = len(names)
         label = "item" if count == 1 else "items"
@@ -33,20 +33,20 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
+        
+
         state = self.state(ctx)
         game = self.game(ctx)  
         room = self.room(ctx)
         player = self.player(ctx)
 
-        parse = self.resolve_noun_or_word(words, interest=['all'])
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
 
-        # don't handle non-target nouns for now to avoid spoilers. Can add a 'found' flag in the future to screen out unfound items.
-
         # ------------------------------------------------------------
-        # 1. TAKE ALL (use the base-class ALL handler)
+        # 1. TAKE ALL 
         # ------------------------------------------------------------
-        if target is None and "all" in keywords:
+        if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
             getable: list[Item] = []
 
             # Items on floor - need a function in the room class to get all gettable items to handle boxes and other containers in the future
@@ -67,17 +67,15 @@ class InventoryVerbHandler(VerbHandler):
         # 2. Missing target
         # ------------------------------------------------------------
         if target is None:
-            if not words:
-                return self.build_message(self.missing_target("drop"))
-            return self.build_message(f"I see no {' '.join(words)} here.")
-
+                return self.build_message(self.missing_target("take"))
+   
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        if target is not None: 
-            outcome = self.run_special_handler(target, "take", words, ctx)
-            if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-                return self.build_message(outcome.message or "")
+
+        outcome = self.run_special_handler(target, "take", words, ctx)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Determine if item is already in inventory
@@ -132,13 +130,13 @@ class InventoryVerbHandler(VerbHandler):
         room = self.room(ctx)
         player = self.player(ctx)
 
-        parse = self.resolve_noun_or_word(words, interest=['all'])
+        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
 
         # ------------------------------------------------------------
         # 1. DROP ALL
         # ------------------------------------------------------------
-        if target is None and "all" in keywords:
+        if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
             inventory_items = player.get_inventory_items()
             return self.handle_all(ctx, inventory_items, self.drop, "drop")
 
