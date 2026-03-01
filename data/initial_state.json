@@ -4,7 +4,9 @@
                     "east": { "reverse": "west", "aliases": ["e"] },
                     "west": { "reverse": "east", "aliases": ["w"] },
                     "up": { "reverse": "down", "aliases": ["u"] },
-                    "down": { "reverse": "up", "aliases": ["d"] }
+                    "down": { "reverse": "up", "aliases": ["d"] },
+                    "in": { "reverse": "out", "aliases": ["inside"] },
+                    "out": { "reverse": "in", "aliases": ["outside"] }
     },
     "score": 0,
     "start_room": "Tower Cell",
@@ -73,6 +75,13 @@
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
             ],
+            "features": [
+                {
+                    "name": "a humming magic ladder",
+                    "noun_name": "ladder",
+                    "examine_string": "The ladder hums with soft blue light. Runes crawl up the rungs like fireflies trapped in glass."
+                }
+            ],
             "boxes": [
                 {
                     "canonical_name": "bag",
@@ -134,6 +143,13 @@
             "items": [
 
             ],
+            "features": [
+                {
+                    "name": "a vast painted mural",
+                    "noun_name": "mural",
+                    "examine_string": "The mural depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements."
+                }
+            ],
             "boxes": [],
             "connections": {}
         },
@@ -175,6 +191,29 @@
                     "is_lit": true
                 }
             ],
+            "boxes": [
+                {
+                    "canonical_name": "wardrobe",
+                    "box_name": "a large wooden wardrobe",
+                    "is_openable": true,
+                    "is_open": false,
+                    "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
+                    "close_action_description": "You push the wardrobe doors shut.",
+                    "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Diffuse light glows from somewhere behind them.",
+                    "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
+                    "open_exit_direction": "in",
+                    "open_exit_destination": "Narnia",
+                    "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable.",
+                    "items": []
+                }
+            ],
+            "connections": {}
+        },
+        {
+            "name": "Narnia",
+            "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
+            "discover_points": 10,
+            "items": [],
             "boxes": [],
             "connections": {}
         },

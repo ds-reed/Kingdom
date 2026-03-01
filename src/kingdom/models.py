@@ -883,7 +883,6 @@ class Box(Noun):
             item.current_box = None
             return 
 
-
     def canonical_name(self):
         return getattr(self, "noun_name")
 
