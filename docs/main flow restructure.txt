@@ -1,0 +1,39 @@
+# Main / Parser / UI / Render Overhaul
+
+## Main Loop Cleanup
+- [ ] Move all rendering calls out of main and into renderer module
+- [ ] Move all input normalization and tokenization into parser
+- [ ] Ensure main only handles: read input → parse → execute → render
+
+## Parser Improvements
+- [ ] Implement EnvironmentFeature noun registration
+- [ ] Add fallback examine response (“You see nothing special.”)
+- [ ] Improve noun resolution for scenery vs. items vs. containers
+- [ ] Centralize all “I don’t understand…” messages for consistency
+- [ ] Add parser hooks for room-specific verbs without leaking into main
+
+## Renderer Overhaul
+- [ ] Create a single `render_room(room, ctx)` entry point
+- [ ] Ensure rendering order: description → features → items → exits
+- [ ] Remove any rendering logic from verbs and objects
+- [ ] Add support for suppressing item lists when room is dark
+- [ ] Add formatting helpers (indentation, spacing, line breaks)
+
+## UI Layer Cleanup
+- [ ] Move terminal-specific code into `ui/terminal.py`
+- [ ] Add helpers for bold, color, spacing (optional)
+- [ ] Ensure renderer never calls terminal functions directly
+- [ ] Standardize how special events (Djinni, smoke, etc.) are displayed
+
+## EnvironmentFeature Integration
+- [ ] Implement EnvironmentFeature class (scenery-only objects)
+- [ ] Ensure they never appear in item lists
+- [ ] Ensure they can be examined with custom text
+- [ ] Convert existing scenery (pool, mural, gears, crystal floor)
+- [ ] Add scenery to starting locked room (door, window, grate, etc.)
+
+## Regression Testing
+- [ ] Re-test all movement verbs after refactor
+- [ ] Re-test Djinni event and lamp logic
+- [ ] Re-test examine verbs across all rooms
+- [ ] Re-test dark-room behavior and torch/lamp interactions

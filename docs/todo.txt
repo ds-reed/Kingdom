@@ -644,3 +644,39 @@ You can add multiple snippets — just separate them with commas.Recommended sta
     "description": "Skeleton for a state-changing verb handler method (open/close/light style)"
   }
 }
+
+
+# Engine & World TODO (post-playthrough)
+
+## Environment Features
+- [ ] Create `EnvironmentFeature` class for scenery objects
+- [ ] Support synonyms + `on_examine` without appearing in room item lists
+- [ ] Ensure renderer ignores EnvironmentFeatures in contents loop
+- [ ] Update parser to route `examine` to EnvironmentFeatures
+- [ ] Convert existing scenery (e.g., pool, mural, gears, crystal floor) to EnvironmentFeatures
+
+## Starting Room Improvements
+- [ ] Replace Demo Land intro with a proper locked-room start
+- [ ] Add scenery features (door, window, grate, etc.) using new EnvironmentFeature class
+- [ ] Ensure starting room has a clear, solvable exit path (no magic ladder)
+
+## Noun & Interaction Consistency
+- [ ] Audit all room descriptions for scenery nouns players might try to examine
+- [ ] Add EnvironmentFeatures for each examinable environmental element
+- [ ] Add gentle cues for edible items (apple, carrot, fish) to encourage `eat` verb usage
+- [ ] Add subtle cues near water to hint at `swim` verb (and drowning rule)
+
+## Verb & Feedback Polish
+- [ ] Add fallback examine response for unimplemented nouns (“You see nothing special.”)
+- [ ] Ensure scenery objects gracefully reject verbs like take/open/light without custom overrides
+- [ ] Review drowning and eating messages for clarity and tone consistency
+
+## World Cohesion
+- [ ] Add a reason to revisit early rooms (lunch bag, trapdoor, mural, etc.)
+- [ ] Remove or archive Demo Land test rooms from main world map
+- [ ] Add narrative or structural justification for upper tower access
+
+## Testing & Validation
+- [ ] Re-test movement pipeline after removing Demo Land
+- [ ] Re-test Djinni event to ensure no regressions
+- [ ] Re-test examine verbs across all rooms after adding EnvironmentFeatures
