@@ -1,230 +1,152 @@
 # Kingdom
 
-An object-oriented game-world simulation in Python. Kingdom is a structured game engine that allows you to model a fantasy world with items, containers, rooms, and player characters. This is just a framework for later implementation of Castle once we find the room data!
+A command-driven text adventure engine in Python.
 
-## Features
+Kingdom loads world state from JSON, parses free-text commands, resolves nouns in context, and dispatches verbs through modular handlers. The codebase now uses a refactored structure centered on `models`, `actions`, `parser`, `renderer`, and verb handler modules.
 
-- **Item System**: Create items with properties like breakability and pickupability
-- **Container System**: Boxes with customizable capacity limits for inventory management
-- **Room System**: Interconnected rooms with items, boxes, and minigames
-- **Character Classes**: Player (with 10-item sack capacity) and Robber characters
-- **Action System**: Extensible Verb class with canonical names + synonym aliases
-- **State Persistence**: Save and load game world state to/from JSON
+## Current Highlights
 
-## Project Structure
+- Refactored **verb handler architecture** (`src/kingdom/verbs/*`)
+- Registry-based **direction system** with aliases and implicit movement
+- Context-aware command resolution (`parse_command` + `resolve_command`)
+- Room rendering split into semantic presentation logic (`renderer.py`)
+- Save/load support backed by JSON world state
+- Two terminal presentation modes: **modern** and **trs80**
 
-```
+## Project Layout
+
+```text
 Kingdom/
-├── pyproject.toml              # Project metadata
-├── main.py                     # Main game loop + CLI args (--mode)
-├── demo.py                     # Demo runner / sample flow
-├── run_kingdom.bat             # Windows launcher
+├── main.py
+├── demo.py
+├── pyproject.toml
+├── run_kingdom.bat
+├── run_kingdom_modern.bat
+├── run_kingdom_TRS80.bat
+├── run_state_check.bat
 ├── data/
-│   ├── initial_state.json      # Seed world state
-│   ├── working_state.json      # Active save state
-│   ├── *.sav / *.bak.*         # Local saves and backups
+│   ├── initial_state.json
+│   ├── demo_initial_state.json
+│   ├── working_state.json
+│   └── *.sav / *.bak.*
 ├── docs/
-│   ├── project_structure.md    # This file
-│   └── todo.txt                # Outstanding task list
-├── logs/                       # Session logs
-├── scripts/                    # Backup and pre-edit utility scripts
-├── src/
-│   └── kingdom/
-│       ├── __init__.py
-│       ├── actions.py          # Command handlers and game-loop actions
-│       ├── item_behaviors.py   # Item-specific behavior helpers
-│       ├── models.py           # Core world/domain models
-│       ├── parser.py           # Command parsing + noun/verb resolution
-│       ├── terminal_style.py   # TRS-80/modern terminal presentation
-│       ├── dispatch_context.py # Command context envelope (game, state, callbacks)
-│       └── utilities.py        # Shared helpers (logging, utilities)
+│   ├── project_structure.md
+│   ├── trs80_legacy_spirit_guide.md
+│   └── ...
+├── logs/
+├── scripts/
+│   ├── check_world_json.py
+│   ├── backup_incremental.py
+│   └── pre_edit.py
+└── src/kingdom/
+    ├── __init__.py
+    ├── actions.py
+    ├── dispatch_context.py
+    ├── item_behaviors.py
+    ├── models.py
+    ├── parser.py
+    ├── renderer.py
+    ├── terminal_style.py
+    ├── UI.py
+    ├── utilities.py
+    └── verbs/
+        ├── verb_handler.py
+        ├── movement_verbs.py
+        ├── state_changing_verbs.py
+        ├── inventory_verbs.py
+        ├── ui_verbs.py
+        └── meta_verbs.py
 ```
 
-- `logs/`: Stores session logs for debugging and replay.
-- `scripts/`: Contains backup and pre-edit scripts for world state management.
-- `item_behaviors.py`: Registry and dispatch for item-specific actions (e.g., eat fish).
-- `terminal_style.py`: Handles TRS-80 and modern terminal output styles.
-- `dispatch_context.py`: Defines the context object passed to action handlers.
+## Runtime Architecture
 
-This structure reflects the current codebase and recent refactors.
+### 1) Bootstrapping (`main.py`)
 
-## Core Classes
+- Parses CLI args (`--mode modern|trs80`)
+- Loads world data from `data/initial_state.json`
+- Creates player and game state (`GameActionState`)
+- Builds UI and dispatch context
+- Registers verbs through `build_verbs(...)`
 
-### Item
-Represents an object in the game world.
+### 2) Parsing (`parser.py`)
 
-```python
-item = Item("Golden Knight", pickupable=True, refuse_string=None)
-```
+- Tokenizes and normalizes player input
+- Identifies primary verb and noun phrases
+- Resolves implicit movement (single direction token => `go`)
 
-Properties:
-- `name`: Item name
-- `current_box`: Current container
-- `is_broken`: Damage state
-- `pickupable`: Whether the item can be picked up
-- `refuse_string`: Custom message when refusing to pick up non-pickupable items
+### 3) Dispatch (`models.Verb` + handlers)
 
-### Box
-A container with optional capacity limits.
+- Verb executes noun-side override if present (`on_<verb>`)
+- Falls back to handler method
+- Handler modules are grouped by concern:
+  - movement
+  - inventory
+  - state changing
+  - UI/system
+  - meta/help/debug
 
-```python
-treasure_chest = Box("Royal Vault", capacity=None)
-treasure_chest.add_item(item)
-```
+### 4) Presentation (`renderer.py` + `UI.py`)
 
-### Room
-A location with items, nested boxes, and optional minigames.
+- Builds room/item/exit text in renderer
+- UI layer handles terminal-specific display behavior
 
-```python
-hall = Room("Entrance Hall", desc="A grand hall...")
-hall.add_item(item)
-hall.add_box(treasure_chest)
-```
+## Commands (Current Core Set)
 
-### Player
-A character with a 10-item sack capacity.
+The current core verbs are registered in `src/kingdom/actions.py`.
 
-```python
-hero = Player("Hero")
-hero.take(box, item)  # Take from box or room
-hero.drop(item)       # Drop item from sack
-```
+Examples include:
 
-### Robber
-A character with unlimited carrying capacity.
+- `go`, `swim`, `teleport` (hidden)
+- `take`, `drop`, `inventory`
+- `open`, `close`, `unlock`, `light`, `extinguish`, `eat`, `rub`, `say`, `make` (hidden)
+- `look`, `save`, `load`, `quit`
+- `help`, `score`, `debug` (hidden)
 
-```python
-thief = Robber("Shadow")
-thief.steal(box, item)  # Steal from box or room
-```
+Direction aliases are supported through the direction registry and world data.
 
-### Verb
-Pairs action names with executable functions.
+## Running the Game
 
-```python
-examine = Verb("examine", lambda obj: f"You examine {obj} carefully.")
-result = examine.execute("Golden Knight")  # "You examine Golden Knight carefully."
-```
-
-## Game State Format
-
-Game worlds are stored in JSON with a nested structure:
-
-```json
-{
-  "boxes": [
-    {
-      "box_name": "Royal Vault",
-      "items": [
-        "Golden Knight",
-        {
-          "name": "Crown of Kings",
-          "pickupable": false,
-          "refuse_string": "too sacred to steal"
-        }
-      ]
-    }
-  ],
-  "rooms": [
-    {
-      "name": "Entrance Hall",
-      "description": "A grand hall...",
-      "connections": {
-        "north": "Great Gallery",
-        "down": "Secret Cellar"
-      },
-      "hidden_exits": ["down"],
-      "items": ["Silver Goblet", "Ancient Tome"],
-      "boxes": [
-        {
-          "box_name": "Throne Box",
-          "items": ["Crown Jewels"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-`hidden_exits` is optional. Any direction listed there remains traversable by command but is omitted from visible exit listings (for example, `look` output).
-
-## Usage
-
-Run the demo:
+### Python
 
 ```bash
 python main.py
 ```
 
-`python main.py` now defaults to modern terminal mode.
-
-Run in modern terminal mode:
+Default mode is `modern`.
 
 ```bash
 python main.py --mode modern
-```
-
-Run in TRS80 mode:
-
-```bash
 python main.py --mode trs80
 ```
 
-Or on Windows with Python Launcher:
+### Windows launchers
 
-```bash
-py main.py --mode modern
-```
+- `run_kingdom.bat`
+- `run_kingdom_modern.bat`
+- `run_kingdom_TRS80.bat`
 
-Or on Windows, double-click [run_kingdom.bat](run_kingdom.bat) to launch directly.
+## Data and State
 
-On Windows, Kingdom enforces a real terminal session. If it is launched without an attached console, it will automatically reopen itself in a PowerShell terminal window.
+- Seed world: `data/initial_state.json`
+- Working save examples: `data/working_state.json`, `data/*-save.json`
+- Runtime world loading/serialization lives in `src/kingdom/models.py`
 
-The demo will:
-1. Load the initial kingdom state
-2. Show a Player taking items from boxes and rooms
-3. Demonstrate the Verb system with example actions
-4. Save the state to `data/working_state.json`
-5. Reload and display the updated state
-
-Validate custom world JSON files before running:
+## Validate World JSON
 
 ```bash
 python scripts/check_world_json.py data/initial_state.json
 python scripts/check_world_json.py data/initial_state.json data/working_state.json
-python scripts/check_world_json.py --strict data/my_world.json
 ```
 
-On Windows, you can also run [run_state_check.bat](run_state_check.bat).
-- Double-click with no arguments to validate the default state files.
-- Or run from a terminal with custom paths, for example:
+Windows helper:
 
-```bat
-run_state_check.bat data\my_world.json
-```
-
-The checker verifies room-connection integrity, hidden-exit consistency, optional score sanity, and compatibility with the current loader.
-Use `--strict` to make warnings fail with a non-zero exit code (useful for CI checks).
+- `run_state_check.bat`
 
 ## Requirements
 
 - Python 3.13+
 
-## Installation
+## Notes
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd Kingdom
-
-# Run the demo
-python main.py
-```
-
-## License
-
-MIT
-
-## Author
-
-Dave Reed
+- `demo.py` is present as a smoke-test style script, while `main.py` is the primary runtime entrypoint.
+- Several backup/reference files are intentionally kept in the repo (`*.bak.*`, `old.py`, legacy docs).

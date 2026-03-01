@@ -1,0 +1,32 @@
+# terminal/protocols.py  or terminal/base.py
+
+from abc import ABC, abstractmethod
+from typing import Iterable, Optional
+
+class Terminal(ABC):
+    """Low-level output device abstraction."""
+
+    @abstractmethod
+    def clear(self) -> None:
+        """Clear screen and home cursor."""
+        ...
+
+    @abstractmethod
+    def print_lines(self, lines: Iterable[str], style: Optional[str] = None) -> None:
+        """Output multiple lines (for normal text flow)."""
+        ...
+
+    @abstractmethod
+    def print_at(self, row: int, col: int, text: str) -> None:
+        """Direct write at position — key for TRS-80 semigraphics / screen updates."""
+        ...
+
+    @abstractmethod
+    def get_input(self, prompt: str = "> ") -> str:
+        """Read a line of player input."""
+        ...
+
+    @abstractmethod
+    def refresh(self) -> None:
+        """Force display update (useful for curses-like or buffered modes)."""
+        ...
