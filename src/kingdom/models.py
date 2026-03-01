@@ -582,7 +582,7 @@ class DirectionNoun(Noun):
 
 class Item(Noun):
     all_items = []  # Class variable to track every item created
-    _by_name = {}                     # name → Item   ← new
+    _by_name = {}                     # name → Item 
 
     @classmethod
     def get_by_name(cls, name: str) -> 'Item | None':
@@ -639,10 +639,10 @@ class Item(Noun):
         self.name = str(name).strip()
         self.descriptive_phrase = self.name
         self.noun_name = str(noun_name).strip().lower() if noun_name else _derive_noun_name(self.name)
-        key = self.noun_name.lower()           
-        if key in Item._by_name:
-            print(f"Warning: duplicate item name '{key}' — overwriting previous")
-        Item._by_name[key] = self
+        searchkey = self.noun_name.lower()           
+        if searchkey in Item._by_name:
+            print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
+        Item._by_name[searchkey] = self
         explicit_behavior_ids = tuple(str(identifier).strip() for identifier in (behavior_ids or []) if str(identifier).strip())
         self.explicit_behavior_ids = explicit_behavior_ids
         self.current_box = None
@@ -775,6 +775,7 @@ class Item(Noun):
 
 class Box(Noun):
     all_boxes = []  # Class variable to track every box created
+    _by_name = {}                     # name → Box
 
     def __init__(
         self,
@@ -802,6 +803,10 @@ class Box(Noun):
         self.name = box_name
         self.contents = []
         self.capacity = capacity  # None = unlimited
+        searchkey = self.noun_name.lower()           
+        if searchkey in Box._by_name:
+            print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
+        Box._by_name[searchkey] = self
         self.presence_string = presence_string
         self.is_openable = bool(is_openable)
         self.is_open = bool(is_open)
@@ -829,6 +834,7 @@ class Box(Noun):
             else None
         )
         Box.all_boxes.append(self)
+        Box._by_name[self.noun_name.lower()] = self
 
     def __repr__(self):
         cls = self.__class__.__name__
@@ -921,7 +927,7 @@ class Room(Noun):
   
     all_rooms = []  # Class variable to track every room created
     DIRECTIONS = []  # Class variable to track all directions used across rooms
-
+    _by_name = {}                     # name → Room 
 
 
     def __init__(self, name, description, visited=False, is_dark=False, has_water=False, dark_description=None, discover_points=10):
@@ -934,12 +940,17 @@ class Room(Noun):
         self.dark_description = dark_description or None
         self.discover_points = max(0, discover_points)
         self.swim_exits: dict[str, "Room"] = {}
+        searchkey = self.name.lower()
+        if searchkey in Room._by_name:
+            print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
+        Room._by_name[searchkey] = self
         self.items = []  # list[Item]
         self.boxes = []  # list[Box]
         self.connections = {}
         self.hidden_directions = set()
         self.minigame = None
         Room.all_rooms.append(self)
+        Room._by_name[self.name.lower()] = self
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -1103,6 +1114,7 @@ class Game(Noun):
         self.current_player = None
         self.score = 0
         self.start_room_name = None
+        self.start_room = None
         self.state = None
         Game._instance = self
 
@@ -1111,6 +1123,7 @@ class Game(Noun):
             f"Game(\n"
             f"  rooms={list(self.rooms.keys())},\n"
             f"  current_player={self.current_player!r},\n"
+            f"  start_room={self.start_room_name!r},\n"
             f")"
         )
 
@@ -1221,6 +1234,7 @@ class Game(Noun):
         self.set_world(boxes, rooms)
         self.rooms = { room.name: room for room in rooms }     #convert room list to a dictionary for easy lookup by name
         start_room_name = data.get("start_room")
+        start_room = self.rooms
         self.start_room_name = start_room_name
 
         return boxes, self.rooms

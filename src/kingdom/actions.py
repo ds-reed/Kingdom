@@ -71,6 +71,7 @@ def _build_core_verbs(
     verb_load = Verb("load", ui_handler.load)
     verb_save = Verb("save", ui_handler.save)
     verb_quit = Verb("quit", ui_handler.quit, synonyms=["q"])
+    verb_die  = Verb("die", ui_handler.die, hidden=True)  # for testing game over handling - not intended to be a player command
     verb_look = Verb("look", ui_handler.look, synonyms=["examine", "inspect"])
 
     #---------------- meta verbs ----------------------------
@@ -108,6 +109,7 @@ def _build_core_verbs(
         verb_rub,
         verb_say,
         verb_make,
+        verb_die,
     ]
 
 

@@ -2,7 +2,7 @@
 
 from ast import parse
 
-from kingdom.models import DispatchContext, Noun, QuitGame, Box
+from kingdom.models import DispatchContext, GameOver, Noun, QuitGame, Box
 from kingdom.UI import UI
 from kingdom.renderer import RoomRenderer, render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
@@ -21,6 +21,9 @@ class UIVerbHandler(VerbHandler):
             raise QuitGame()
         else:
             return "Quit cancelled."
+        
+    def die(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+        raise GameOver("You have met an untimely demise.")
 
     def look(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
 

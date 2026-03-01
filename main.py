@@ -12,7 +12,7 @@ import subprocess
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, GameOver, QuitGame, GameActionState, build_dispatch_context
+from kingdom.models import Game, Player, Room, GameOver, QuitGame, GameActionState, build_dispatch_context
 from kingdom.renderer import render_current_room
 
 from kingdom.models import DIRECTIONS, DirectionNoun
@@ -36,6 +36,53 @@ from kingdom.UI import UI
 import kingdom.terminal_style as terminal_style
 
 from kingdom.actions import build_verbs
+
+import random
+
+def handle_game_over(
+    game_over: GameOver,
+    game: Game,
+    action_state: GameActionState,
+    start_room: Room,
+    trs80_print,
+    trs80_prompt,
+    render_current_room,
+) -> tuple[bool, bool]:
+    """
+    Handle GameOver exception: show message, offer clone attempt, apply effects.
+    
+    Returns: (should_quit: bool, new_recovery_mode: bool)
+    """
+
+    trs80_print(str(game_over), style=TRS80_WHITE)
+    trs80_print("It seems that you ran into a little trouble, didn't you?", style=TRS80_WHITE)
+    trs80_print("Well there is help. I could try to clone the remains but it will cost you points.", style=TRS80_WHITE)
+    
+    attempt_clone = trs80_prompt("Shall I try? (y/n): ").strip().lower() in {"y", "yes"}
+
+    if not attempt_clone:
+        trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
+        return False, True  # stay in recovery mode
+
+    # Apply penalty
+    _apply_death_score_penalty(game, penalty=20)
+
+    # Clone attempt (30% success chance: fail if roll > 7 → 3/10 success)
+    if random.randint(1, 10) > 7:
+        trs80_print("It seems that there wasn't enough to clone, but it was a good try.", style=TRS80_WHITE)
+        trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
+        return False, True  # fail → recovery mode
+
+    # Success!
+    trs80_print("Well I'll be darned, it worked!!", style=TRS80_WHITE)
+    action_state.current_room = start_room
+    
+    if action_state.current_room is not None:
+        render_current_room(action_state, clear=False)
+        print()  # blank line for readability
+    
+    return False, False  # success → exit recovery mode
+
 
 def iter_known_noun_names(game: Game):
     for noun in game.get_all_nouns():
@@ -270,29 +317,18 @@ def main(args: argparse.Namespace | None = None):
                 trs80_print("Goodbye!", style=TRS80_WHITE)
                 break
             except GameOver as game_over:
-                trs80_print(str(game_over), style=TRS80_WHITE)
-                trs80_print("It seems that you ran into a little trouble, didn't you?", style=TRS80_WHITE)
-                trs80_print("Well there is help. I could try to clone the remains but it will cost you points.", style=TRS80_WHITE)
-                attempt_clone = trs80_prompt("Shall I try? (y/n): ").strip().lower() in {"y", "yes"}
-
-                if not attempt_clone:
-                    trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
-                    recovery_mode = True
-                    continue
-
-                _apply_death_score_penalty(game, penalty=20)
-                if random.randint(1, 10) > 7:
-                    trs80_print("It seems that there wasn't enough to clone, but it was a good try.", style=TRS80_WHITE)
-                    trs80_print("You may load a saved game or quit.", style=TRS80_WHITE)
-                    recovery_mode = True
-                    continue
-
-                trs80_print("Well I'll be darned, it worked!!", style=TRS80_WHITE)
-                action_state.current_room = game.rooms[0] if game.rooms else None
-                if action_state.current_room is not None:
-                    render_current_room(action_state, clear=False)
-                    print()
-                recovery_mode = False
+                start_room = Room.by_name(dispatch_context.game.start_room_name)
+                should_quit, recovery_mode = handle_game_over(
+                    game_over,
+                    game,
+                    action_state,
+                    start_room,
+                    trs80_print,
+                    trs80_prompt,
+                    render_current_room,
+                )
+                if should_quit:
+                    break
                 continue
 
             except TypeError as e:
