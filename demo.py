@@ -4,7 +4,8 @@ from pathlib import Path
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, GameActionState, QuitGame, build_dispatch_context, DirectionNoun
+from kingdom.models import Game, Player, QuitGame, build_dispatch_context, DirectionNoun
+from kingdom.session import GameActionState, init_session, get_action_state
 from kingdom.actions import build_verbs
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
@@ -100,8 +101,8 @@ def demo():
     start_room = game.rooms.get(game.start_room_name) if isinstance(game.rooms, dict) else None
     _expect(start_room is not None, "Start room resolves from world data")
 
-    action_state = GameActionState(current_room=start_room, hero_name="DemoHero")
-    game.state = action_state
+    init_session(initial_room=start_room, player_name="DemoHero", save_dir=demo_save_path.parent)
+    action_state = get_action_state()
 
     ui = UI(
         confirm=lambda _prompt: True,

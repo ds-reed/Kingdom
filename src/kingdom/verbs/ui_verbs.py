@@ -1,7 +1,6 @@
 # ui_verbs.py — handlers for verbs related to UI actions (SAVE, LOAD, QUIT)
 ###### no longer uses UI, so this class needs to be distributed elesewhere.
 
-from ast import parse
 
 from kingdom.models import DispatchContext, GameOver, Noun, Box, QuitGame, SaveGame, LoadGame
 from kingdom.renderer import RoomRenderer, render_current_room

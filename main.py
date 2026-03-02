@@ -13,7 +13,7 @@ import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.models import Game, Player, Room, GameActionState, build_dispatch_context
+from kingdom.models import Game, Player, Room, build_dispatch_context
 from kingdom.models import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.renderer import render_current_room
 
@@ -30,6 +30,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 from kingdom.UI import UI 
 import kingdom.terminal_style as terminal_style
 
+from kingdom.session import GameActionState, init_session , get_action_state
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
@@ -50,28 +51,23 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
         game = Game.get_instance()
         game.setup_world(data_path)
 
+        if game.rooms: current_room = game.rooms[game.start_room_name]
+        else: raise ValueError("No rooms found in game data.")    
+
 
         ui = UI(game)
-        ui.print("Welcome to Kingdom.", bold=True)
-        ui.print()
-        hero_name = ui.prompt("Enter hero name: ").strip() or "Hero"
-        game.set_current_player(Player(hero_name))
-        ui.print()
-        ui.print(f"Welcome {hero_name}!")
-        ui.print()
+        ui.print("Welcome to Kingdom.","\n", bold=True)
 
-        if game.rooms:
-            current_room = game.rooms[game.start_room_name]
-        else:
-            raise ValueError("No rooms found in game data.")    
-        
-        action_state = GameActionState(current_room=current_room, hero_name=hero_name)
-        game.state = action_state    # give the world a pointer to action state  
+        player_name = ui.prompt("Enter hero name: ").strip() or "Hero"
 
-        game.save_path = base_dir / "data" / f"{hero_name}-save.json"
-        game.load_path = base_dir / "data" / f"{hero_name}-save.json"      
+        ui.print(f"Welcome {player_name}!","\n")
         
-        dispatch_context = build_dispatch_context(game=game, state=game.state)
+        save_path = base_dir / "saves" / f"{player_name}.json"
+
+        init_session(initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
+        action_state = get_action_state()  # retrieve the initialized action state
+         
+        dispatch_context = build_dispatch_context(game=game, state=action_state)
 
         #------------------------------------------------------------
 
@@ -112,16 +108,14 @@ def handle_game_over(
 
     # Clone attempt (30% success chance: fail if roll > 7 → 3/10 success)
     if random.randint(1, 10) > 7:
-        ui.print()
-        ui.print("Oh no! It seems that there wasn't enough of you left to clone, but it was a good try.")
-        ui.print("You may load a saved game or quit.")
-        ui.print()
+        ui.print("\n","Oh no! It seems that there wasn't enough of you left to clone, but it was a good try.")
+        ui.print("You may load a saved game or quit.","\n")
         return False, True  # fail → recovery mode
 
     # Success!
-    ui.print()
-    ui.print("Well I'll be darned, it worked!!")
-    ui.print()
+
+    ui.print("\n","Well I'll be darned, it worked!!","\n")
+
     action_state.current_room = start_room
     
     # Apply penalty for being cloned
@@ -172,12 +166,10 @@ def process_command(
     target_noun = _resolve_target_noun(game, action_state, resolved_command)
 
     if recovery_mode and verb_word not in recovery_allowed_verbs:
-        ui.print("You are dead. Load a saved game or quit.")
         return False, recovery_mode, "You are dead. Load a saved game or quit."
 
     verb = verbs.get(verb_word)
     if verb is None:
-        ui.print("I don't understand that command.")
         return False, recovery_mode, "I don't understand that command."
 
     try:
@@ -188,17 +180,19 @@ def process_command(
         )
 
     except LoadGame:
-        msg=ui.request_load()
-        return False, recovery_mode, msg
+        path=ui.request_load()
+        game.load_world(path)
+        return False, recovery_mode, f"Game loaded from {path}" 
+    
     except SaveGame:
-        msg=ui.request_save()
-        return False, recovery_mode, msg
+        path=ui.request_save()
+        game.save_world(path)
+        return False, recovery_mode, f"Game saved to {path}"
+    
     except QuitGame:
-        msg = ui.request_quit()
-        if msg:
-            return True, recovery_mode, msg
-        else:
-            return False, recovery_mode, "Quit cancelled."
+        if ui.request_quit(): return True, recovery_mode, "Goodbye! Thanks for playing Kingdom."
+        else: return False, recovery_mode, "Quit cancelled."
+        
     except GameOver as game_over:
         start_room = Room.by_name(dispatch_context.game.start_room_name)
         should_quit, recovery_mode = handle_game_over(
@@ -260,15 +254,16 @@ def main() -> None:
         recovery_mode = False
 
         while True:
-            ui.print()
+
+            ui.print("\n")  # Add spacing before prompt
             command = ui.prompt("Enter command: ")
-            ui.print()
+            ui.print("\n")  # Add spacing after command input
 
             should_quit, recovery_mode, output = process_command(
                 command=command,
                 verbs=game.verbs,
                 game=game,
-                action_state=game.state,
+                action_state=get_action_state(),
                 dispatch_context=dispatch_context,
                 recovery_mode=recovery_mode,
             )

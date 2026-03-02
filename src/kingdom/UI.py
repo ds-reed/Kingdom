@@ -6,8 +6,10 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 
 """
 
+from pathlib import Path
 from typing import Any, Sequence
 from kingdom.terminal_style import tty_clear_and_show_room, tty_print, tty_prompt
+from kingdom.session import get_prefs, SessionPrefs
 
 
 # ---------------------------------------------------------------------------
@@ -50,46 +52,55 @@ class UI:
 
         return response
 
+
     def request_save(self):
-        if self.game is None:
-            return "ERROR - no game found."
 
-        if self.game.save_path is None:
-            return "ERROR - no save path is configured."
-
-        if not self.confirm(question = "Save game? (y/n): "):
+        if not self.confirm(question="Save game? (y/n): "):
             return "Save cancelled."
 
-        path = self._prompt_for_path("Save", self.game.save_path)
+        prefs = get_prefs()
+        last_save_path = Path(prefs.save_directory / prefs.last_save_filename)
 
+        path_str = self._prompt_for_path("Save to", str(last_save_path))
+
+        # Convert to Path and normalize
+        path = Path(path_str)
+
+        if not path.suffix:
+            path = path.with_suffix(".json")
+
+        # Make sure directory exists 
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Perform the save 
         self.game.save_world(path)
 
-        return f"Game saved to {path}."
+        # tell session prefs we used this location
+        prefs.remember_save(path)
+
+        return path
+
 
     def request_load(self):
-        if self.game is None:
-            return "ERROR - no game found."
 
-        if self.game.load_path is None:
-            return "ERROR - no load path is configured."
-
-        # Confirm
         if not self.confirm(question = "Load game? (y/n): "):
             return "Load cancelled."
 
-        # Prompt for path
-        path = self._prompt_for_path("Load", self.game.load_path)
+        prefs = get_prefs()
+        last_save_path = Path(prefs.save_directory / prefs.last_save_filename)
 
-        # Load world
-        self.game.load_world(path)
+        # default load from last save path
+        path_str = self._prompt_for_path("Load from", str(last_save_path))
+        path = Path(path_str)
 
-        return f"Game loaded from {path}."
+        return path
     
-    def request_quit(self):
+
+    def request_quit(self) -> bool:
         if self.confirm(question = "Quit without saving? (y/n): "):
-           return "Goodbye! Thanks for playing Kingdom."
-        return None
-    
+           return True
+        return False
+
     
     def render_room(self, lines: list[str], clear: bool = True):
         tty_clear_and_show_room(lines, clear=clear)

@@ -1,0 +1,279 @@
+{
+    "player": null,
+    "current_room": null,
+    "start_room": "Tower Cell",
+    "score": 0,
+    "rooms": [
+        {
+            "name": "Djinni Lair",
+            "description": "You shouldn't be here.",
+            "visited": false,
+            "items": [
+                {
+                    "name": "an imposing djinni",
+                    "noun_name": "djinni",
+                    "is_gettable": false,
+                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
+                    "is_verbally_interactive": true
+                }
+            ],
+            "boxes": [],
+            "connections": {},
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Tower Cell",
+            "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "visited": false,
+            "items": [
+                {
+                    "name": "an old wooden torch",
+                    "noun_name": "torch",
+                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                    "is_lightable": true
+                },
+                {
+                    "name": "a single shiny bean",
+                    "noun_name": "bean",
+                    "is_openable": true,
+                    "open_action_description": "You crack open the bean with a satisfying snap."
+                },
+                {
+                    "name": "an ornate broach",
+                    "noun_name": "broach",
+                    "is_openable": true,
+                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
+                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
+                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
+                },
+                {
+                    "name": "a rusty iron trapdoor",
+                    "noun_name": "trapdoor",
+                    "is_gettable": false,
+                    "is_openable": true,
+                    "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
+                    "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
+                    "open_exit_direction": "down",
+                    "open_exit_destination": "Blank Chamber",
+                    "is_lockable": true,
+                    "is_locked": true,
+                    "unlock_key": "key",
+                    "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
+                    "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
+                    "unlockable_description": "The trapdoor is locked and you need a key."
+                }
+            ],
+            "boxes": [
+                {
+                    "canonical_name": "bag",
+                    "box_name": "a greasy brown lunch bag",
+                    "items": [
+                        {
+                            "name": "a cheery orange carrot",
+                            "noun_name": "carrot",
+                            "examine_string": "The carrot cheerfully waves hello!",
+                            "is_edible": true,
+                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+                        },
+                        {
+                            "name": "a suspicious looking fish",
+                            "noun_name": "fish",
+                            "is_edible": true
+                        },
+                        {
+                            "name": "a small brass key",
+                            "noun_name": "key"
+                        },
+                        {
+                            "name": "a battered and dull brass lamp",
+                            "noun_name": "lamp",
+                            "is_rubbable": true,
+                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rubbed_state_description": "a battered and shiny brass lamp."
+                        },
+                        {
+                            "name": "a cheap plastic lighter",
+                            "noun_name": "lighter",
+                            "can_ignite": true,
+                            "ignite_success_string": "You flick the lighter and a small flame appears."
+                        }
+                    ],
+                    "is_openable": true
+                }
+            ],
+            "connections": {
+                "up": "Demo Landing"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 0
+        },
+        {
+            "name": "Blank Chamber",
+            "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {},
+            "hidden_directions": [],
+            "is_dark": true,
+            "has_water": false,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "discover_points": 10
+        },
+        {
+            "name": "Colossal Cave",
+            "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
+            "visited": false,
+            "items": [
+                {
+                    "name": "a heavy solid gold bar",
+                    "noun_name": "gold",
+                    "too_heavy_to_swim": true
+                }
+            ],
+            "boxes": [],
+            "connections": {
+                "east": "Blank Chamber"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": true,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Pool Ledge",
+            "description": "on a narrow ledge across the pool.",
+            "visited": false,
+            "items": [
+                {
+                    "name": "a lit silver lantern",
+                    "noun_name": "lantern",
+                    "is_lit": true
+                }
+            ],
+            "boxes": [
+                {
+                    "canonical_name": "wardrobe",
+                    "box_name": "a large wooden wardrobe",
+                    "items": [],
+                    "is_openable": true
+                }
+            ],
+            "connections": {},
+            "hidden_directions": [],
+            "is_dark": true,
+            "has_water": true,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "discover_points": 10
+        },
+        {
+            "name": "Narnia",
+            "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {},
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Demo Landing",
+            "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
+            "visited": false,
+            "items": [
+                {
+                    "name": "a bright red apple",
+                    "noun_name": "apple",
+                    "is_edible": true
+                }
+            ],
+            "boxes": [],
+            "connections": {
+                "down": "Tower Cell",
+                "north": "Clockwork Court",
+                "east": "Whispering Grove",
+                "west": "Mirror Hall"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Whispering Grove",
+            "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {
+                "west": "Demo Landing",
+                "north": "Lantern Overlook"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Mirror Hall",
+            "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {
+                "east": "Demo Landing",
+                "north": "Lantern Overlook"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Clockwork Court",
+            "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {
+                "south": "Demo Landing",
+                "east": "Lantern Overlook"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        },
+        {
+            "name": "Lantern Overlook",
+            "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
+            "visited": false,
+            "items": [],
+            "boxes": [],
+            "connections": {
+                "south": "Clockwork Court",
+                "west": "Whispering Grove"
+            },
+            "hidden_directions": [],
+            "is_dark": false,
+            "has_water": false,
+            "dark_description": null,
+            "discover_points": 10
+        }
+    ]
+}

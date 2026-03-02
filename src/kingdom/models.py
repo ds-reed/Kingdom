@@ -29,11 +29,6 @@ class DispatchContext:
         )
 
 
-@dataclass
-class GameActionState:
-    current_room: "Room | None" = None
-    hero_name: str | None = None    
-
 class GameOver(Exception):
     pass
 
@@ -1247,7 +1242,6 @@ class Game(Noun):
         self.start_room_name = start_room_name
 
         return boxes, self.rooms
-
 
 
     def load_world(self, filepath):
