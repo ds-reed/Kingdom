@@ -87,7 +87,6 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
 def handle_game_over(
     game_over: GameOver,
     game: Game,
-    action_state: GameActionState,
     start_room: Room,
 ) -> tuple[bool, bool]:
     """
@@ -116,11 +115,12 @@ def handle_game_over(
 
     ui.print("\n","Well I'll be darned, it worked!!","\n")
 
+    action_state = get_action_state()
     action_state.current_room = start_room
     
     # Apply penalty for being cloned
     penalty = 20
-    game.score = max(0, int(game.score) - int(penalty)) 
+    action_state.score = max(0, int(action_state.score) - int(penalty)) 
 
     if action_state.current_room is not None:
         lines = render_current_room(action_state, clear=False)
@@ -198,7 +198,6 @@ def process_command(
         should_quit, recovery_mode = handle_game_over(
             game_over,
             game,
-            action_state,
             start_room,
         )
         if should_quit:
