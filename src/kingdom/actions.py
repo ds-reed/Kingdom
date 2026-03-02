@@ -40,11 +40,6 @@ def _register_verb(verb_lookup: dict[str, Verb], verb: Verb) -> None:
     _register_aliases(verb_lookup, verb)
 
 def _build_core_verbs(
-    state: "GameActionState",
-    game: Game,
-    default_save_path: Path,
-    confirm_action: ConfirmAction | None,
-    prompt_action: PromptAction | None,
 ) -> list[Verb]:
 
 # refactored verbs. 
@@ -114,13 +109,8 @@ def _build_core_verbs(
 
 
 def build_verbs(
-    state: "GameActionState",
-    game: Game,
-    default_save_path: Path,
-    confirm_action: ConfirmAction | None = None,
-    prompt_action: PromptAction | None = None,
 ) -> dict[str, Verb]:
     verbs: dict[str, Verb] = {}
-    for verb in _build_core_verbs(state, game, default_save_path, confirm_action, prompt_action):
+    for verb in _build_core_verbs():
         _register_verb(verbs, verb)
     return verbs

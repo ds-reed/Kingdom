@@ -2,7 +2,6 @@
 
 from typing import Sequence
 from kingdom.models import Game, Room, Item, Box
-from kingdom.UI import UI
 
 
 class RoomRenderer:
@@ -183,19 +182,8 @@ def render_current_room(state, display=True, clear=False):
     if room is None:
         return
     
-    ui = UI(
-        confirm=None,
-        prompt=None,
-        save_path=None,
-        load_path=None,
-        game=None
-    )
-
     renderer = RoomRenderer()
     lines = renderer.room_display_lines(room)
-
-    if display:
-        ui.render_room(lines, clear=clear)         # this doesn't belong here. Need to track down where function is used and add ui calls there instead.
 
     return lines
 

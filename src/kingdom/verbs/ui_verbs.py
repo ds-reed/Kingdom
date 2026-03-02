@@ -1,9 +1,9 @@
 # ui_verbs.py — handlers for verbs related to UI actions (SAVE, LOAD, QUIT)
+###### no longer uses UI, so this class needs to be distributed elesewhere.
 
 from ast import parse
 
-from kingdom.models import DispatchContext, GameOver, Noun, QuitGame, Box
-from kingdom.UI import UI
+from kingdom.models import DispatchContext, GameOver, Noun, Box, QuitGame, SaveGame, LoadGame
 from kingdom.renderer import RoomRenderer, render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
 
@@ -11,16 +11,14 @@ from kingdom.verbs.verb_handler import VerbHandler
 class UIVerbHandler(VerbHandler):
 
     def load(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
-        return ctx.ui.request_load()
+        raise LoadGame() 
 
     def save(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
-        return ctx.ui.request_save()
+        raise SaveGame()
 
     def quit(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
-        if ctx.ui.request_quit():
-            raise QuitGame()
-        else:
-            return "Quit cancelled."
+        raise QuitGame()
+
         
     def die(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
         raise GameOver("You have met an untimely demise.")

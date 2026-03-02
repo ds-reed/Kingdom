@@ -1,10 +1,12 @@
 # terminal_style.py
-# TRS-80 inspired terminal styling for text adventure (green phosphor look)
+# TRS-80 inspired terminal styling for text adventure  
 # Uses ANSI escapes + Unicode block/box drawing characters
+# not using unicode for text yet. Need to update
 
 import os
 import sys
 from typing import Sequence
+
 
 # ANSI Escape Codes
 RESET = "\033[0m"
@@ -69,7 +71,7 @@ def _apply_mode_case(text) -> str:
     return rendered
 
 
-def trs80_print(text, style=TRS80_WHITE, bold=False, dim=False, inverse=False, end="\n"):
+def tty_print(*args, style=TRS80_WHITE, bold=False, dim=False, inverse=False, end="\n", **kwargs):
     codes = []
     if bold:
         codes.append(BOLD)
@@ -79,7 +81,8 @@ def trs80_print(text, style=TRS80_WHITE, bold=False, dim=False, inverse=False, e
         codes.append(INVERSE)
     codes.append(style)
     prefix = "".join(codes)
-    print(f"{prefix}{_apply_mode_case(text)}{RESET}", end=end, flush=True)
+    text = " ".join(str(arg) for arg in args)
+    print(f"{prefix}{_apply_mode_case(text)}{RESET}", end=end, flush=True, **kwargs)
 
 
 def trs80_status_line(room_name, score=0, moves=0, light_on=True, width=64, hero_name=None):
@@ -87,7 +90,7 @@ def trs80_status_line(room_name, score=0, moves=0, light_on=True, width=64, hero
     hero_text = f" {hero_name[:12]:<12}" if hero_name else ""
     status = f" {room_name[:20]:<20}{hero_text}  Score:{score:>5}  Moves:{moves:>5}  {light_text} "
     filler = " " * max(0, width - len(status))
-    trs80_print(status + filler, inverse=True, style=TRS80_WHITE)
+    tty_print(status + filler, inverse=True, style=TRS80_WHITE)
 
 
 def trs80_box(title, content_lines, width=60, style=TRS80_WHITE):
@@ -97,23 +100,23 @@ def trs80_box(title, content_lines, width=60, style=TRS80_WHITE):
     sep = f"{T_DOWN}{HLINE * (width - 2)}{T_UP}"
     bottom = f"{BL_CORNER}{HLINE * (width - 2)}{BR_CORNER}"
 
-    trs80_print(top, style=style)
-    trs80_print(middle, style=style)
-    trs80_print(sep, style=style)
+    tty_print(top, style=style)
+    tty_print(middle, style=style)
+    tty_print(sep, style=style)
 
     for line in content_lines:
         padded = str(line)[: width - 4].ljust(width - 4)
-        trs80_print(f"{VLINE} {padded} {VLINE}", style=style)
+        tty_print(f"{VLINE} {padded} {VLINE}", style=style)
 
-    trs80_print(bottom, style=style)
+    tty_print(bottom, style=style)
 
 
-def trs80_prompt(prompt_text="> "):
+def tty_prompt(prompt_text="> "):
     prompt = f"{TRS80_WHITE}{_apply_mode_case(prompt_text)}{RESET}"
     return input(prompt)
 
 
-def trs80_clear_and_show_room(
+def tty_clear_and_show_room(
     content_lines: Sequence[str],
     score=0,
     moves=0,
@@ -126,7 +129,7 @@ def trs80_clear_and_show_room(
         clear_screen()
 
     for line in content_lines:
-        trs80_print(line, style=TRS80_WHITE)
+        tty_print(line, style=TRS80_WHITE)
 
 
 if __name__ == "__main__":

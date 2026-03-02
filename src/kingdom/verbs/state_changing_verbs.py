@@ -556,6 +556,8 @@ class StateVerbHandler(VerbHandler):
 
         if getattr(target, "eaten_success_string", None):
             result_msg = target.eaten_success_string
+        else:
+            result_msg = f"The {target.canonical_name()} was delicious!"
 
         # 4. Post-mutation side effect: remove item from inventory  
 

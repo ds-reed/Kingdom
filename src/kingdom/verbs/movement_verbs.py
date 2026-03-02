@@ -39,7 +39,7 @@ class MovementVerbHandler(VerbHandler):
 
         # Render
         lines = [f"You {success_verb_phrase} {canonical}."]
-        lines.extend(render_current_room(state, display=False))
+        lines.extend(render_current_room(state))
 
         return lines
 
@@ -167,7 +167,7 @@ class MovementVerbHandler(VerbHandler):
         desired_room.visited = True
 
         lines = [f"You teleport from {old_room_name} to {new_room_name}."]
-        lines.extend(render_current_room(state, display=False))
+        lines.extend(render_current_room(state))
         return self.build_message(lines)
 
     

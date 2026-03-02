@@ -40,6 +40,12 @@ class GameOver(Exception):
 class QuitGame(Exception):
     pass
 
+class SaveGame(Exception):
+    pass
+
+class LoadGame(Exception):
+    pass
+
 class LocationType(Enum):
     """Where an item can physically be in the game world."""
     INVENTORY     = auto()   # directly in player's sack/inventory
@@ -1207,10 +1213,14 @@ class Game(Noun):
         else: 
             raise TypeError("setup_world expects a filepath or a dict")
 # clear existing world state before loading new one
+# need to also clear dictionaries that track nouns by name
         Room.all_rooms.clear()
         Box.all_boxes.clear()
         Item.all_items.clear()
-        Noun.all_nouns.clear()           
+        Noun.all_nouns.clear()
+        Room._by_name = {}
+        Box._by_name = {}
+        Item._by_name = {}          
 
         _load_directions(data) 
         DirectionNoun.ensure_direction_nouns()
@@ -1237,6 +1247,8 @@ class Game(Noun):
         self.start_room_name = start_room_name
 
         return boxes, self.rooms
+
+
 
     def load_world(self, filepath):
         with open(filepath, 'r') as file:
@@ -1273,7 +1285,7 @@ class Game(Noun):
         self.score = int(data.get("score", 0))
 
 
-
+####### need to update based on changes - save "directions"; also a few attributes I added to game state (save/load paths, verbs.) ######
     def save_world(self, filepath):
         """Save current world state to JSON."""
         target = Path(filepath)
@@ -1283,7 +1295,7 @@ class Game(Noun):
         payload = {
             'player': { 'name': self.current_player.name, 
             'inventory': [_serialize_item(item)  for item in self.current_player.sack.contents]} if self.current_player else None,
-            'current_room': (self.state.current_room.name if self.state and self.state.current_room else None ),
+            'current_room': (self.state.current_room.name if self.state and self.state.current_room else None),
             'start_room': self.start_room_name,
             'score': int(getattr(self, 'score', 0)),
             'rooms': []
