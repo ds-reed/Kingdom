@@ -23,8 +23,8 @@ class MovementVerbHandler(VerbHandler):
         verb_phrase: str ("go", "swim") for error messages
         success_verb_phrase: str ("go", "swim") for success messages
         """
-        state = self.state(ctx)
-        game = self.game(ctx)
+        state = self.state()
+        game = self.game()
     
 
         next_room = exit_dict.get(canonical)
@@ -57,16 +57,16 @@ class MovementVerbHandler(VerbHandler):
         if direction is None:
             return self.build_message("Go where?")
 
-        result_msg= self.perform_movement(ctx, direction, self.room(ctx).connections, "go", "go")
+        result_msg= self.perform_movement(ctx, direction, self.room().connections, "go", "go")
 
         return self.build_message(result_msg)
 
 
     def swim(self, ctx, target: Noun, words: list[str]):
-        room = self.room(ctx)
+        room = self.room()
 
         def check_swim_constraints(ctx):
-            player = self.player(ctx)
+            player = self.player()
             inventory = player.get_inventory_items()
 
             heavy_item = next(
@@ -111,9 +111,9 @@ class MovementVerbHandler(VerbHandler):
 
     def teleport(self, ctx, target: Noun, words: list[str]):
         """Teleport to any room by name or number. No target → list rooms."""
-        state = self.state(ctx)
-        game = self.game(ctx)
-        room = self.room(ctx)
+        state = self.state()
+        game = self.game()
+        room = self.room()
 
         # No argument → show list
         if not words and target is None:

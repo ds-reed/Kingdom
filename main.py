@@ -66,7 +66,7 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
         
         save_path = base_dir / "saves" / f"{player_name}.json"
 
-        init_session(game=game, player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
+        init_session(game=game, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
         action_state = get_action_state()  # retrieve the initialized action state
          
         dispatch_context = build_dispatch_context(game=game, state=action_state)

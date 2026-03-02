@@ -15,7 +15,7 @@ from dataclasses import dataclass
 @dataclass
 class GameActionState:
     game: Game | None = None
-    player: Player | None = None
+    current_player: Player | None = None
     current_room: Room | None = None
     player_name: str | None = None
     score: int = 0
@@ -40,14 +40,14 @@ _prefs: SessionPrefs | None = None
 
 def init_session(
     game: Game | None = None,
-    player: Player | None = None,
+    current_player: Player | None = None,
     initial_room: Room | None = None,
     player_name: str | None = None,
     save_path: Path | None = None,
 ) -> None:
     global _action_state, _prefs
 
-    resolved_player = player
+    resolved_player = current_player
     if resolved_player is None and game is not None:
         resolved_player = game.current_player
 
@@ -55,7 +55,7 @@ def init_session(
     
     _action_state = GameActionState(
         game=game,
-        player=resolved_player,
+        current_player=resolved_player,
         current_room=initial_room,
         player_name=resolved_player_name,
         score=0,
@@ -302,9 +302,12 @@ def _serialize_item(item: "Item") -> dict:
     if getattr(item, "too_heavy_to_swim", False):
         payload["too_heavy_to_swim"] = True
 
-    behavior_ids = getattr(item, "explicit_behavior_ids", None)
-    if behavior_ids:
-        payload["behaviors"] = list(behavior_ids)
+    if getattr(item, "trigger_room", None):
+        payload["trigger_room"] = item.trigger_room
+
+    special_handlers = getattr(item, "special_handlers", None)
+    if special_handlers:
+        payload["special_handlers"] = dict(special_handlers)
 
     return payload
 
@@ -405,12 +408,8 @@ def _construct_item_from_spec(item_spec) -> "Item":
         eat_refuse_string=item_spec.get("eat_refuse_string"),
         eaten_success_string=item_spec.get("eaten_success_string"),
         get_refuse_string=item_spec.get("get_refuse_string"),
-        behavior_ids=item_spec.get("behaviors") or item_spec.get("behavior_ids"),
+        special_handlers=item_spec.get("special_handlers"),
     )
-
-    # Attach special behaviors after Item creation
-    special_handlers = item_spec.get("special_handlers", {})
-    item.special_handlers = special_handlers
 
     return item 
 
@@ -721,7 +720,6 @@ class Item(Noun):
         eat_refuse_string=None,
         eaten_success_string=None,
         get_refuse_string=None,
-        behavior_ids=None,
         special_handlers=None,
 
     ):
@@ -733,8 +731,6 @@ class Item(Noun):
         if searchkey in Item._by_name:
             print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
         Item._by_name[searchkey] = self
-        explicit_behavior_ids = tuple(str(identifier).strip() for identifier in (behavior_ids or []) if str(identifier).strip())
-        self.explicit_behavior_ids = explicit_behavior_ids
         self.current_box = None
         self.is_broken = False
         self.is_gettable = is_gettable

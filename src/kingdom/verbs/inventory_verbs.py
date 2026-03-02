@@ -10,7 +10,7 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
-        player = self.player(ctx)
+        player = self.player()
         inventory = player.get_inventory_items()
 
         if not inventory:
@@ -35,10 +35,10 @@ class InventoryVerbHandler(VerbHandler):
     ) -> str:
         
 
-        state = self.state(ctx)
-        game = self.game(ctx)  
-        room = self.room(ctx)
-        player = self.player(ctx)
+        state = self.state()
+        game = self.game()  
+        room = self.room()
+        player = self.player()
 
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
@@ -125,10 +125,10 @@ class InventoryVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
-        state = self.state(ctx)
-        game = self.game(ctx)
-        room = self.room(ctx)
-        player = self.player(ctx)
+        state = self.state()
+        game = self.game()
+        room = self.room()
+        player = self.player()
 
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]

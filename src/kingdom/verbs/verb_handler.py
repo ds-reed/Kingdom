@@ -3,7 +3,8 @@
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
-from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun
+from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun 
+from kingdom.models import get_action_state
 from kingdom.models import DIRECTIONS
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
@@ -34,17 +35,17 @@ class VerbHandler:
     # ------------------------------------------------------------
     # Context accessors
     # ------------------------------------------------------------
-    def game(self, ctx: DispatchContext):
-        return ctx.game
+    def game(self):
+        return get_action_state().game
 
-    def state(self, ctx: DispatchContext):
-        return ctx.state
+    def state(self):
+        return get_action_state()
 
-    def room(self, ctx: DispatchContext) -> Optional[Room]:
-        return ctx.state.current_room
+    def room(self) -> Optional[Room]:
+        return get_action_state().current_room
 
-    def player(self, ctx: DispatchContext):
-        return ctx.game.current_player
+    def player(self):
+        return get_action_state().current_player
 
     # ------------------------------------------------------------
     # Standard refusal helpers
@@ -159,8 +160,8 @@ class VerbHandler:
         Determine exactly where an item is located, returning a rich ItemLocation
         or None if the item cannot be found in the current context.
         """
-        player = self.player(ctx)
-        room = self.room(ctx)
+        player = self.player()
+        room = self.room()
 
         if room is None:
             return None  # rare safety case

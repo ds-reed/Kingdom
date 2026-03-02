@@ -24,7 +24,7 @@ class UIVerbHandler(VerbHandler):
 
     def look(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
 
-        room = self.room(ctx)
+        room = self.room()
 
         parse= self.resolve_noun_or_word(words, interest=["inside", "in"])
         noun = parse["noun"]

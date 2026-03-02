@@ -28,7 +28,7 @@ class StateVerbHandler(VerbHandler):
         return None
 
     def require_item(self, ctx, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
-        player = self.player(ctx)
+        player = self.player()
         if not player.has_item(required_item_id):
             return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
         return None
@@ -70,8 +70,8 @@ class StateVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
     ) -> str:
 
-        room = self.room(ctx)
-        game = self.game(ctx)
+        room = self.room()
+        game = self.game()
         
         parse = self.resolve_noun_or_word(words, interest=['sesame', 'all', 'everything'])
         keywords = parse["keywords"]
@@ -174,8 +174,8 @@ class StateVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
     ) -> str:
 
-        room = self.room(ctx)
-        game = self.game(ctx)
+        room = self.room()
+        game = self.game()
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
@@ -268,8 +268,8 @@ class StateVerbHandler(VerbHandler):
         words: tuple[str, ...],
     ) -> str:
 
-        room = self.room(ctx)
-        game = self.game(ctx)
+        room = self.room()
+        game = self.game()
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
@@ -354,9 +354,9 @@ class StateVerbHandler(VerbHandler):
     
     def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
 
-        room = self.room(ctx)
-        game = self.game(ctx)
-        player = self.player(ctx)
+        room = self.room()
+        game = self.game()
+        player = self.player()
         inventory = player.sack.contents
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
@@ -516,8 +516,8 @@ class StateVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
     ) -> str:
         
-        player = self.player(ctx)
-        room = self.room(ctx)
+        player = self.player()
+        room = self.room()
 
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]        
@@ -704,7 +704,7 @@ class StateVerbHandler(VerbHandler):
 
     def make(self, ctx, target=None, words=()):
 
-        room = self.room(ctx)
+        room = self.room()
         parse = self.resolve_noun_or_word(words, interest=['wish', 'all', 'everything'])
         keywords = parse["keywords"]        
         # ------------------------------------------------------------

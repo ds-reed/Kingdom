@@ -49,12 +49,12 @@ class MetaVerbHandler(VerbHandler):
         keywords = parse["keywords"]
 
         if "room" in keywords:
-            room = self.room(ctx)
+            room = self.room()
             return_msg = "No current room." if room is None else debug_noun(room)
             return self.build_message(return_msg)
 
         if "player" in keywords:
-            player = self.player(ctx)
+            player = self.player()
             return_msg = "No current player." if player is None else debug_noun(player)
             return self.build_message(return_msg)
 
@@ -135,7 +135,7 @@ class MetaVerbHandler(VerbHandler):
         target: Noun | None,
         words: tuple[str, ...] = ()
     ) -> str:
-        game = self.game(ctx)
+        game = self.game()
         return self.build_message(f"Your current score is: {ctx.state.score}")
 
 

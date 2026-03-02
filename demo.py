@@ -4,8 +4,8 @@ from pathlib import Path
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, QuitGame, build_dispatch_context, DirectionNoun
-from kingdom.session import GameActionState, init_session, get_action_state
+from kingdom.models import Game, Player, QuitGame, SaveGame, LoadGame, build_dispatch_context, DirectionNoun
+from kingdom.models import GameActionState, init_session, get_action_state
 from kingdom.actions import build_verbs
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
@@ -54,7 +54,7 @@ def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -
     return None
 
 
-def _run_command(game: Game, state: GameActionState, verbs, command, dispatch_context=None):
+def _run_command(game: Game, state: GameActionState, verbs, command, dispatch_context=None, demo_save_path: Path | None = None):
     resolved_command = resolve_command(
         command,
         known_verbs=verbs.keys(),
@@ -73,6 +73,16 @@ def _run_command(game: Game, state: GameActionState, verbs, command, dispatch_co
 
     try:
         return verb.execute(dispatch_context, target_noun, args)
+    except SaveGame:
+        if demo_save_path is None:
+            return "SAVE_ERROR"
+        saved_path = game.save_game(demo_save_path)
+        return f"Game saved to {saved_path}"
+    except LoadGame:
+        if demo_save_path is None:
+            return "LOAD_ERROR"
+        loaded_path = game.load_game(demo_save_path)
+        return f"Game loaded from {loaded_path}"
     except QuitGame:
         return "QUIT"
     except TypeError:
@@ -93,7 +103,8 @@ def demo():
 
     game = Game.get_instance()
     game.setup_world(data_path)
-    game.set_current_player(Player("DemoHero"))
+    player = Player("DemoHero")
+    game.set_current_player(player)
 
     _expect(len(game.rooms) > 0, "World loads rooms")
     _expect(len(game.boxes) > 0, "World loads boxes")
@@ -101,21 +112,15 @@ def demo():
     start_room = game.rooms.get(game.start_room_name) if isinstance(game.rooms, dict) else None
     _expect(start_room is not None, "Start room resolves from world data")
 
-    init_session(initial_room=start_room, player_name="DemoHero", save_dir=demo_save_path.parent)
+    init_session(game=game, current_player=player, initial_room=start_room, player_name="DemoHero", save_path=demo_save_path)
     action_state = get_action_state()
 
-    ui = UI(
-        confirm=lambda _prompt: True,
-        prompt=lambda _prompt: "",
-        save_path=demo_save_path,
-        load_path=demo_save_path,
-        game=game,
-    )
+    ui = UI(game)
 
     dispatch_context = build_dispatch_context(state=action_state, game=game)
     dispatch_context.ui = ui
 
-    verbs = build_verbs(action_state, game, demo_save_path, confirm_action=lambda _prompt: True)
+    verbs = build_verbs()
 
     _expect(
         set(["go", "save", "load", "look", "help", "quit", "inventory", "score"]).issubset(verbs.keys()),
@@ -144,11 +149,11 @@ def demo():
     _expect(isinstance(move_result, str) and "You go" in move_result, "Implicit direction command resolves to movement")
     _expect(action_state.current_room is not original_room, "Movement changes current room")
 
-    save_result = _run_command(game, action_state, verbs, "save", dispatch_context=dispatch_context)
+    save_result = _run_command(game, action_state, verbs, "save", dispatch_context=dispatch_context, demo_save_path=demo_save_path)
     _expect("Game saved to" in save_result, "save command writes demo save file")
     _expect(demo_save_path.exists(), "Demo save file exists")
 
-    load_result = _run_command(game, action_state, verbs, "load", dispatch_context=dispatch_context)
+    load_result = _run_command(game, action_state, verbs, "load", dispatch_context=dispatch_context, demo_save_path=demo_save_path)
     _expect("Game loaded from" in load_result, "load command restores from demo save file")
 
     unknown_result = _run_command(game, action_state, verbs, "dance", dispatch_context=dispatch_context)
