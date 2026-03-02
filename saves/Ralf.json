@@ -1,15 +1,9 @@
 {
     "player": {
         "name": "ralf",
-        "inventory": [
-            {
-                "name": "a bright red apple",
-                "noun_name": "apple",
-                "is_edible": true
-            }
-        ]
+        "inventory": []
     },
-    "current_room": "Lantern Overlook",
+    "current_room": "Tower Cell",
     "start_room": "Tower Cell",
     "score": 0,
     "rooms": [
@@ -37,7 +31,7 @@
         {
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
-            "visited": true,
+            "visited": false,
             "items": [
                 {
                     "name": "an old wooden torch",
@@ -199,8 +193,14 @@
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
-            "visited": true,
-            "items": [],
+            "visited": false,
+            "items": [
+                {
+                    "name": "a bright red apple",
+                    "noun_name": "apple",
+                    "is_edible": true
+                }
+            ],
             "boxes": [],
             "connections": {
                 "down": "Tower Cell",
@@ -265,7 +265,7 @@
         {
             "name": "Lantern Overlook",
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
-            "visited": true,
+            "visited": false,
             "items": [],
             "boxes": [],
             "connections": {

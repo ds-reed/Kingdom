@@ -15,6 +15,7 @@ from dataclasses import dataclass
 @dataclass
 class GameActionState:
     game: Game | None = None
+    player: Player | None = None
     current_room: Room | None = None
     player_name: str | None = None
     score: int = 0
@@ -39,22 +40,36 @@ _prefs: SessionPrefs | None = None
 
 def init_session(
     game: Game | None = None,
+    player: Player | None = None,
     initial_room: Room | None = None,
     player_name: str | None = None,
     save_path: Path | None = None,
 ) -> None:
     global _action_state, _prefs
+
+    resolved_player = player
+    if resolved_player is None and game is not None:
+        resolved_player = game.current_player
+
+    resolved_player_name = player_name or getattr(resolved_player, "name", None)
     
     _action_state = GameActionState(
         game=game,
+        player=resolved_player,
         current_room=initial_room,
-        player_name=player_name,
+        player_name=resolved_player_name,
         score=0,
     )
+
+    if game is not None:
+        game.state = _action_state
+        if resolved_player is not None:
+            game.current_player = resolved_player
+
     _prefs = SessionPrefs(
         save_directory=save_path.parent if save_path else Path("saves"),
         last_save_filename=save_path.name if save_path else "quicksave.json",
-        player_name=player_name,
+        player_name=resolved_player_name,
     )
 
 
@@ -1184,11 +1199,23 @@ class Game(Noun):
         self.name = "Game"
         self.boxes = []
         self.rooms = []
-        self.current_player = None
+        self._current_player = None
         self.start_room_name = None
         self.start_room = None
         self.state = None
         Game._instance = self
+
+    @property
+    def current_player(self):
+        if self.state is not None and getattr(self.state, "player", None) is not None:
+            return self.state.player
+        return self._current_player
+
+    @current_player.setter
+    def current_player(self, player):
+        self._current_player = player
+        if self.state is not None:
+            self.state.player = player
 
     def __repr__(self):
         return (
@@ -1337,18 +1364,28 @@ class Game(Noun):
         else:
             player_name = "Hero"
 
-        get_action_state().player_name = player_name
+        action_state = get_action_state()
+        action_state.player_name = player_name
+
+        if action_state.player is None:
+            action_state.player = Player(player_name)
+
+        self.current_player = action_state.player
         # change to saved player name, but keep same player object which is persistent across world loads
 
         # --- 4. Build the world ---
         self.setup_world(data)
 
         # --- 5. Restore player inventory ---
-        self.current_player.sack.contents.clear() # Clear existing inventory before loading new one
+        player = self.require_player(return_error=True)
+        if isinstance(player, str):
+            raise RuntimeError(player)
+
+        player.sack.contents.clear() # Clear existing inventory before loading new one
         if player_data:
             for item_json in player_data.get("inventory", []):
                 item = _construct_item_from_spec(item_json)
-                self.current_player.sack.add_item(item)
+                player.sack.add_item(item)
 
         # --- 6. Restore current room ---
         if current_room_name and current_room_name in self.rooms:
