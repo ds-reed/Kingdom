@@ -1,6 +1,30 @@
 {
-    "player": null,
-    "current_room": null,
+    "player": {
+        "name": "ralf",
+        "inventory": [
+            {
+                "name": "an old wooden torch",
+                "noun_name": "torch",
+                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                "is_lightable": true
+            },
+            {
+                "name": "a single shiny bean",
+                "noun_name": "bean",
+                "is_openable": true,
+                "open_action_description": "You crack open the bean with a satisfying snap."
+            },
+            {
+                "name": "an ornate broach",
+                "noun_name": "broach",
+                "is_openable": true,
+                "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
+                "closed_state_description": "an ornate broach with a tightly-closed clasp.",
+                "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
+            }
+        ]
+    },
+    "current_room": "Demo Landing",
     "start_room": "Tower Cell",
     "score": 0,
     "rooms": [
@@ -28,28 +52,8 @@
         {
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
-            "visited": false,
+            "visited": true,
             "items": [
-                {
-                    "name": "an old wooden torch",
-                    "noun_name": "torch",
-                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                    "is_lightable": true
-                },
-                {
-                    "name": "a single shiny bean",
-                    "noun_name": "bean",
-                    "is_openable": true,
-                    "open_action_description": "You crack open the bean with a satisfying snap."
-                },
-                {
-                    "name": "an ornate broach",
-                    "noun_name": "broach",
-                    "is_openable": true,
-                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
-                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
-                },
                 {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
@@ -190,7 +194,7 @@
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
-            "visited": false,
+            "visited": true,
             "items": [
                 {
                     "name": "a bright red apple",

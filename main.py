@@ -30,7 +30,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 from kingdom.UI import UI 
 import kingdom.terminal_style as terminal_style
 
-from kingdom.session import GameActionState, init_session , get_action_state
+from kingdom.models import GameActionState, init_session , get_action_state
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
@@ -59,12 +59,14 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
         ui.print("Welcome to Kingdom.","\n", bold=True)
 
         player_name = ui.prompt("Enter hero name: ").strip() or "Hero"
+        player = Player(player_name)
+        game.set_current_player(player)
 
         ui.print(f"Welcome {player_name}!","\n")
         
         save_path = base_dir / "saves" / f"{player_name}.json"
 
-        init_session(initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
+        init_session(game=game, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
         action_state = get_action_state()  # retrieve the initialized action state
          
         dispatch_context = build_dispatch_context(game=game, state=action_state)
@@ -107,13 +109,13 @@ def handle_game_over(
 
     # Clone attempt (30% success chance: fail if roll > 7 → 3/10 success)
     if random.randint(1, 10) > 7:
-        ui.print("\n","Oh no! It seems that there wasn't enough of you left to clone, but it was a good try.")
+        ui.print("Oh no! It seems that there wasn't enough of you left to clone, but it was a good try.")
         ui.print("You may load a saved game or quit.","\n")
         return False, True  # fail → recovery mode
 
     # Success!
 
-    ui.print("\n","Well I'll be darned, it worked!!","\n")
+    ui.print("Well I'll be darned, it worked!!","\n")
 
     action_state = get_action_state()
     action_state.current_room = start_room
@@ -182,7 +184,10 @@ def process_command(
     except LoadGame:
         path=ui.request_load()
         game.load_world(path)
-        return False, recovery_mode, f"Game loaded from {path}" 
+        ui.print(f"Game loaded from {path}.")
+        ui.print(f"Welcome back {get_action_state().player_name}!","\n")
+        render_current_room(get_action_state(), clear=True)
+        return False, recovery_mode, None  # no custom message on load, just rely on room render" 
     
     except SaveGame:
         path=ui.request_save()

@@ -12,6 +12,80 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 
+@dataclass
+class GameActionState:
+    game: Game | None = None
+    current_room: Room | None = None
+    player_name: str | None = None
+    score: int = 0
+
+
+@dataclass
+class SessionPrefs:
+    save_directory: Path = Path("saves")
+    last_save_filename: str = "quicksave.json"
+    player_name: str | None = None
+    default_filename_template: str = "{name}.json"
+
+    def remember_save(self, path: Path | str):
+        path = Path(path)
+        self.save_directory = path.parent
+        self.last_save_filename = path.name
+
+
+_action_state: GameActionState | None = None
+_prefs: SessionPrefs | None = None
+
+
+def init_session(
+    game: Game | None = None,
+    initial_room: Room | None = None,
+    player_name: str | None = None,
+    save_path: Path | None = None,
+) -> None:
+    global _action_state, _prefs
+    
+    _action_state = GameActionState(
+        game=game,
+        current_room=initial_room,
+        player_name=player_name,
+        score=0,
+    )
+    _prefs = SessionPrefs(
+        save_directory=save_path.parent if save_path else Path("saves"),
+        last_save_filename=save_path.name if save_path else "quicksave.json",
+        player_name=player_name,
+    )
+
+
+def get_action_state() -> GameActionState:
+    if _action_state is None:
+        raise RuntimeError("Action state not initialized")
+    return _action_state
+
+
+def set_action_state(new_state: GameActionState) -> None:
+    global _action_state
+    _action_state = new_state
+
+
+def set_prefs(new_prefs: SessionPrefs) -> None:
+    global _prefs
+    _prefs = new_prefs
+
+
+def get_prefs() -> SessionPrefs:
+    if _prefs is None:
+        raise RuntimeError("Session preferences not initialized")
+    return _prefs
+
+
+def reset_all_state() -> None:
+    global _action_state, _prefs
+    _action_state = None
+    _prefs = None
+
+
 @dataclass(slots=True)
 class DispatchContext:
     game: "Game | None" = None
@@ -1007,7 +1081,6 @@ class Room(Noun):
                 return box
         return None
 
-
     def add_direction(self, direction):
         if not isinstance(direction, str):
             raise TypeError("direction must be a string")
@@ -1112,7 +1185,6 @@ class Game(Noun):
         self.boxes = []
         self.rooms = []
         self.current_player = None
-        self.score = 0
         self.start_room_name = None
         self.start_room = None
         self.state = None
@@ -1209,13 +1281,14 @@ class Game(Noun):
             raise TypeError("setup_world expects a filepath or a dict")
 # clear existing world state before loading new one
 # need to also clear dictionaries that track nouns by name
+# don't clear player we are keeping the same player instance across world loads
         Room.all_rooms.clear()
         Box.all_boxes.clear()
         Item.all_items.clear()
         Noun.all_nouns.clear()
         Room._by_name = {}
         Box._by_name = {}
-        Item._by_name = {}          
+        Item._by_name = {}
 
         _load_directions(data) 
         DirectionNoun.ensure_direction_nouns()
@@ -1225,15 +1298,8 @@ class Game(Noun):
         if isinstance(data, dict):
             boxes = _construct_boxes(data.get('boxes', []))
             rooms = _construct_rooms(data.get('rooms', []))
-            score_value = data.get('score', 0)
         else:
             rooms = []
-            score_value = 0
-
-        try:
-            self.score = max(0, int(score_value))
-        except (TypeError, ValueError):
-            self.score = 0
 
         self.set_world(boxes, rooms)
         self.rooms = { room.name: room for room in rooms }     #convert room list to a dictionary for easy lookup by name
@@ -1252,34 +1318,36 @@ class Game(Noun):
         player_data = data.pop("player", None)
 
         # --- 2. Extract current room name BEFORE setup_world ---
-        room_name = data.get("current_room")
+        current_room_name = data.get("current_room")
 
-        # --- 3. Create the Player (empty sack) ---
+        # --- 3. Update player name ---
         if player_data:
-            player = Player(player_data.get("name", "Hero"))
+            player_name = player_data.get("name", "Hero")
         else:
-            player = Player("Hero")
+            player_name = "Hero"
 
-        self.current_player = player
+        get_action_state().player_name = player_name
+        # change to saved player name, but keep same player object which is persistent across world loads
 
         # --- 4. Build the world ---
         self.setup_world(data)
 
         # --- 5. Restore player inventory ---
+        self.current_player.sack.contents.clear() # Clear existing inventory before loading new one
         if player_data:
             for item_json in player_data.get("inventory", []):
                 item = _construct_item_from_spec(item_json)
-                player.sack.add_item(item)
+                self.current_player.sack.add_item(item)
 
         # --- 6. Restore current room ---
-        if room_name and room_name in self.rooms:
-            self.state.current_room = self.rooms[room_name]
+        if current_room_name and current_room_name in self.rooms:
+            get_action_state().current_room = self.rooms[current_room_name]
 
         # --- 7. Restore score ---
-        self.score = int(data.get("score", 0))
+        get_action_state().score = int(data.get("score", 0))
 
 
-####### need to update based on changes - save "directions"; also a few attributes I added to game state (save/load paths, verbs.) ######
+####### need to update to save "directions" ######
     def save_world(self, filepath):
         """Save current world state to JSON."""
         target = Path(filepath)
@@ -1289,9 +1357,9 @@ class Game(Noun):
         payload = {
             'player': { 'name': self.current_player.name, 
             'inventory': [_serialize_item(item)  for item in self.current_player.sack.contents]} if self.current_player else None,
-            'current_room': (self.state.current_room.name if self.state and self.state.current_room else None),
+            'current_room': (get_action_state().current_room.name),
             'start_room': self.start_room_name,
-            'score': int(getattr(self, 'score', 0)),
+            'score': int(get_action_state().score),
             'rooms': []
         }
 
