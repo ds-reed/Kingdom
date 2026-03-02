@@ -1,0 +1,83 @@
+# Git Cheat Sheet - Typical "feature branch → main" workflow
+# (assumes remote is called "origin" and main branch is "main" or "master")
+
+# ────────────────────────────────────────────────────────────────
+# 1. Make sure you're on your feature/topic branch
+# ────────────────────────────────────────────────────────────────
+git branch                          # see where you are
+git checkout my-feature-branch      # or git switch my-feature-branch
+
+# ────────────────────────────────────────────────────────────────
+# 2. Stage & commit your work (do this often)
+# ────────────────────────────────────────────────────────────────
+git add .                           # stage everything (or git add file1.py file2.md etc.)
+git add -p                          # stage interactively (very useful)
+git commit -m "Add save/load path handling using session.py"
+
+# Alternative one-liner (stage + commit tracked files):
+git commit -am "Fix UI save prompt to use session prefs"
+
+# ────────────────────────────────────────────────────────────────
+# 3. Update your branch with latest main (recommended before PR)
+# ────────────────────────────────────────────────────────────────
+git fetch origin                    # get latest from GitHub (safe)
+git rebase origin/main              # clean linear history (preferred)
+#   OR
+git merge origin/main               # if you prefer merge commits
+
+# If conflicts → resolve them, then:
+git add <conflicted-files>
+git rebase --continue               # or git merge --continue
+
+# ────────────────────────────────────────────────────────────────
+# 4. Push your branch to GitHub
+# ────────────────────────────────────────────────────────────────
+git push origin my-feature-branch
+# First time only:
+# git push --set-upstream origin my-feature-branch   (or -u)
+
+# ────────────────────────────────────────────────────────────────
+# 5. Create Pull Request on GitHub (do this in browser)
+#    - Go to your repo → Pull requests → New pull request
+#    - base: main ← compare: my-feature-branch
+#    - Fill title/description → Create pull request
+# ────────────────────────────────────────────────────────────────
+
+# ────────────────────────────────────────────────────────────────
+# 6. After PR is approved & merged (two common ways)
+# ────────────────────────────────────────────────────────────────
+
+# Option A: Merge via GitHub UI (most people do this)
+# → Delete branch on GitHub after merge (checkbox)
+
+# Option B: Merge locally (if you prefer command line)
+git checkout main
+git pull origin main                # or: git fetch && git rebase origin/main
+git branch -d my-feature-branch     # delete local branch (optional -D to force)
+
+# ────────────────────────────────────────────────────────────────
+# Quick one-liner sequence (after you're done working)
+# ────────────────────────────────────────────────────────────────
+git checkout main
+git pull
+git checkout -
+git rebase main
+git push
+# → then go to GitHub and open the PR
+
+# ────────────────────────────────────────────────────────────────
+# Useful everyday commands
+# ────────────────────────────────────────────────────────────────
+git status
+git log --oneline --graph --decorate
+git log --oneline -10               # last 10 commits
+git diff                            # unstaged changes
+git diff --staged                   # staged changes
+git restore .                       # discard all unstaged changes (dangerous)
+git reset --hard HEAD               # nuke everything to last commit (very dangerous)
+
+# Undo last commit but keep changes:
+git reset --soft HEAD~1
+
+# Delete remote branch after merge (if GitHub didn't):
+git push origin --delete my-feature-branch
