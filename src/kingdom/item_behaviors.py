@@ -8,9 +8,12 @@ This module is the single source of truth for item-driven puzzle logic.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from enum import Enum, auto
+
+if TYPE_CHECKING:
+    from kingdom.models import DispatchContext
 
 class VerbControl(Enum):
     CONTINUE = auto()  # fall through to default behavior
@@ -170,7 +173,13 @@ def open_bean(item, verb_name, words, ctx):
 @register_item_behavior("eat_fish")
 def eat_fish(item, verb, words, ctx):
 
-    player = ctx.game.current_player
+    state = getattr(ctx, "state", None)
+    player = getattr(state, "current_player", None)
+    if player is None:
+        return VerbOutcome(
+            message="No active player.",
+            control=VerbControl.STOP
+        )
     inventory = player.sack.contents
 
     if item not in inventory:
@@ -206,7 +215,13 @@ def eat_fish(item, verb, words, ctx):
 @register_item_behavior("rub_lamp")
 def rub_lamp(item, verb, words, ctx):
 
-    player = ctx.game.current_player
+    state = getattr(ctx, "state", None)
+    player = getattr(state, "current_player", None)
+    if player is None:
+        return VerbOutcome(
+            message="No active player.",
+            control=VerbControl.STOP
+        )
     inventory = player.sack.contents
 
     # Must be holding the lamp
@@ -228,9 +243,16 @@ def rub_lamp(item, verb, words, ctx):
         )
 
         if not djinni_present:
-            djinni_room, djinni = ctx.game.find_item_in_game("djinni")
+            game = getattr(state, "game", None)
+            if game is None:
+                return VerbOutcome(
+                    message="No active game.",
+                    control=VerbControl.STOP
+                )
+
+            djinni_room, djinni = game.find_item_in_game("djinni")
             if djinni:
-                ctx.game.move_item_between_rooms(djinni, djinni_room, room)
+                game.move_item_between_rooms(djinni, djinni_room, room)
 
         return VerbOutcome(
             message=(
@@ -267,8 +289,14 @@ def _djinni_scripted_action(item, verb, words, ctx):
     triggers his pre-ordained magical action.
     """
 
-    room = ctx.state.current_room
-    game = ctx.game
+    state = getattr(ctx, "state", None)
+    room = getattr(state, "current_room", None)
+    game = getattr(state, "game", None)
+    if room is None or game is None:
+        return VerbOutcome(
+            message="The Djinni fizzles out due to unstable magic.",
+            control=VerbControl.STOP
+        )
 
     message_lines = [
         "The Djinni seems puzzled by your exotic language.",

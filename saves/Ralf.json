@@ -1,9 +1,70 @@
 {
     "player": {
         "name": "ralf",
-        "inventory": []
+        "inventory": [
+            {
+                "name": "an old wooden torch",
+                "noun_name": "torch",
+                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                "is_lightable": true,
+                "is_lit": true
+            },
+            {
+                "name": "a single shiny bean",
+                "noun_name": "bean",
+                "is_openable": true,
+                "open_action_description": "You crack open the bean with a satisfying snap.",
+                "special_handlers": {
+                    "open": "open_bean"
+                }
+            },
+            {
+                "name": "an ornate broach",
+                "noun_name": "broach",
+                "is_openable": true,
+                "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
+                "closed_state_description": "an ornate broach with a tightly-closed clasp.",
+                "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
+            },
+            {
+                "name": "a cheery orange carrot",
+                "noun_name": "carrot",
+                "examine_string": "The carrot cheerfully waves hello!",
+                "is_edible": true,
+                "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+            },
+            {
+                "name": "a suspicious looking fish",
+                "noun_name": "fish",
+                "is_edible": true,
+                "special_handlers": {
+                    "eat": "eat_fish"
+                }
+            },
+            {
+                "name": "a small brass key",
+                "noun_name": "key"
+            },
+            {
+                "name": "a battered but shiny brass lamp",
+                "noun_name": "lamp",
+                "is_rubbable": true,
+                "rub_success_string": "The lamp grows shiny from rubbing.",
+                "rubbed_state_description": "a battered and shiny brass lamp.",
+                "trigger_room": "Blank Chamber",
+                "special_handlers": {
+                    "rub": "rub_lamp"
+                }
+            },
+            {
+                "name": "a cheap plastic lighter",
+                "noun_name": "lighter",
+                "can_ignite": true,
+                "ignite_success_string": "You flick the lighter and a small flame appears."
+            }
+        ]
     },
-    "current_room": "Tower Cell",
+    "current_room": "Blank Chamber",
     "start_room": "Tower Cell",
     "score": 0,
     "rooms": [
@@ -11,15 +72,7 @@
             "name": "Djinni Lair",
             "description": "You shouldn't be here.",
             "visited": false,
-            "items": [
-                {
-                    "name": "an imposing djinni",
-                    "noun_name": "djinni",
-                    "is_gettable": false,
-                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
-                    "is_verbally_interactive": true
-                }
-            ],
+            "items": [],
             "boxes": [],
             "connections": {},
             "hidden_directions": [],
@@ -31,28 +84,8 @@
         {
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
-            "visited": false,
+            "visited": true,
             "items": [
-                {
-                    "name": "an old wooden torch",
-                    "noun_name": "torch",
-                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                    "is_lightable": true
-                },
-                {
-                    "name": "a single shiny bean",
-                    "noun_name": "bean",
-                    "is_openable": true,
-                    "open_action_description": "You crack open the bean with a satisfying snap."
-                },
-                {
-                    "name": "an ornate broach",
-                    "noun_name": "broach",
-                    "is_openable": true,
-                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
-                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
-                },
                 {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
@@ -68,44 +101,21 @@
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key."
+                },
+                {
+                    "name": "There is vomit on a nearby wall.",
+                    "noun_name": "vomit",
+                    "is_gettable": false,
+                    "get_refuse_string": "EW! You can't get that."
                 }
             ],
             "boxes": [
                 {
                     "canonical_name": "bag",
                     "box_name": "a greasy brown lunch bag",
-                    "items": [
-                        {
-                            "name": "a cheery orange carrot",
-                            "noun_name": "carrot",
-                            "examine_string": "The carrot cheerfully waves hello!",
-                            "is_edible": true,
-                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
-                        },
-                        {
-                            "name": "a suspicious looking fish",
-                            "noun_name": "fish",
-                            "is_edible": true
-                        },
-                        {
-                            "name": "a small brass key",
-                            "noun_name": "key"
-                        },
-                        {
-                            "name": "a battered and dull brass lamp",
-                            "noun_name": "lamp",
-                            "is_rubbable": true,
-                            "rub_success_string": "The lamp grows shiny from rubbing.",
-                            "rubbed_state_description": "a battered and shiny brass lamp."
-                        },
-                        {
-                            "name": "a cheap plastic lighter",
-                            "noun_name": "lighter",
-                            "can_ignite": true,
-                            "ignite_success_string": "You flick the lighter and a small flame appears."
-                        }
-                    ],
-                    "is_openable": true
+                    "items": [],
+                    "is_openable": true,
+                    "is_open": true
                 }
             ],
             "connections": {
@@ -120,10 +130,12 @@
         {
             "name": "Blank Chamber",
             "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
-            "visited": false,
+            "visited": true,
             "items": [],
             "boxes": [],
-            "connections": {},
+            "connections": {
+                "west": "Colossal Cave"
+            },
             "hidden_directions": [],
             "is_dark": true,
             "has_water": false,

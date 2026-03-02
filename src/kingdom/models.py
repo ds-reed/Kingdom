@@ -813,7 +813,9 @@ class Item(Noun):
             return False
 
         state = dispatch_context.state
-        game = dispatch_context.game
+        game = getattr(state, "game", None)
+        if game is None:
+            game = dispatch_context.game
 
         if state is not None and getattr(state, "current_room", None) is not None:
             room = state.current_room
