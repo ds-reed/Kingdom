@@ -136,6 +136,6 @@ class MetaVerbHandler(VerbHandler):
         words: tuple[str, ...] = ()
     ) -> str:
         game = self.game(ctx)
-        return self.build_message(f"Your current score is: {game.score}")
+        return self.build_message(f"Your current score is: {ctx.state.score}")
 
 

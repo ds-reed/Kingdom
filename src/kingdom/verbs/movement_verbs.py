@@ -25,6 +25,7 @@ class MovementVerbHandler(VerbHandler):
         """
         state = self.state(ctx)
         game = self.game(ctx)
+    
 
         next_room = exit_dict.get(canonical)
         if next_room is None:
@@ -35,7 +36,7 @@ class MovementVerbHandler(VerbHandler):
 
         # Scoring
         if not next_room.visited:
-            game.score += getattr(next_room, "discover_points", 0)
+            state.score += getattr(next_room, "discover_points", 0)
 
         # Render
         lines = [f"You {success_verb_phrase} {canonical}."]

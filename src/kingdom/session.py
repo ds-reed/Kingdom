@@ -11,7 +11,8 @@ if TYPE_CHECKING:
 @dataclass
 class GameActionState:
     current_room: "Room | None" = None
-    hero_name: str | None = None
+    player_name: str | None = None
+    score: int = 0
 
 @dataclass
 class SessionPrefs:
@@ -37,7 +38,7 @@ def init_session(
     global _action_state, _prefs
     _action_state = GameActionState(
         current_room=initial_room,
-        hero_name=player_name,
+        player_name=player_name,
     )
     _prefs = SessionPrefs(
         save_directory=save_path.parent if save_path else Path("saves"),
