@@ -1,13 +1,12 @@
 {
     "player": {
-        "name": "ralf",
+        "name": "Ralf",
         "inventory": [
             {
                 "name": "an old wooden torch",
                 "noun_name": "torch",
                 "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                "is_lightable": true,
-                "is_lit": true
+                "is_lightable": true
             },
             {
                 "name": "a single shiny bean",
@@ -46,7 +45,7 @@
                 "noun_name": "key"
             },
             {
-                "name": "a battered but shiny brass lamp",
+                "name": "a battered and dull brass lamp",
                 "noun_name": "lamp",
                 "is_rubbable": true,
                 "rub_success_string": "The lamp grows shiny from rubbing.",
@@ -64,7 +63,7 @@
             }
         ]
     },
-    "current_room": "Blank Chamber",
+    "current_room": "Tower Cell",
     "start_room": "Tower Cell",
     "score": 0,
     "rooms": [
@@ -72,7 +71,19 @@
             "name": "Djinni Lair",
             "description": "You shouldn't be here.",
             "visited": false,
-            "items": [],
+            "items": [
+                {
+                    "name": "an imposing djinni",
+                    "noun_name": "djinni",
+                    "is_gettable": false,
+                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
+                    "is_verbally_interactive": true,
+                    "special_handlers": {
+                        "say": "speak_djinni",
+                        "make": "make_djinni"
+                    }
+                }
+            ],
             "boxes": [],
             "connections": {},
             "hidden_directions": [],
@@ -101,12 +112,6 @@
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key."
-                },
-                {
-                    "name": "There is vomit on a nearby wall.",
-                    "noun_name": "vomit",
-                    "is_gettable": false,
-                    "get_refuse_string": "EW! You can't get that."
                 }
             ],
             "boxes": [
@@ -130,12 +135,10 @@
         {
             "name": "Blank Chamber",
             "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
-            "visited": true,
+            "visited": false,
             "items": [],
             "boxes": [],
-            "connections": {
-                "west": "Colossal Cave"
-            },
+            "connections": {},
             "hidden_directions": [],
             "is_dark": true,
             "has_water": false,

@@ -48,8 +48,6 @@ def init_session(
     global _action_state, _prefs
 
     resolved_player = current_player
-    if resolved_player is None and game is not None:
-        resolved_player = game.current_player
 
     resolved_player_name = player_name or getattr(resolved_player, "name", None)
     
@@ -63,8 +61,6 @@ def init_session(
 
     if game is not None:
         game.state = _action_state
-        if resolved_player is not None:
-            game.current_player = resolved_player
 
     _prefs = SessionPrefs(
         save_directory=save_path.parent if save_path else Path("saves"),
@@ -828,11 +824,11 @@ class Item(Noun):
                     box.contents.remove(self)
                     return True
 
-        if game is not None:
-            player = game.require_player(return_error=True)
-            if not isinstance(player, str) and self in player.sack.contents:
-                player.sack.contents.remove(self)
-                return True
+        player = getattr(state, "current_player", None)
+
+        if player is not None and self in player.sack.contents:
+            player.sack.contents.remove(self)
+            return True
 
         return False
 
@@ -1197,7 +1193,6 @@ class Game(Noun):
         self.name = "Game"
         self.boxes = []
         self.rooms = []
-        self._current_player = None
         self.start_room_name = None
         self.start_room = None
         self.state = None
@@ -1205,15 +1200,14 @@ class Game(Noun):
 
     @property
     def current_player(self):
-        if self.state is not None and getattr(self.state, "player", None) is not None:
-            return self.state.player
-        return self._current_player
+        if self.state is None:
+            return None
+        return self.state.current_player
 
     @current_player.setter
     def current_player(self, player):
-        self._current_player = player
         if self.state is not None:
-            self.state.player = player
+            self.state.current_player = player
 
     def __repr__(self):
         return (
@@ -1365,10 +1359,10 @@ class Game(Noun):
         action_state = get_action_state()
         action_state.player_name = player_name
 
-        if action_state.player is None:
-            action_state.player = Player(player_name)
+        if action_state.current_player is None:
+            action_state.current_player = Player(player_name)
 
-        self.current_player = action_state.player
+        self.current_player = action_state.current_player
         # change to saved player name, but keep same player object which is persistent across world loads
 
         # --- 4. Build the world ---

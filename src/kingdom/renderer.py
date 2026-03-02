@@ -1,7 +1,7 @@
 # kingdom/renderer.py
 
 from typing import Sequence
-from kingdom.models import Game, Room, Item, Box
+from kingdom.models import Game, Room, Item, Box, get_action_state
 
 
 class RoomRenderer:
@@ -97,7 +97,10 @@ class RoomRenderer:
     def is_dark_room(self, room: Room) -> bool:
         """Return True if the room is effectively dark."""
         game = Game.get_instance()
-        player = game.current_player
+        try:
+            player = get_action_state().current_player
+        except RuntimeError:
+            player = game.current_player
 
         if not getattr(room, "is_dark", False):
             return False
