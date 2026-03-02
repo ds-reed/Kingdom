@@ -70,6 +70,8 @@ def _apply_mode_case(text) -> str:
         return rendered.upper()
     return rendered
 
+def tty_clear_screen():
+    clear_screen()  
 
 def tty_print(*args, style=TRS80_WHITE, bold=False, dim=False, inverse=False, end="\n", **kwargs):
     codes = []
@@ -116,18 +118,9 @@ def tty_prompt(prompt_text="> "):
     return input(prompt)
 
 
-def tty_clear_and_show_room(
-    content_lines: Sequence[str],
-    score=0,
-    moves=0,
-    light_on=True,
-    hero_name=None,
-    clear=True,
-    show_status=None,
-):
-    if clear:
+def tty_show_room(content_lines: Sequence[str], clear = True, **kwargs):
+    if clear is True:
         clear_screen()
-
     for line in content_lines:
         tty_print(line, style=TRS80_WHITE)
 

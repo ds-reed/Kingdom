@@ -35,7 +35,7 @@ def _extract_loader_keys(models_text: str) -> dict[str, set[str]]:
     boxes_block = function_block("_construct_boxes")
     rooms_block = function_block("_construct_rooms")
     setup_block = function_block("setup_world")
-    load_block = function_block("load_world")
+    load_block = function_block("load_game")
 
     return {
         "item": keys_for_var(item_block, "item_spec"),

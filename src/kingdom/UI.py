@@ -8,7 +8,7 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 
 from pathlib import Path
 from typing import Any, Sequence
-from kingdom.terminal_style import tty_clear_and_show_room, tty_print, tty_prompt
+from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen
 from kingdom.models import get_prefs, SessionPrefs
 
 
@@ -21,6 +21,9 @@ from kingdom.models import get_prefs, SessionPrefs
 class UI:
     def __init__(self, game):
         self.game = game
+
+    def clear_screen(self):
+        tty_clear_screen()
 
     def print(self, *args, sep=" ", end="\n", **kwargs):
         """Thin wrapper — can later add coloring, logging, quiet mode, etc."""
@@ -40,58 +43,47 @@ class UI:
         return ans in ("y", "yes", "1", "true")
 
 
-    def _prompt_for_path(self, action_label: str, default_path: str) -> str:
-        # Show a nice prompt with default in brackets
-        prompt_text = f"{action_label} file [{default_path}]: "
-        response = tty_prompt(prompt_text)
+    def _prompt_for_filename(self, action_label: str, default_filename: str) -> str:
+        while True:
+            prompt_text = f"{action_label} file [{default_filename}]: "
+            response = tty_prompt(prompt_text).strip()
+            if not response:
+                return default_filename
 
-        # Accept default on blank input
-        response = response.strip()
-        if not response:
-            return default_path
+            filename = Path(response).name
+            if filename != response:
+                self.print("Please enter a filename only (no folder path).")
+                continue
 
-        return response
+            return filename
 
 
-    def request_save(self):
+    def request_save(self) -> Path | None:
 
         if not self.confirm(question="Save game? (y/n): "):
-            return "Save cancelled."
+            return None
 
         prefs = get_prefs()
-        last_save_path = Path(prefs.save_directory / prefs.last_save_filename)
-
-        path_str = self._prompt_for_path("Save to", str(last_save_path))
-
-        # Convert to Path and normalize
-        path = Path(path_str)
+        filename = self._prompt_for_filename("Save to", prefs.last_save_filename)
+        path = Path(prefs.save_directory) / filename
 
         if not path.suffix:
             path = path.with_suffix(".json")
 
-        # Make sure directory exists 
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Perform the save 
-        self.game.save_world(path)
-
-        # tell session prefs we used this location
-        prefs.remember_save(path)
-
         return path
 
 
-    def request_load(self):
+    def request_load(self) -> Path | None:
 
         if not self.confirm(question = "Load game? (y/n): "):
-            return "Load cancelled."
+            return None
 
         prefs = get_prefs()
-        last_save_path = Path(prefs.save_directory / prefs.last_save_filename)
+        filename = self._prompt_for_filename("Load from", prefs.last_save_filename)
+        path = Path(prefs.save_directory) / filename
 
-        # default load from last save path
-        path_str = self._prompt_for_path("Load from", str(last_save_path))
-        path = Path(path_str)
+        if not path.suffix:
+            path = path.with_suffix(".json")
 
         return path
     
@@ -103,6 +95,6 @@ class UI:
 
     
     def render_room(self, lines: list[str], clear: bool = True):
-        tty_clear_and_show_room(lines, clear=clear)
+        tty_show_room(lines, clear=clear)
 
-   
+

@@ -1310,9 +1310,20 @@ class Game(Noun):
         return boxes, self.rooms
 
 
-    def load_world(self, filepath):
-        with open(filepath, 'r') as file:
-            data = json.load(file)
+    def load_game(self, filepath) -> Path:
+        target = Path(filepath).expanduser()
+        if not target.suffix:
+            target = target.with_suffix(".json")
+        if not target.is_file():
+            raise RuntimeError(f"Save file not found: {target}")
+
+        try:
+            with target.open('r', encoding='utf-8') as file:
+                data = json.load(file)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Invalid save file format: {target} ({e})") from e
+        except OSError as e:
+            raise RuntimeError(f"Unable to read save file: {target} ({e})") from e
 
         # --- 1. Peel off the player block ---
         player_data = data.pop("player", None)
@@ -1346,13 +1357,18 @@ class Game(Noun):
         # --- 7. Restore score ---
         get_action_state().score = int(data.get("score", 0))
 
+        return target
+
 
 ####### need to update to save "directions" ######
-    def save_world(self, filepath):
+    def save_game(self, filepath) -> Path:
         """Save current world state to JSON."""
-        target = Path(filepath)
+        target = Path(filepath).expanduser()
+        if not target.suffix:
+            target = target.with_suffix(".json")
         if target.name == "initial_state.json":
             raise RuntimeError("Refusing to overwrite initial_state.json")
+        target.parent.mkdir(parents=True, exist_ok=True)
 
         payload = {
             'player': { 'name': self.current_player.name, 
@@ -1385,18 +1401,23 @@ class Game(Noun):
 
             payload['rooms'].append(room_payload)
 
-        with open(filepath, 'w') as file:
-            json.dump(payload, file, indent=4)
+        try:
+            with target.open('w', encoding='utf-8') as file:
+                json.dump(payload, file, indent=4)
+        except OSError as e:
+            raise RuntimeError(f"Unable to write save file: {target} ({e})") from e
+
+        return target
 
     def create_state_verbs(self):
         """Create save/load verbs bound to this Game instance."""
 
         def save_action(path):
-            self.save_world(path)
+            self.save_game(path)
             return f"Game saved to {path}"
 
         def load_action(path):
-            self.load_world(path)
+            self.load_game(path)
             return f"Game loaded from {path}"
 
         return Verb("save", save_action), Verb("load", load_action)
