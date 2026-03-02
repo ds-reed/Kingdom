@@ -30,7 +30,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 from kingdom.UI import UI 
 import kingdom.terminal_style as terminal_style
 
-from kingdom.models import GameActionState, init_session , get_action_state
+from kingdom.models import GameActionState, init_session , get_action_state, get_prefs
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
@@ -183,16 +183,33 @@ def process_command(
 
     except LoadGame:
         path=ui.request_load()
-        game.load_world(path)
-        ui.print(f"Game loaded from {path}.")
+        if path is None:
+            return False, recovery_mode, "Load cancelled."
+
+        try:
+            loaded_path = game.load_game(path)
+        except RuntimeError as e:
+            return False, recovery_mode, f"Load failed: {e}"
+
+        get_prefs().remember_save(loaded_path)
+        ui.print(f"Game loaded from {loaded_path}.")
+        ui.clear_screen()
         ui.print(f"Welcome back {get_action_state().player_name}!","\n")
-        render_current_room(get_action_state(), clear=True)
+        ui.render_room(render_current_room(get_action_state()), clear=False)
         return False, recovery_mode, None  # no custom message on load, just rely on room render" 
     
     except SaveGame:
         path=ui.request_save()
-        game.save_world(path)
-        return False, recovery_mode, f"Game saved to {path}"
+        if path is None:
+            return False, recovery_mode, "Save cancelled."
+
+        try:
+            saved_path = game.save_game(path)
+        except RuntimeError as e:
+            return False, recovery_mode, f"Save failed: {e}"
+
+        get_prefs().remember_save(saved_path)
+        return False, recovery_mode, f"Game saved to {saved_path}"
     
     except QuitGame:
         if ui.request_quit(): return True, recovery_mode, "Goodbye! Thanks for playing Kingdom."
