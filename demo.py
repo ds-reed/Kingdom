@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, QuitGame, SaveGame, LoadGame, build_dispatch_context, DirectionNoun
+from kingdom.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
 from kingdom.models import GameActionState, init_session, get_action_state
 from kingdom.actions import build_verbs
 from kingdom.parser import resolve_command
@@ -54,7 +54,7 @@ def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -
     return None
 
 
-def _run_command(game: Game, state: GameActionState, verbs, command, dispatch_context=None, demo_save_path: Path | None = None):
+def _run_command(game: Game, state: GameActionState, verbs, command, demo_save_path: Path | None = None):
     resolved_command = resolve_command(
         command,
         known_verbs=verbs.keys(),
@@ -72,7 +72,7 @@ def _run_command(game: Game, state: GameActionState, verbs, command, dispatch_co
         return "UNKNOWN"
 
     try:
-        return verb.execute(dispatch_context, target_noun, args)
+        return verb.execute(target_noun, args)
     except SaveGame:
         if demo_save_path is None:
             return "SAVE_ERROR"
@@ -117,9 +117,6 @@ def demo():
 
     ui = UI(game)
 
-    dispatch_context = build_dispatch_context(state=action_state, game=game)
-    dispatch_context.ui = ui
-
     verbs = build_verbs()
 
     _expect(
@@ -127,39 +124,39 @@ def demo():
         "Core verbs are registered",
     )
 
-    help_result = _run_command(game, action_state, verbs, "help", dispatch_context=dispatch_context)
+    help_result = _run_command(game, action_state, verbs, "help")
     _expect(isinstance(help_result, str) and "You can try commands like:" in help_result, "help command returns default help text")
 
-    help_commands_result = _run_command(game, action_state, verbs, "help commands", dispatch_context=dispatch_context)
+    help_commands_result = _run_command(game, action_state, verbs, "help commands")
     _expect(isinstance(help_commands_result, str) and "Available commands:" in help_commands_result, "help commands returns command listing")
 
-    look_result = _run_command(game, action_state, verbs, "look", dispatch_context=dispatch_context)
+    look_result = _run_command(game, action_state, verbs, "look")
     _expect(isinstance(look_result, str) and len(look_result.strip()) > 0, "look command describes current room")
 
-    score_result = _run_command(game, action_state, verbs, "score", dispatch_context=dispatch_context)
+    score_result = _run_command(game, action_state, verbs, "score")
     _expect(isinstance(score_result, str) and "Your current score is:" in score_result, "score command returns score text")
 
-    inventory_result = _run_command(game, action_state, verbs, "inventory", dispatch_context=dispatch_context)
+    inventory_result = _run_command(game, action_state, verbs, "inventory")
     _expect(isinstance(inventory_result, str) and "don't have anything" in inventory_result.lower(), "inventory reports empty inventory")
 
     exits = action_state.current_room.available_directions(visible_only=True)
     _expect(len(exits) > 0, "Start room has at least one visible exit for movement test")
     original_room = action_state.current_room
-    move_result = _run_command(game, action_state, verbs, exits[0], dispatch_context=dispatch_context)
+    move_result = _run_command(game, action_state, verbs, exits[0])
     _expect(isinstance(move_result, str) and "You go" in move_result, "Implicit direction command resolves to movement")
     _expect(action_state.current_room is not original_room, "Movement changes current room")
 
-    save_result = _run_command(game, action_state, verbs, "save", dispatch_context=dispatch_context, demo_save_path=demo_save_path)
+    save_result = _run_command(game, action_state, verbs, "save", demo_save_path=demo_save_path)
     _expect("Game saved to" in save_result, "save command writes demo save file")
     _expect(demo_save_path.exists(), "Demo save file exists")
 
-    load_result = _run_command(game, action_state, verbs, "load", dispatch_context=dispatch_context, demo_save_path=demo_save_path)
+    load_result = _run_command(game, action_state, verbs, "load", demo_save_path=demo_save_path)
     _expect("Game loaded from" in load_result, "load command restores from demo save file")
 
-    unknown_result = _run_command(game, action_state, verbs, "dance", dispatch_context=dispatch_context)
+    unknown_result = _run_command(game, action_state, verbs, "dance")
     _expect(unknown_result == "UNKNOWN", "Unknown commands are detected")
 
-    quit_result = _run_command(game, action_state, verbs, "quit", dispatch_context=dispatch_context)
+    quit_result = _run_command(game, action_state, verbs, "quit")
     _expect(quit_result == "QUIT", "quit command returns QUIT sentinel")
 
     print("\nAll demo smoke tests passed.")

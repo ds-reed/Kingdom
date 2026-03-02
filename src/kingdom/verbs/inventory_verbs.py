@@ -1,12 +1,11 @@
 # inventory Verbs
 
-from kingdom.models import DispatchContext, Noun, Item, Box, Room, Game, Player, LocationType
+from kingdom.models import Noun, Item, Box, Room, Game, Player, LocationType
 from kingdom.verbs.verb_handler import VerbHandler, VerbControl
 
 class InventoryVerbHandler(VerbHandler):
     def inventory(
         self,
-        ctx: DispatchContext,
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -29,7 +28,6 @@ class InventoryVerbHandler(VerbHandler):
 
     def take(
         self,
-        ctx: DispatchContext,
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -61,7 +59,7 @@ class InventoryVerbHandler(VerbHandler):
                 else:
                     getable.append(box)  # if box isn't open, we still try to take it and let the refusal message come from the box's special handler
 
-            return self.handle_all(ctx, getable, self.take, "take")
+            return self.handle_all(getable, self.take, "take")
         
         # ------------------------------------------------------------
         # 2. Missing target
@@ -73,14 +71,14 @@ class InventoryVerbHandler(VerbHandler):
         # 3. Special handler pipeline
         # ------------------------------------------------------------
 
-        outcome = self.run_special_handler(target, "take", words, ctx)
+        outcome = self.run_special_handler(target, "take", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Determine if item is already in inventory
         # ------------------------------------------------------------
-        loc = self.locate_item(ctx, target)
+        loc = self.locate_item(target)
         if loc.type == LocationType.INVENTORY:
             return self.build_message(f"You already have {target.display_name()}.")
 
@@ -121,7 +119,6 @@ class InventoryVerbHandler(VerbHandler):
 
     def drop(
         self,
-        ctx: DispatchContext,
         target: Noun | None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -138,7 +135,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
             inventory_items = player.get_inventory_items()
-            return self.handle_all(ctx, inventory_items, self.drop, "drop")
+            return self.handle_all(inventory_items, self.drop, "drop")
 
         # ------------------------------------------------------------
         # 2. Missing target
@@ -151,14 +148,14 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome = self.run_special_handler(target, "drop", words, ctx)
+        outcome = self.run_special_handler(target, "drop", words)
         if outcome: 
             return self.build_message(outcome.message or "")
 
         # ------------------------------------------------------------
         # 4. Determine where the item is
         # ------------------------------------------------------------
-        loc = self.locate_item(ctx, target)
+        loc = self.locate_item(target)
 
         # Not in inventory
         if loc.type != LocationType.INVENTORY:

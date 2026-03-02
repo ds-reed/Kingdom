@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
-from kingdom.models import DispatchContext, Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun 
+from kingdom.models import Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun 
 from kingdom.models import get_action_state
 from kingdom.models import DIRECTIONS
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
@@ -17,7 +17,7 @@ class VerbHandler:
     It supports a standard pipeline for verb excution as follows:
     1. The parser identifies the verb and resolves a target noun.
     2. The verb dispatcher calls the corresponding method on the appropriate 
-       VerbHandler subclass, passing the DispatchContext, target noun, and leftover words.
+    VerbHandler subclass, passing context token, target noun, and leftover words.
     3. The verb handler method uses the following flow
          - First call self.resolve_noun_or_word() to parse the target noun and any keywords 
            of interest from the leftover words.
@@ -127,9 +127,8 @@ class VerbHandler:
     # ------------------------------------------------------------
     def handle_all(
         self,
-        ctx: DispatchContext,
         items: Iterable[Noun],
-        single_fn: Callable[[DispatchContext, Noun, tuple[str, ...]], str],
+        single_fn: Callable[[Noun, tuple[str, ...]], str],
         verb_name: str,
     ) -> str:
         """
@@ -147,7 +146,7 @@ class VerbHandler:
         names = []
 
         for item in items:
-            result = single_fn(ctx, item, ("all",))
+            result = single_fn(item, ("all",))
             if result:
                 messages.append(result)
             names.append(item.canonical_name())
@@ -155,7 +154,7 @@ class VerbHandler:
         return "\n".join(messages)
 
     # looks for item in inventory, room or in boxes or a box itself if asked for.
-    def locate_item(self, ctx: DispatchContext, item: Noun) -> Optional[ItemLocation]:
+    def locate_item(self, item: Noun) -> Optional[ItemLocation]:
         """
         Determine exactly where an item is located, returning a rich ItemLocation
         or None if the item cannot be found in the current context.
@@ -262,14 +261,14 @@ class VerbHandler:
     # ------------------------------------------------------------
     # Special handler pipeline
     # ------------------------------------------------------------
-    def run_special_handler(self, target: Noun, verb: str, words, ctx: DispatchContext):
+    def run_special_handler(self, target: Noun, verb: str, words):
         """
         Wrapper for item special handlers.
         Subclasses call this before performing their main logic.
         """
         from kingdom.item_behaviors import try_item_special_handler
 
-        outcome = try_item_special_handler(target, verb, words, ctx)
+        outcome = try_item_special_handler(target, verb, words, None)
         if outcome:
             return outcome
         

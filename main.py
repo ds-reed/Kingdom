@@ -13,11 +13,11 @@ import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.models import Game, Player, Room, build_dispatch_context
+from kingdom.models import Game, Player, Room
 from kingdom.models import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.renderer import render_current_room
 
-from kingdom.models import DIRECTIONS, DirectionNoun, DispatchContext
+from kingdom.models import DIRECTIONS, DirectionNoun
 
 
 from kingdom.actions import build_verbs
@@ -37,9 +37,9 @@ from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter
 
 
 #------------------ Design Note: Main Refactor (v2) ------------------
-def init_game_state() -> tuple[Game | None, DispatchContext | None]:
+def init_game_state() -> Game | None:
     """
-    Welcome player, initialize game world and return tuple(game: Game, dispatch context: DispatchContext).
+    Welcome player and initialize game world.
     """
     
     try:
@@ -69,8 +69,6 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
         init_session(game=game, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
         action_state = get_action_state()  # retrieve the initialized action state
          
-        dispatch_context = build_dispatch_context(game=game, state=action_state)
-
         #------------------------------------------------------------
 
         # Build verbs for parser access
@@ -82,9 +80,9 @@ def init_game_state() -> tuple[Game | None, DispatchContext | None]:
 
     except Exception as e:
         print(f"Critical error during game initialization: {e}")
-        return None, None
+        return None
     
-    return game, dispatch_context   # initialization successful
+    return game   # initialization successful
 
 def handle_game_over(
     game_over: GameOver,
@@ -136,7 +134,6 @@ def process_command(
     verbs: dict,
     game: Game,
     action_state: GameActionState,
-    dispatch_context,
     recovery_mode: bool,
 ) -> tuple[bool, bool, str | None]:
     '''
@@ -175,11 +172,7 @@ def process_command(
         return False, recovery_mode, "I don't understand that command."
 
     try:
-        result = verb.execute(
-        dispatch_context,   # ctx
-        target_noun,        # target
-        args,               # words (tuple)
-        )
+        result = verb.execute(target_noun, args)
 
     except LoadGame:
         path=ui.request_load()
@@ -265,10 +258,10 @@ def main() -> None:
 
     try:
         
-        game, dispatch_context = init_game_state()
+        game = init_game_state()
         ui = UI(game)
 
-        if not game or not dispatch_context:
+        if not game:
             print(f"Failed to initialize game. Please check logfile for details.")
             return
         
@@ -285,7 +278,6 @@ def main() -> None:
                 verbs=game.verbs,
                 game=game,
                 action_state=get_action_state(),
-                dispatch_context=dispatch_context,
                 recovery_mode=recovery_mode,
             )
 

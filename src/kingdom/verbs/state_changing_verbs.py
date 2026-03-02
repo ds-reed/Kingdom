@@ -4,7 +4,7 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import VerbHandler
 
-from kingdom.models import Noun, Item, DispatchContext, DirectionRegistry
+from kingdom.models import Noun, Item, DirectionRegistry
 
 
 
@@ -27,7 +27,7 @@ class StateVerbHandler(VerbHandler):
 
         return None
 
-    def require_item(self, ctx, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
+    def require_item(self, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
         player = self.player()
         if not player.has_item(required_item_id):
             return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
@@ -42,7 +42,6 @@ class StateVerbHandler(VerbHandler):
 
     def apply_state_change(
         self,
-        ctx,
         target,
         verb_phrase,
         *,
@@ -65,7 +64,6 @@ class StateVerbHandler(VerbHandler):
 
     def open(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -94,7 +92,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -122,7 +120,6 @@ class StateVerbHandler(VerbHandler):
 
         # change the state
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="open",
             state_attr="is_open",
@@ -169,7 +166,6 @@ class StateVerbHandler(VerbHandler):
 
     def close(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -196,7 +192,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -216,7 +212,6 @@ class StateVerbHandler(VerbHandler):
 
         # change the state
         result_msg  = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="close",
             state_attr="is_open",
@@ -263,7 +258,6 @@ class StateVerbHandler(VerbHandler):
 
     def unlock(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun],
         words: tuple[str, ...],
     ) -> str:
@@ -289,7 +283,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -316,7 +310,6 @@ class StateVerbHandler(VerbHandler):
 
         if key_name and key_id:
             no_key_msg = self.require_item(
-                ctx,
                 required_item_id=key_id,
                 noun=target,
                 verb_phrase="unlock",
@@ -326,7 +319,6 @@ class StateVerbHandler(VerbHandler):
 
         # Change the state
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="unlock",
             state_attr="is_locked",
@@ -352,7 +344,7 @@ class StateVerbHandler(VerbHandler):
 
         return self.build_message(parts)
     
-    def light(self, ctx: DispatchContext, target: Optional[Noun], words: tuple[str, ...]) -> str:
+    def light(self, target: Optional[Noun], words: tuple[str, ...]) -> str:
 
         room = self.room()
         game = self.game()
@@ -377,7 +369,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -408,7 +400,6 @@ class StateVerbHandler(VerbHandler):
 
         # change state
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="light",
             state_attr="is_lit",
@@ -437,7 +428,6 @@ class StateVerbHandler(VerbHandler):
 
     def extinguish(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun],
         words: tuple[str, ...],
     ) -> str:
@@ -463,7 +453,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -483,7 +473,6 @@ class StateVerbHandler(VerbHandler):
 
         # change the state
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="extinguish",
             state_attr="is_lit",
@@ -511,7 +500,6 @@ class StateVerbHandler(VerbHandler):
 
     def eat(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -537,7 +525,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -580,7 +568,6 @@ class StateVerbHandler(VerbHandler):
 
     def rub(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -603,7 +590,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -622,7 +609,6 @@ class StateVerbHandler(VerbHandler):
 
         # state-change pipeline
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="rub",
             state_attr="is_rubbed",
@@ -641,7 +627,6 @@ class StateVerbHandler(VerbHandler):
 
     def say(
         self,
-        ctx: DispatchContext,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
     ) -> str:
@@ -652,7 +637,7 @@ class StateVerbHandler(VerbHandler):
         # 1. Verb modifier checks
         # ------------------------------------------------------------
         if "wish" in keywords:    # special case for djinni lamp
-            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, None)
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -675,7 +660,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "") 
 
@@ -683,7 +668,6 @@ class StateVerbHandler(VerbHandler):
         # 4. Main logic
         # ------------------------------------------------------------   
         result_msg = self.apply_state_change(
-            ctx=ctx,
             target=target,
             verb_phrase="say",
             state_attr="has_been_spoken_to",
@@ -702,7 +686,7 @@ class StateVerbHandler(VerbHandler):
         return self.build_message(parts)
                 
 
-    def make(self, ctx, target=None, words=()):
+    def make(self, target=None, words=()):
 
         room = self.room()
         parse = self.resolve_noun_or_word(words, interest=['wish', 'all', 'everything'])
@@ -717,7 +701,7 @@ class StateVerbHandler(VerbHandler):
         if "wish" in keywords:    # special case for djinni lamp
             required = self.lookup_required_item_id("djinni", "make wish")
             if target is None and room.has_item(required): target = required  
-            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, ctx)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, None)
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -731,7 +715,7 @@ class StateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, ctx)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, None)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 

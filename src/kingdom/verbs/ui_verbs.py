@@ -2,27 +2,27 @@
 ###### no longer uses UI, so this class needs to be distributed elesewhere.
 
 
-from kingdom.models import DispatchContext, GameOver, Noun, Box, QuitGame, SaveGame, LoadGame
+from kingdom.models import GameOver, Noun, Box, QuitGame, SaveGame, LoadGame
 from kingdom.renderer import RoomRenderer, render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
 
 
 class UIVerbHandler(VerbHandler):
 
-    def load(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+    def load(self, target: Noun | None, words: tuple[str, ...] = ()):
         raise LoadGame() 
 
-    def save(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+    def save(self, target: Noun | None, words: tuple[str, ...] = ()):
         raise SaveGame()
 
-    def quit(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+    def quit(self, target: Noun | None, words: tuple[str, ...] = ()):
         raise QuitGame()
 
         
-    def die(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+    def die(self, target: Noun | None, words: tuple[str, ...] = ()):
         raise GameOver("You have met an untimely demise.")
 
-    def look(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()):
+    def look(self, target: Noun | None, words: tuple[str, ...] = ()):
 
         room = self.room()
 

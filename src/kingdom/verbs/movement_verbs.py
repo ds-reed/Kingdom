@@ -5,7 +5,7 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
-from kingdom.models import Verb, Noun, Room, DispatchContext, GameOver
+from kingdom.models import Verb, Noun, Room, GameOver
 from kingdom.renderer import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
 
@@ -15,7 +15,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, ctx, canonical, exit_dict, verb_phrase, success_verb_phrase):
+    def perform_movement(self, canonical, exit_dict, verb_phrase, success_verb_phrase):
         """
         Shared movement engine.
 
@@ -48,7 +48,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, ctx, target, words):
+    def go(self, target, words):
 
         parsed = self.resolve_noun_or_word(words, interest=[])
 
@@ -57,15 +57,15 @@ class MovementVerbHandler(VerbHandler):
         if direction is None:
             return self.build_message("Go where?")
 
-        result_msg= self.perform_movement(ctx, direction, self.room().connections, "go", "go")
+        result_msg= self.perform_movement(direction, self.room().connections, "go", "go")
 
         return self.build_message(result_msg)
 
 
-    def swim(self, ctx, target: Noun, words: list[str]):
+    def swim(self, target: Noun, words: list[str]):
         room = self.room()
 
-        def check_swim_constraints(ctx):
+        def check_swim_constraints():
             player = self.player()
             inventory = player.get_inventory_items()
 
@@ -85,7 +85,7 @@ class MovementVerbHandler(VerbHandler):
             return self.build_message("There is nowhere to swim here.")
 
         # 2. Drowning / constraint logic
-        constraint_error = check_swim_constraints(ctx)
+        constraint_error = check_swim_constraints()
         if constraint_error:
             return constraint_error
 
@@ -98,7 +98,6 @@ class MovementVerbHandler(VerbHandler):
 
         # 4. Perform swim movement using swim_exits
         result_msg = self.perform_movement(
-            ctx,
             direction,
             room.swim_exits,
             verb_phrase="swim",
@@ -109,7 +108,7 @@ class MovementVerbHandler(VerbHandler):
 
 
 
-    def teleport(self, ctx, target: Noun, words: list[str]):
+    def teleport(self, target: Noun, words: list[str]):
         """Teleport to any room by name or number. No target → list rooms."""
         state = self.state()
         game = self.game()

@@ -1,71 +1,11 @@
 {
     "player": {
-        "name": "Ralf",
-        "inventory": [
-            {
-                "name": "an old wooden torch",
-                "noun_name": "torch",
-                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                "is_lightable": true
-            },
-            {
-                "name": "a single shiny bean",
-                "noun_name": "bean",
-                "is_openable": true,
-                "open_action_description": "You crack open the bean with a satisfying snap.",
-                "special_handlers": {
-                    "open": "open_bean"
-                }
-            },
-            {
-                "name": "an ornate broach",
-                "noun_name": "broach",
-                "is_openable": true,
-                "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-                "closed_state_description": "an ornate broach with a tightly-closed clasp.",
-                "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
-            },
-            {
-                "name": "a cheery orange carrot",
-                "noun_name": "carrot",
-                "examine_string": "The carrot cheerfully waves hello!",
-                "is_edible": true,
-                "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
-            },
-            {
-                "name": "a suspicious looking fish",
-                "noun_name": "fish",
-                "is_edible": true,
-                "special_handlers": {
-                    "eat": "eat_fish"
-                }
-            },
-            {
-                "name": "a small brass key",
-                "noun_name": "key"
-            },
-            {
-                "name": "a battered and dull brass lamp",
-                "noun_name": "lamp",
-                "is_rubbable": true,
-                "rub_success_string": "The lamp grows shiny from rubbing.",
-                "rubbed_state_description": "a battered and shiny brass lamp.",
-                "trigger_room": "Blank Chamber",
-                "special_handlers": {
-                    "rub": "rub_lamp"
-                }
-            },
-            {
-                "name": "a cheap plastic lighter",
-                "noun_name": "lighter",
-                "can_ignite": true,
-                "ignite_success_string": "You flick the lighter and a small flame appears."
-            }
-        ]
+        "name": "ralf",
+        "inventory": []
     },
     "current_room": "Tower Cell",
     "start_room": "Tower Cell",
-    "score": 0,
+    "score": 10,
     "rooms": [
         {
             "name": "Djinni Lair",
@@ -98,6 +38,29 @@
             "visited": true,
             "items": [
                 {
+                    "name": "an old wooden torch",
+                    "noun_name": "torch",
+                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                    "is_lightable": true
+                },
+                {
+                    "name": "a single shiny bean",
+                    "noun_name": "bean",
+                    "is_openable": true,
+                    "open_action_description": "You crack open the bean with a satisfying snap.",
+                    "special_handlers": {
+                        "open": "open_bean"
+                    }
+                },
+                {
+                    "name": "an ornate broach",
+                    "noun_name": "broach",
+                    "is_openable": true,
+                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
+                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
+                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
+                },
+                {
                     "name": "a rusty iron trapdoor",
                     "noun_name": "trapdoor",
                     "is_gettable": false,
@@ -118,9 +81,45 @@
                 {
                     "canonical_name": "bag",
                     "box_name": "a greasy brown lunch bag",
-                    "items": [],
-                    "is_openable": true,
-                    "is_open": true
+                    "items": [
+                        {
+                            "name": "a cheery orange carrot",
+                            "noun_name": "carrot",
+                            "examine_string": "The carrot cheerfully waves hello!",
+                            "is_edible": true,
+                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+                        },
+                        {
+                            "name": "a suspicious looking fish",
+                            "noun_name": "fish",
+                            "is_edible": true,
+                            "special_handlers": {
+                                "eat": "eat_fish"
+                            }
+                        },
+                        {
+                            "name": "a small brass key",
+                            "noun_name": "key"
+                        },
+                        {
+                            "name": "a battered and dull brass lamp",
+                            "noun_name": "lamp",
+                            "is_rubbable": true,
+                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rubbed_state_description": "a battered and shiny brass lamp.",
+                            "trigger_room": "Blank Chamber",
+                            "special_handlers": {
+                                "rub": "rub_lamp"
+                            }
+                        },
+                        {
+                            "name": "a cheap plastic lighter",
+                            "noun_name": "lighter",
+                            "can_ignite": true,
+                            "ignite_success_string": "You flick the lighter and a small flame appears."
+                        }
+                    ],
+                    "is_openable": true
                 }
             ],
             "connections": {
@@ -208,7 +207,7 @@
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
-            "visited": false,
+            "visited": true,
             "items": [
                 {
                     "name": "a bright red apple",

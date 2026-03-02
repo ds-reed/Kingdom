@@ -8,12 +8,9 @@ This module is the single source of truth for item-driven puzzle logic.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional
 
 from enum import Enum, auto
-
-if TYPE_CHECKING:
-    from kingdom.models import DispatchContext
 
 class VerbControl(Enum):
     CONTINUE = auto()  # fall through to default behavior
@@ -34,11 +31,20 @@ class VerbOutcome:
 # ------------------------------------------------------------
 
 ItemBehaviorHandler = Callable[
-    [object, str, tuple[str, ...], "DispatchContext | None"],
+    [object, str, tuple[str, ...], "object | None"],
     Optional[VerbOutcome] | Optional[str] | None
 ]
 
 _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
+
+
+def _active_state():
+    from kingdom.models import get_action_state
+
+    try:
+        return get_action_state()
+    except RuntimeError:
+        return None
 
 
 def register_item_behavior(name: str):
@@ -61,7 +67,7 @@ def try_item_special_handler(
     target: object,
     verb_name: str,
     words: tuple[str, ...],
-    ctx: "DispatchContext | None",
+    ctx: "object | None",
 ) -> str | None:
     """
     Unified special-handler lookup and execution.
@@ -91,45 +97,11 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(
-    dispatch_context: "DispatchContext | None",
-    *,
-    name: str,
-    noun_name: str,
-    is_gettable: bool,
-    get_refuse_string: str
-) -> None:
-    """Spawn an item into the current room unless it already exists."""
-    if dispatch_context is None:
+def _spawn_room_item(dispatch_context: "object | None", *, name: str, noun_name: str, is_gettable: bool,  get_refuse_string: str) -> None:
+    state = _active_state()
+    if state is None:
         return
 
-    state = dispatch_context.state
-    room = getattr(state, "current_room", None)
-    if room is None:
-        return
-
-    for existing in getattr(room, "items", []):
-        matches_reference = getattr(existing, "matches_reference", None)
-        if callable(matches_reference) and matches_reference(noun_name):
-            return
-
-    from kingdom.models import Item
-
-    room.items.append(
-        Item(
-            name,
-            is_gettable=is_gettable,
-            get_refuse_string=get_refuse_string,
-            noun_name=noun_name,
-        )
-    )
-
-
-def _spawn_room_item(dispatch_context: "DispatchContext | None", *, name: str, noun_name: str, is_gettable: bool,  get_refuse_string: str) -> None:
-    if dispatch_context is None:
-        return
-
-    state = dispatch_context.state
     room = getattr(state, "current_room", None)
     if room is None:
         return
@@ -173,7 +145,7 @@ def open_bean(item, verb_name, words, ctx):
 @register_item_behavior("eat_fish")
 def eat_fish(item, verb, words, ctx):
 
-    state = getattr(ctx, "state", None)
+    state = _active_state()
     player = getattr(state, "current_player", None)
     if player is None:
         return VerbOutcome(
@@ -188,7 +160,12 @@ def eat_fish(item, verb, words, ctx):
             control=VerbControl.SKIP
         )
     
-    room = ctx.state.current_room
+    room = getattr(state, "current_room", None)
+    if room is None:
+        return VerbOutcome(
+            message="No active room.",
+            control=VerbControl.STOP
+        )
 
     # Check if vomit already exists to prevent duplicates
     for obj in room.items: 
@@ -215,7 +192,7 @@ def eat_fish(item, verb, words, ctx):
 @register_item_behavior("rub_lamp")
 def rub_lamp(item, verb, words, ctx):
 
-    state = getattr(ctx, "state", None)
+    state = _active_state()
     player = getattr(state, "current_player", None)
     if player is None:
         return VerbOutcome(
@@ -231,7 +208,12 @@ def rub_lamp(item, verb, words, ctx):
             control=VerbControl.STOP
         )
 
-    room = ctx.state.current_room
+    room = getattr(state, "current_room", None)
+    if room is None:
+        return VerbOutcome(
+            message="No active room.",
+            control=VerbControl.STOP
+        )
     trigger_room_name = getattr(item, "trigger_room", None)
 
     # Only trigger Djinni in the correct room
@@ -289,7 +271,7 @@ def _djinni_scripted_action(item, verb, words, ctx):
     triggers his pre-ordained magical action.
     """
 
-    state = getattr(ctx, "state", None)
+    state = _active_state()
     room = getattr(state, "current_room", None)
     game = getattr(state, "game", None)
     if room is None or game is None:

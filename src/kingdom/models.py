@@ -97,21 +97,6 @@ def reset_all_state() -> None:
     _prefs = None
 
 
-@dataclass(slots=True)
-class DispatchContext:
-    game: "Game | None" = None
-    state: "GameActionState | None" = None
-    ui: object | None = None  # UI is loosely typed to avoid circular imports. Expected to be an instance of kingdom.UI.UI.
-
-    def __repr__(self):
-        return (
-            f"DispatchContext(\n"
-            f"  game={self.game!r},\n"
-            f"  state={self.state!r},\n"
-            f"  current_room={getattr(self.state, 'current_room', None)!r},\n"
-            f"  hero={getattr(self, 'hero', None)!r},\n"
-            f")"
-        )
 
 
 class GameOver(Exception):
@@ -165,16 +150,6 @@ class ItemLocation:
                 return "somewhere strange"
             
 
-def build_dispatch_context(
-    state: "GameActionState",
-    game: "Game",
-) -> "DispatchContext":
-    return DispatchContext(
-        state=state,
-        game=game,
-    )
-
-
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
 
@@ -195,10 +170,13 @@ def _serialize_item(item: "Item") -> dict:
         "noun_name": item.get_noun_name(),
     }
 
+    default_refusal = f"You can't pick up {item.name}"
+    if item.refuse_string and item.refuse_string != default_refusal:
+        payload["refuse_string"] = item.refuse_string
+
     if not item.is_gettable:
         payload["is_gettable"] = False
 
-    default_refusal = f"You can't pick up {item.name}"
     if item.get_refuse_string and item.get_refuse_string != default_refusal:
         payload["get_refuse_string"] = item.get_refuse_string
 
@@ -318,17 +296,29 @@ def _serialize_box(box: "Box") -> dict:
     if box.presence_string:
         payload["presence_string"] = box.presence_string
 
+    if box.capacity is not None:
+        payload["capacity"] = box.capacity
+
     if getattr(box, "is_openable", False):
         payload["is_openable"] = True
 
     if getattr(box, "is_open", False):
         payload["is_open"] = True
 
-    if getattr(box, "open_description", None):
-        payload["open_description"] = box.open_description
+    if getattr(box, "opened_state_description", None):
+        payload["opened_state_description"] = box.opened_state_description
 
-    if getattr(box, "closed_description", None):
-        payload["closed_description"] = box.closed_description
+    if getattr(box, "closed_state_description", None):
+        payload["closed_state_description"] = box.closed_state_description
+
+    if getattr(box, "open_action_description", None):
+        payload["open_action_description"] = box.open_action_description
+
+    if getattr(box, "close_action_description", None):
+        payload["close_action_description"] = box.close_action_description
+
+    if getattr(box, "examine_string", None):
+        payload["examine_string"] = box.examine_string
 
     if getattr(box, "is_lockable", False):
         payload["is_lockable"] = True
@@ -339,17 +329,14 @@ def _serialize_box(box: "Box") -> dict:
     if getattr(box, "unlock_key", None):
         payload["unlock_key"] = box.unlock_key
 
-    if getattr(box, "locked_state_description", None):
-        payload["locked_state_description"] = box.locked_state_description
+    if getattr(box, "locked_description", None):
+        payload["locked_description"] = box.locked_description
 
-    if getattr(box, "unlocked_state_description", None):
-        payload["unlocked_state_description"] = box.unlocked_state_description
+    if getattr(box, "open_exit_direction", None):
+        payload["open_exit_direction"] = box.open_exit_direction
 
-    if getattr(box, "unlockable_description", None):
-        payload["unlockable_description"] = box.unlockable_description
-
-    if getattr(box, "special_open", None):
-        payload["special_open"] = box.special_open
+    if getattr(box, "open_exit_destination", None):
+        payload["open_exit_destination"] = box.open_exit_destination
 
     return payload
 
@@ -442,19 +429,19 @@ class Verb:
     def all_names(self):
         return (self.name, *self.synonyms)
 
-    def execute(self, ctx, target, words):
+    def execute(self, target, words):
         """Execute this verb with noun override + handler fallback."""
 
         # 1. Noun override: on_<verb>
         if target is not None:
             override = getattr(target, f"on_{self.name}", None)
             if callable(override):
-                result = override(ctx, words)
+                result = override(words)
                 if result is not None:
                     return result
 
         # 2. Handler fallback
-        return self.action(ctx, target, words)
+        return self.action(target, words)
 
     def __repr__(self):
         if self.synonyms:
@@ -502,7 +489,7 @@ class Noun:
         return f"There is {self.name} here."
     
         
-    def on_unlock(self, ctx, words):
+    def on_unlock(self, words):
         return None
 
 
@@ -797,7 +784,7 @@ class Item(Noun):
             return self.presence_string
         return f"There is {self.name} here."
 
-    def _remove_from_known_containers(self, dispatch_context: DispatchContext | None = None) -> bool:
+    def _remove_from_known_containers(self, dispatch_context: object | None = None) -> bool:
         if self.current_box is not None:
             if self in self.current_box.contents:
                 self.current_box.contents.remove(self)
@@ -805,13 +792,12 @@ class Item(Noun):
                 return True
             self.current_box = None
 
-        if dispatch_context is None:
-            return False
-
-        state = dispatch_context.state
-        game = getattr(state, "game", None)
-        if game is None:
-            game = dispatch_context.game
+        state = getattr(dispatch_context, "state", None)
+        if state is None:
+            try:
+                state = get_action_state()
+            except RuntimeError:
+                return False
 
         if state is not None and getattr(state, "current_room", None) is not None:
             room = state.current_room
@@ -1418,6 +1404,9 @@ class Game(Noun):
                 'connections': {
                     direction: destination.name
                     for direction, destination in room.connections.items()},
+                'swim_exits': {
+                    direction: destination.name
+                    for direction, destination in room.swim_exits.items()},
                 'hidden_directions': list(room.hidden_directions),
                 'is_dark': room.is_dark,
                 'has_water': room.has_water,
@@ -1476,11 +1465,14 @@ def _construct_boxes(data):
         new_box = Box(
             entry["canonical_name"], # canonical_name (parser-facing)
             entry["box_name"], # box_name (display-facing)
+            capacity=entry.get("capacity"),
             presence_string=entry.get("presence_string"),
             is_openable=entry.get("is_openable", False),
             is_open=entry.get("is_open", False),
             open_action_description=entry.get("open_action_description"),
             close_action_description=entry.get("close_action_description"),
+            open_exit_direction=entry.get("open_exit_direction"),
+            open_exit_destination=entry.get("open_exit_destination"),
             examine_string=entry.get("examine_string"),
             opened_state_description=entry.get("opened_state_description"),
             closed_state_description=entry.get("closed_state_description"),
@@ -1522,6 +1514,7 @@ def _construct_rooms(data):
             box = Box(
                 canonical_name=box_data.get("canonical_name"),
                 box_name=box_data.get("box_name"),
+                capacity=box_data.get("capacity"),
                 presence_string=box_data.get("presence_string"),
                 is_openable=box_data.get("is_openable", False),
                 is_open=box_data.get("is_open", False),
@@ -1529,6 +1522,8 @@ def _construct_rooms(data):
                 closed_state_description=box_data.get("closed_state_description"),
                 open_action_description=box_data.get("open_action_description"),
                 close_action_description=box_data.get("close_action_description"),
+                open_exit_direction=box_data.get("open_exit_direction"),
+                open_exit_destination=box_data.get("open_exit_destination"),
                 is_lockable=box_data.get("is_lockable", False),
                 is_locked=box_data.get("is_locked", False),
                 unlock_key=box_data.get("unlock_key"),
@@ -1541,7 +1536,8 @@ def _construct_rooms(data):
             room.add_box(box)
         room.swim_exits = entry.get("swim_exits", {})
 
-        pending_connections.append((room, entry.get("connections", {}), entry.get("hidden_exits", [])))
+        hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))
+        pending_connections.append((room, entry.get("connections", {}), hidden_directions))
 
     room_by_name = {room.name: room for room in Room.all_rooms}
     for room, raw_connections, hidden_exits in pending_connections:

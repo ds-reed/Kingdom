@@ -36,8 +36,8 @@ Kingdom/
 ├── logs/
 ├── scripts/
 │   ├── check_world_json.py
-│   ├── backup_incremental.py
-│   └── pre_edit.py
+│   ├── find_obsolete_attributes.py
+│   └── validate_save_load_roundtrip.py
 └── src/kingdom/
     ├── __init__.py
     ├── actions.py
@@ -65,7 +65,7 @@ Kingdom/
 - Parses CLI args (`--mode modern|trs80`)
 - Loads world data from `data/initial_state.json`
 - Creates player and game state (`GameActionState`)
-- Builds UI and dispatch context
+- Builds UI and initializes session state
 - Registers verbs through `build_verbs(...)`
 
 ### 2) Parsing (`parser.py`)
@@ -142,6 +142,22 @@ Windows helper:
 
 - `run_state_check.bat`
 
+By default, `run_state_check.bat` validates `data/initial_state.json` and then
+runs the save/load roundtrip validator.
+
+## Validate Save/Load Roundtrip
+
+```bash
+python scripts/validate_save_load_roundtrip.py
+```
+
+This script performs a full save→load roundtrip and verifies constructor-backed
+fields on rooms, boxes, and items are preserved.
+
+`run_state_check.bat` now runs both:
+- world JSON checks (`scripts/check_world_json.py`)
+- save/load roundtrip validation (`scripts/validate_save_load_roundtrip.py`)
+
 ## Requirements
 
 - Python 3.13+
@@ -149,4 +165,4 @@ Windows helper:
 ## Notes
 
 - `demo.py` is present as a smoke-test style script, while `main.py` is the primary runtime entrypoint.
-- Several backup/reference files are intentionally kept in the repo (`*.bak.*`, `old.py`, legacy docs).
+- Several backup/reference files are intentionally kept in the repo (`*.bak.*`, legacy docs).

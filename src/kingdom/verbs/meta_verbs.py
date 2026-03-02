@@ -2,7 +2,7 @@
 
 from unittest import result
 
-from kingdom.models import DispatchContext, Noun, Verb
+from kingdom.models import Noun, Verb
 from kingdom.verbs.verb_handler import VerbHandler
 
 class MetaVerbHandler(VerbHandler):
@@ -10,7 +10,7 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # DEBUG
     # ------------------------------------------------------------
-    def DEBUG(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
+    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = ()) -> str:
         # Resolve either a noun or keywords of interest
         parse = self.resolve_noun_or_word(
             words,
@@ -71,7 +71,7 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # HELP
     # ------------------------------------------------------------
-    def help(self, ctx: DispatchContext, target: Noun | None, words: tuple[str, ...] = ()) -> str:
+    def help(self, target: Noun | None, words: tuple[str, ...] = ()) -> str:
         # Resolve either a noun or keywords of interest
         result = self.resolve_noun_or_word(
             words,
@@ -131,11 +131,10 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     def score(
         self,
-        ctx: DispatchContext,
         target: Noun | None,
         words: tuple[str, ...] = ()
     ) -> str:
-        game = self.game()
-        return self.build_message(f"Your current score is: {ctx.state.score}")
+        state = self.state()
+        return self.build_message(f"Your current score is: {state.score}")
 
 
