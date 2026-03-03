@@ -10,10 +10,12 @@ class Verb:
 
     all_verbs = []
 
-    def __init__(self, name, action, synonyms=None, hidden=False):
+    def __init__(self, name, action, synonyms=None, hidden=False, modifiers=None, uses_directions=False):
         self.name = str(name).strip().lower()
         self.action = action
         self.hidden = bool(hidden)
+        self.modifiers = {m.strip().lower() for m in (modifiers or [])}
+        self.uses_directions = bool(uses_directions)
 
         # Normalize synonyms
         self.synonyms = tuple(

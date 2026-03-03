@@ -31,9 +31,14 @@ from kingdom.UI import ui
 import kingdom.terminal_style as terminal_style
 
 from kingdom.model.models import GameActionState, init_session , get_action_state, get_prefs
+from kingdom.model.verb_model import Verb
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
+from kingdom.verbs.verb_registry import build_verb_registry
+
+
+
 
 
 #------------------ Design Note: Main Refactor (v2) ------------------
@@ -72,8 +77,8 @@ def init_game_state() -> Game | None:
 
         # Build verbs for parser access
         game.verbs = build_verbs()
-        
-        # in future, Render will not display, so will need to follow this with a call to the UI
+
+
         lines = render_current_room(action_state, display=False)
         ui.render_room(lines, clear=False)
 
