@@ -27,7 +27,7 @@ import kingdom.item_behaviors as item_behaviors
 from kingdom.parser import parse_command, resolve_command
 from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal_session
 
-from kingdom.UI import UI 
+from kingdom.UI import ui
 import kingdom.terminal_style as terminal_style
 
 from kingdom.models import GameActionState, init_session , get_action_state, get_prefs
@@ -55,7 +55,6 @@ def init_game_state() -> Game | None:
         else: raise ValueError("No rooms found in game data.")    
 
 
-        ui = UI(game)
         ui.print("Welcome to Kingdom.","\n", bold=True)
 
         player_name = ui.prompt("Enter hero name: ").strip() or "Hero"
@@ -94,7 +93,6 @@ def handle_game_over(
     
     Returns: (should_quit: bool, new_recovery_mode: bool)
     """
-    ui = UI(game)
     ui.print(str(game_over))
     ui.print("It seems that you ran into a little trouble, didn't you?")
     ui.print("Well there is help. I could try to clone the remains but it will cost you points.")
@@ -144,7 +142,6 @@ def process_command(
     recovery_mode — the updated recovery mode flag.
     '''
     
-    ui = UI(game)
     recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "help", "commands"}
 
     current_room = action_state.current_room
@@ -259,8 +256,7 @@ def main() -> None:
     try:
         
         game = init_game_state()
-        ui = UI(game)
-
+   
         if not game:
             print(f"Failed to initialize game. Please check logfile for details.")
             return

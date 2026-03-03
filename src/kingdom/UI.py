@@ -19,14 +19,13 @@ from kingdom.models import get_prefs, SessionPrefs
 # kingdom/ui.py
 
 class UI:
-    def __init__(self, game):
-        self.game = game
+    def __init__(self):
+        pass
 
     def clear_screen(self):
         tty_clear_screen()
 
     def print(self, *args, sep=" ", end="\n", **kwargs):
-        """Thin wrapper — can later add coloring, logging, quiet mode, etc."""
         tty_print(*args, sep=sep, end=end, **kwargs)
 
     def prompt(self,  message, *, default=None, type_=str, validate=None) -> str:
@@ -97,4 +96,4 @@ class UI:
     def render_room(self, lines: list[str], clear: bool = True):
         tty_show_room(lines, clear=clear)
 
-
+ui = UI()
