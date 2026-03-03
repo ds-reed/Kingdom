@@ -2,10 +2,24 @@
 
 from unittest import result
 
-from kingdom.models import Noun, Verb
+from kingdom.model.models import Noun, QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.model.verb_model import Verb
 
 class MetaVerbHandler(VerbHandler):
+
+
+    def load(self, target: Noun | None, words: tuple[str, ...] = ()):
+        raise LoadGame() 
+
+    def save(self, target: Noun | None, words: tuple[str, ...] = ()):
+        raise SaveGame()
+
+    def quit(self, target: Noun | None, words: tuple[str, ...] = ()):
+        raise QuitGame()
+
+    def die(self, target: Noun | None, words: tuple[str, ...] = ()):
+        raise GameOver("You have met an untimely demise.")
 
     # ------------------------------------------------------------
     # DEBUG

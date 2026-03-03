@@ -5,7 +5,7 @@
     },
     "current_room": "Tower Cell",
     "start_room": "Tower Cell",
-    "score": 10,
+    "score": 0,
     "rooms": [
         {
             "name": "Djinni Lair",
@@ -26,6 +26,7 @@
             ],
             "boxes": [],
             "connections": {},
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -119,12 +120,18 @@
                             "ignite_success_string": "You flick the lighter and a small flame appears."
                         }
                     ],
-                    "is_openable": true
+                    "is_openable": true,
+                    "is_open": true,
+                    "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
+                    "closed_state_description": "a greasy brown lunch bag with its top folded shut.",
+                    "open_action_description": "You unfold the top of the greasy lunch bag.",
+                    "close_action_description": "You fold the top of the greasy lunch bag shut."
                 }
             ],
             "connections": {
                 "up": "Demo Landing"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -138,6 +145,7 @@
             "items": [],
             "boxes": [],
             "connections": {},
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": true,
             "has_water": false,
@@ -158,6 +166,9 @@
             "boxes": [],
             "connections": {
                 "east": "Blank Chamber"
+            },
+            "swim_exits": {
+                "west": "Pool Ledge"
             },
             "hidden_directions": [],
             "is_dark": false,
@@ -181,10 +192,20 @@
                     "canonical_name": "wardrobe",
                     "box_name": "a large wooden wardrobe",
                     "items": [],
-                    "is_openable": true
+                    "is_openable": true,
+                    "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
+                    "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
+                    "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
+                    "close_action_description": "You push the wardrobe doors shut.",
+                    "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable.",
+                    "open_exit_direction": "in",
+                    "open_exit_destination": "Narnia"
                 }
             ],
             "connections": {},
+            "swim_exits": {
+                "east": "Colossal Cave"
+            },
             "hidden_directions": [],
             "is_dark": true,
             "has_water": true,
@@ -198,6 +219,7 @@
             "items": [],
             "boxes": [],
             "connections": {},
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -207,7 +229,7 @@
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
-            "visited": true,
+            "visited": false,
             "items": [
                 {
                     "name": "a bright red apple",
@@ -222,6 +244,7 @@
                 "east": "Whispering Grove",
                 "west": "Mirror Hall"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -238,6 +261,7 @@
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -254,6 +278,7 @@
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -270,6 +295,7 @@
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,
@@ -286,6 +312,7 @@
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"
             },
+            "swim_exits": {},
             "hidden_directions": [],
             "is_dark": false,
             "has_water": false,

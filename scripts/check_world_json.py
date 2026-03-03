@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "src") not in sys.path:
     sys.path.append(str(ROOT / "src"))
 
-from kingdom.models import Game  # noqa: E402
+from kingdom.model.models import Game  # noqa: E402
 
 
 @dataclass

@@ -39,7 +39,7 @@ _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
 
 
 def _active_state():
-    from kingdom.models import get_action_state
+    from kingdom.model.models import get_action_state
 
     try:
         return get_action_state()
@@ -110,7 +110,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, noun_name:
         if getattr(existing, "noun_name", None) == noun_name:
             return
 
-    from kingdom.models import Item
+    from kingdom.model.models import Item
 
     new_item = Item(
         name,

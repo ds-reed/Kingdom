@@ -1,6 +1,6 @@
 # inventory Verbs
 
-from kingdom.models import Noun, Item, Box, Room, Game, Player, LocationType
+from kingdom.model.models import Noun, Item, Box, Room, Game, Player, LocationType
 from kingdom.verbs.verb_handler import VerbHandler, VerbControl
 
 class InventoryVerbHandler(VerbHandler):

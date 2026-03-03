@@ -1,7 +1,7 @@
 # kingdom/renderer.py
 
 from typing import Sequence
-from kingdom.models import Game, Room, Item, Box, get_action_state
+from kingdom.model.models import Game, Room, Item, Box, get_action_state
 
 
 class RoomRenderer:

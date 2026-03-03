@@ -1,4 +1,4 @@
-from kingdom.models import Game, DirectionNoun, GameActionState
+from kingdom.model.models import Game, DirectionNoun, GameActionState
 
 
 def iter_known_noun_names(game: Game):

@@ -11,7 +11,7 @@ The engine is organized into eight cooperating layers:
 5. Parser Layer (Syntax)
 6. Resolution Layer (Semantics)
 7. Verb Layer (Action Execution)
-8. Game Model Layer (World State)
+8. Game model Layer (World State)
 
 Each layer has a single, well-defined responsibility and communicates with adjacent layers through structured data rather than raw text.
 
@@ -30,7 +30,7 @@ Main
 ├── Parser
 │   └── Resolver
 │       └── Verbs
-│           └── Model
+│           └── model
 ```
 
 
@@ -38,11 +38,11 @@ Main
 
 Input path
 ```
-UI → Main → Parser → Resolver → Verbs → Model
+UI → Main → Parser → Resolver → Verbs → model
 ```
 Ouput path
 ```
-Model → Verbs → Renderer → Main → UI → Terminal
+model → Verbs → Renderer → Main → UI → Terminal
 ```
 
 ![diagram](architecture_diagram.png)
@@ -198,7 +198,7 @@ Behavioral core — executes resolved actions and mutates model.
 
 ---
 
-## 8. Game Model Layer (World State)
+## 8. Game model Layer (World State)
 
 Persistent, queryable truth of the game world.
 

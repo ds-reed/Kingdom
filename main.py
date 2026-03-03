@@ -13,11 +13,11 @@ import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.models import Game, Player, Room
-from kingdom.models import QuitGame, GameOver, SaveGame, LoadGame
+from kingdom.model.models import Game, Player, Room
+from kingdom.model.models import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.renderer import render_current_room
 
-from kingdom.models import DIRECTIONS, DirectionNoun
+from kingdom.model.models import DIRECTIONS, DirectionNoun
 
 
 from kingdom.actions import build_verbs
@@ -30,7 +30,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 from kingdom.UI import ui
 import kingdom.terminal_style as terminal_style
 
-from kingdom.models import GameActionState, init_session , get_action_state, get_prefs
+from kingdom.model.models import GameActionState, init_session , get_action_state, get_prefs
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates

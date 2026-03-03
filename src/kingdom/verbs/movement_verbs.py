@@ -5,7 +5,8 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
-from kingdom.models import Verb, Noun, Room, GameOver
+from kingdom.model.models import  Noun, Room, GameOver
+from kingdom.model.verb_model import Verb
 from kingdom.renderer import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler
 

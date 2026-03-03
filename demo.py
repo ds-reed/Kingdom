@@ -4,8 +4,8 @@ from pathlib import Path
 import sys
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
-from kingdom.models import GameActionState, init_session, get_action_state
+from kingdom.model.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
+from kingdom.model.models import GameActionState, init_session, get_action_state
 from kingdom.actions import build_verbs
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
@@ -115,7 +115,7 @@ def demo():
     init_session(game=game, current_player=player, initial_room=start_room, player_name="DemoHero", save_path=demo_save_path)
     action_state = get_action_state()
 
-    ui = UI(game)
+    ui = UI()
 
     verbs = build_verbs()
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append("./src")
 
-from kingdom.models import Game, Player, Room, Box, Item, init_session, get_action_state
+from kingdom.model.models import Game, Player, Room, Box, Item, init_session, get_action_state
 
 
 ROOM_FIELDS = [
