@@ -28,19 +28,19 @@ class MetaVerbHandler(VerbHandler):
         # Resolve either a noun or keywords of interest
         parse = self.resolve_noun_or_word(
             words,
-            interest=["room", "player"]
+            interest=["room", "player", "Verbs", "commands", "all"]
         )
         noun = parse["noun"]
         keywords = parse["keywords"]
         
         def debug_noun(noun: Noun | None) -> str:
             lines = []
-            lines.append(f"id: {id(noun)}")
-            lines.append(f"class: {noun.__class__.__name__}")
+            lines.append(f"id: {id(noun)}\n")
+            lines.append(f"class: {noun.__class__.__name__}\n")
 
             # Dump attributes
             for k, v in vars(noun).items():
-                lines.append(f"{k}: {v!r}")
+                lines.append(f"{k}: {v!r}\n")
 
             return lines
 
@@ -52,25 +52,33 @@ class MetaVerbHandler(VerbHandler):
                 matching_nouns = [noun for noun in Noun.all_nouns if noun.canonical_name()== word]
 
                 for noun in matching_nouns:
-                    lines.append(f"id: {id(noun)}")
-                    lines.append(f"class: {noun.__class__.__name__}")
+                    lines.append(f"id: {id(noun)}\n")
+                    lines.append(f"class: {noun.__class__.__name__}\n")
                     for k, v in vars(noun).items():
-                        lines.append(f"{k}: {v!r}")
+                        lines.append(f"{k}: {v!r}\n")
 
             return lines
 
         # Case 1: Keywords found in leftover words
         keywords = parse["keywords"]
 
-        if "room" in keywords:
-            room = self.room()
-            return_msg = "No current room." if room is None else debug_noun(room)
-            return self.build_message(return_msg)
+        if keywords:
+            if "room" in keywords or "all" in keywords:
+                room = self.room()
+                print("debugging current room...")
+                return_msg = "No current room." if room is None else debug_noun(room)
+                print(*return_msg)
 
-        if "player" in keywords:
-            player = self.player()
-            return_msg = "No current player." if player is None else debug_noun(player)
-            return self.build_message(return_msg)
+            if "player" in keywords or "all" in keywords:
+                player = self.player()
+                print("debugging current player...")
+                return_msg = "No current player." if player is None else debug_noun(player)
+                print(*return_msg)
+            
+            if "verbs" in keywords or "commands" in keywords or "all" in keywords:
+                print("debugging all verbs...")
+                print(Verb.all_verbs)
+            return 
 
         # Case 2: use target noun if present; try parser-resolved noun if not
         if target is None: target = noun

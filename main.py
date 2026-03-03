@@ -20,7 +20,7 @@ from kingdom.renderer import render_current_room
 from kingdom.model.models import DIRECTIONS, DirectionNoun
 
 
-from kingdom.actions import build_verbs
+from kingdom.verbs.verb_registry import build_verb_registry
 import kingdom.item_behaviors as item_behaviors
 
 
@@ -36,8 +36,6 @@ from kingdom.model.verb_model import Verb
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
 from kingdom.verbs.verb_registry import build_verb_registry
-
-
 
 
 
@@ -76,7 +74,7 @@ def init_game_state() -> Game | None:
         #------------------------------------------------------------
 
         # Build verbs for parser access
-        game.verbs = build_verbs()
+        Verb.registry = build_verb_registry()
 
 
         lines = render_current_room(action_state, display=False)
@@ -276,7 +274,7 @@ def main() -> None:
 
             should_quit, recovery_mode, output = process_command(
                 command=command,
-                verbs=game.verbs,
+                verbs=Verb.registry,
                 game=game,
                 action_state=get_action_state(),
                 recovery_mode=recovery_mode,

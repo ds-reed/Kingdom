@@ -29,6 +29,12 @@ class Verb:
         )
 
         Verb.all_verbs.append(self)
+        Verb.registry = {}
+
+    def __repr__(self):
+        if self.synonyms:
+            return f"\nVerb({self.name}, synonyms={list(self.synonyms)})"
+        return f"\nVerb({self.name})"
 
     def all_names(self):
         return (self.name, *self.synonyms)
@@ -47,7 +53,4 @@ class Verb:
         # 2. Handler fallback
         return self.action(target, words)
 
-    def __repr__(self):
-        if self.synonyms:
-            return f"Verb({self.name}, synonyms={list(self.synonyms)})"
-        return f"Verb({self.name})"
+

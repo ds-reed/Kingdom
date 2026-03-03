@@ -2,11 +2,13 @@
 
 from pathlib import Path
 import sys
-sys.path.append("./src")
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.model.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
 from kingdom.model.models import GameActionState, init_session, get_action_state
-from kingdom.actions import build_verbs
+from kingdom.verbs.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
 
@@ -97,9 +99,8 @@ def _expect(condition, message):
 
 def demo():
     """Run deterministic smoke tests for core gameplay flows."""
-    base_dir = Path(__file__).parent
-    data_path = base_dir / "data" / "initial_state.json"
-    demo_save_path = base_dir / "data" / "working_state.demo.json"
+    data_path = PROJECT_ROOT / "data" / "initial_state.json"
+    demo_save_path = PROJECT_ROOT / "data" / "working_state.demo.json"
 
     game = Game.get_instance()
     game.setup_world(data_path)
@@ -117,7 +118,7 @@ def demo():
 
     ui = UI()
 
-    verbs = build_verbs()
+    verbs = build_verb_registry()
 
     _expect(
         set(["go", "save", "load", "look", "help", "quit", "inventory", "score"]).issubset(verbs.keys()),
