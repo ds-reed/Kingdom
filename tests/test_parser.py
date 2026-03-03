@@ -1,7 +1,7 @@
 # tests/test_parser_harness.py
 
 from kingdom.verbs.verb_registry import build_verb_registry
-from kingdom.development_parser import NewParser
+from tests.development_parser import NewParser
 
 def run_test(command):
     registry = build_verb_registry()

@@ -1,0 +1,210 @@
+challenge phrases
+
+Movement & Navigation
+go north
+
+n
+
+walk to the river
+
+head inside
+
+go in
+
+enter the cave
+
+climb up
+
+go down the ladder
+
+crawl through the hole
+
+step out
+
+go back
+
+return to the hallway
+
+run east
+
+sneak past the guard
+
+jump over the gap
+
+Looking & Examining
+look
+
+look around
+
+look at the box
+
+examine the strange statue
+
+inspect the floor
+
+look inside the box
+
+search the room
+
+read the inscription
+
+look under the bed
+
+look behind the curtain
+
+Taking, Dropping, Inventory
+take lamp
+
+get the blue key
+
+pick up everything
+
+take all from the table
+
+grab the sword and shield
+
+drop all
+
+drop the rusty coin
+
+inventory
+
+look in my bag
+
+empty my pockets
+
+Manipulating Objects
+open the door
+
+close the chest
+
+unlock the gate with the key
+
+lock the drawer
+
+push the button
+
+pull the lever
+
+turn the wheel
+
+twist the knob
+
+press the red button
+
+flip the switch
+
+Containers & Surfaces
+put the apple in the basket
+
+place the book on the table
+
+take the note from the drawer
+
+remove the gem from the pedestal
+
+pour water into the bowl
+
+fill the bottle
+
+empty the bucket
+
+look in the drawer
+
+reach into the hole
+
+take everything inside the chest
+
+Talking & Social Interaction
+talk to the guard
+
+ask the wizard about the amulet
+
+say hello
+
+tell the djinni my wish
+
+shout for help
+
+whisper to the statue
+
+ask about the treasure
+
+greet the merchant
+
+ask the ghost who he is
+
+say “open sesame”
+
+Combat & Physical Actions
+attack the troll
+
+hit the wall
+
+fight the goblin
+
+stab the orc with the dagger
+
+throw rock at window
+
+kick the door
+
+punch the skeleton
+
+defend
+
+dodge
+
+aim at the target
+
+Using Items
+light the torch
+
+extinguish the lamp
+
+eat the apple
+
+drink the potion
+
+wear the cloak
+
+remove the boots
+
+tie the rope to the hook
+
+cut the rope
+
+sharpen the knife
+
+clean the mirror
+
+Movement + Object Hybrids
+go through the door
+
+walk around the pit
+
+climb the tree
+
+descend the stairs
+
+jump into the water
+
+swim across the lake
+
+wade through the mud
+
+crawl under the table
+
+step over the vines
+
+squeeze through the crack
+
+Meta Commands
+save game
+
+load game
+
+quit
+
+help
+
