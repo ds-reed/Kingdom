@@ -9,6 +9,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 from kingdom.model.noun_model import World, Player, DirectionNoun
 from kingdom.model.models import QuitGame, SaveGame, LoadGame
 from kingdom.model.models import GameActionState, init_session, get_action_state
+from kingdom.model.game_persistence import save_game, load_game
 from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
@@ -79,12 +80,12 @@ def _run_command(game: World, state: GameActionState, verbs, command, demo_save_
     except SaveGame:
         if demo_save_path is None:
             return "SAVE_ERROR"
-        saved_path = game.save_game(demo_save_path)
+        saved_path = save_game(game, demo_save_path)
         return f"Game saved to {saved_path}"
     except LoadGame:
         if demo_save_path is None:
             return "LOAD_ERROR"
-        loaded_path = game.load_game(demo_save_path)
+        loaded_path = load_game(game, demo_save_path)
         return f"Game loaded from {loaded_path}"
     except QuitGame:
         return "QUIT"

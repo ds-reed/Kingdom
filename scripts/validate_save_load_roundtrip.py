@@ -7,6 +7,7 @@ sys.path.append("./src")
 
 from kingdom.model.noun_model import World, Player, Room, Box, Item
 from kingdom.model.models import init_session, get_action_state
+from kingdom.model.game_persistence import save_game, load_game
 
 
 ROOM_FIELDS = [
@@ -200,8 +201,8 @@ def main() -> int:
     )
     sentinel_room.add_item(sentinel_item)
 
-    game.save_game(save_path)
-    game.load_game(save_path)
+    save_game(game, save_path)
+    load_game(game, save_path)
 
     loaded_room = game.rooms.get("__roundtrip_room__")
     if loaded_room is None:

@@ -15,6 +15,7 @@ sys.path.append("./src")
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
 from kingdom.model.noun_model import World, Player, Room
 from kingdom.model.models import QuitGame, GameOver, SaveGame, LoadGame
+from kingdom.model.game_persistence import save_game, load_game
 from kingdom.renderer import render_current_room
 
 from kingdom.model.noun_model import DIRECTIONS, DirectionNoun
@@ -179,7 +180,7 @@ def process_command(
             return False, recovery_mode, "Load cancelled."
 
         try:
-            loaded_path = world.load_game(path)
+            loaded_path = load_game(world, path)
         except RuntimeError as e:
             return False, recovery_mode, f"Load failed: {e}"
 
@@ -196,7 +197,7 @@ def process_command(
             return False, recovery_mode, "Save cancelled."
 
         try:
-            saved_path = world.save_game(path)
+            saved_path = save_game(world, path)
         except RuntimeError as e:
             return False, recovery_mode, f"Save failed: {e}"
 
