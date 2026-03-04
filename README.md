@@ -2,7 +2,7 @@
 
 A command-driven text adventure engine in Python.
 
-Kingdom loads world state from JSON, parses free-text commands, resolves nouns in context, and dispatches verbs through modular handlers. The codebase now uses a refactored structure centered on `models`, `actions`, `parser`, `renderer`, and verb handler modules.
+Kingdom loads world state from JSON, parses free-text commands, resolves nouns in context, and dispatches verbs through modular handlers. The codebase is organized around a split model layer, parser/resolver flow, renderer/UI, and verb handler modules.
 
 ## Current Highlights
 
@@ -10,7 +10,7 @@ Kingdom loads world state from JSON, parses free-text commands, resolves nouns i
 - Registry-based **direction system** with aliases and implicit movement
 - Context-aware command resolution (`parse_command` + `resolve_command`)
 - Room rendering split into semantic presentation logic (`renderer.py`)
-- Save/load support backed by JSON world state
+- Save/load support backed by JSON world state (`game_persistence.py`)
 - Two terminal presentation modes: **modern** and **trs80**
 
 ## Project Layout
@@ -18,7 +18,6 @@ Kingdom loads world state from JSON, parses free-text commands, resolves nouns i
 ```text
 Kingdom/
 ├── main.py
-├── demo.py
 ├── pyproject.toml
 ├── run_kingdom.bat
 ├── run_kingdom_modern.bat
@@ -38,23 +37,35 @@ Kingdom/
 │   ├── check_world_json.py
 │   ├── find_obsolete_attributes.py
 │   └── validate_save_load_roundtrip.py
+├── tests/
+│   ├── test_parser.py
+│   ├── test_world_container_persistence.py
+│   └── ...
 └── src/kingdom/
     ├── __init__.py
-    ├── actions.py
     ├── dispatch_context.py
     ├── item_behaviors.py
-    ├── models.py
     ├── parser.py
+    ├── resolver.py
     ├── renderer.py
     ├── terminal_style.py
     ├── UI.py
     ├── utilities.py
+    ├── language/
+    │   ├── lexicon/
+    │   │   ├── noun_registry.py
+    │   │   └── verb_registry.py
+    │   └── parser/
+    ├── model/
+    │   ├── noun_model.py
+    │   ├── verb_model.py
+    │   ├── game_init.py
+    │   └── game_persistence.py
     └── verbs/
         ├── verb_handler.py
         ├── movement_verbs.py
         ├── state_changing_verbs.py
         ├── inventory_verbs.py
-        ├── ui_verbs.py
         └── meta_verbs.py
 ```
 
@@ -66,7 +77,7 @@ Kingdom/
 - Loads world data from `data/initial_state.json`
 - Creates player and game state (`GameActionState`)
 - Builds UI and initializes session state
-- Registers verbs through `build_verbs(...)`
+- Registers verbs through `build_verb_registry(...)`
 
 ### 2) Parsing (`parser.py`)
 
@@ -74,15 +85,15 @@ Kingdom/
 - Identifies primary verb and noun phrases
 - Resolves implicit movement (single direction token => `go`)
 
-### 3) Dispatch (`models.Verb` + handlers)
+### 3) Dispatch (`model.Verb` + handlers)
 
 - Verb executes noun-side override if present (`on_<verb>`)
 - Falls back to handler method
+- Verb model lives in `src/kingdom/model/verb_model.py`
 - Handler modules are grouped by concern:
   - movement
   - inventory
   - state changing
-  - UI/system
   - meta/help/debug
 
 ### 4) Presentation (`renderer.py` + `UI.py`)
@@ -92,7 +103,7 @@ Kingdom/
 
 ## Commands (Current Core Set)
 
-The current core verbs are registered in `src/kingdom/actions.py`.
+The current core verbs are registered in `src/kingdom/language/lexicon/verb_registry.py`.
 
 Examples include:
 
@@ -129,7 +140,9 @@ python main.py --mode trs80
 
 - Seed world: `data/initial_state.json`
 - Working save examples: `data/working_state.json`, `data/*-save.json`
-- Runtime world loading/serialization lives in `src/kingdom/models.py`
+- World/entity models live in `src/kingdom/model/noun_model.py`
+- Session/bootstrap state lives in `src/kingdom/model/game_init.py`
+- Save/load I/O lives in `src/kingdom/model/game_persistence.py`
 
 ## Validate World JSON
 
@@ -152,7 +165,7 @@ python scripts/validate_save_load_roundtrip.py
 ```
 
 This script performs a full save→load roundtrip and verifies constructor-backed
-fields on rooms, boxes, and items are preserved.
+fields on rooms, containers, and items are preserved.
 
 `run_state_check.bat` now runs both:
 - world JSON checks (`scripts/check_world_json.py`)
@@ -164,5 +177,5 @@ fields on rooms, boxes, and items are preserved.
 
 ## Notes
 
-- `demo.py` is present as a smoke-test style script, while `main.py` is the primary runtime entrypoint.
-- Several backup/reference files are intentionally kept in the repo (`*.bak.*`, legacy docs).
+- `tests/demo.py` is present as a smoke-test style script, while `main.py` is the primary runtime entrypoint.
+- TRS80-basic source is the orignial 1978 era BASIC version of Castle, which the Kingdom framework is intended to support

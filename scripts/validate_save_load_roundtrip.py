@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append("./src")
 
-from kingdom.model.noun_model import World, Player, Room, Box, Item
+from kingdom.model.noun_model import World, Player, Room, Container, Item
 from kingdom.model.game_init import init_session, get_action_state
 from kingdom.model.game_persistence import save_game, load_game
 
@@ -20,11 +20,11 @@ ROOM_FIELDS = [
     "discover_points",
 ]
 
-BOX_FIELDS = [
-    "noun_name",
-    "box_name",
+CONTAINER_FIELDS = [
+    "name",
+    "handle",
+    "description",
     "capacity",
-    "presence_string",
     "is_openable",
     "is_open",
     "opened_state_description",
@@ -138,11 +138,11 @@ def main() -> int:
     sentinel_room.swim_exits["east"] = anchor
     game.rooms[sentinel_room.name] = sentinel_room
 
-    sentinel_box = Box(
-        canonical_name="rt_box",
-        box_name="Roundtrip Box",
+    sentinel_container = Container(
+        name="Roundtrip Box",
+        handle="rt_box",
+        description="A sentinel box sits here.",
         capacity=3,
-        presence_string="A sentinel box sits here.",
         is_openable=True,
         is_open=True,
         opened_state_description="The sentinel box is open.",
@@ -157,7 +157,7 @@ def main() -> int:
         open_exit_destination=anchor.name,
         examine_string="A carefully instrumented box.",
     )
-    sentinel_room.add_box(sentinel_box)
+    sentinel_room.add_container(sentinel_container)
 
     sentinel_item = Item(
         name="Roundtrip Item",
@@ -209,9 +209,12 @@ def main() -> int:
         print("FAIL: sentinel room missing after load")
         return 1
 
-    loaded_box = next((box for box in loaded_room.boxes if box.noun_name == "rt_box"), None)
-    if loaded_box is None:
-        print("FAIL: sentinel box missing after load")
+    loaded_container = next(
+        (container for container in loaded_room.containers if container.canonical_name() == "rt_box"),
+        None,
+    )
+    if loaded_container is None:
+        print("FAIL: sentinel container missing after load")
         return 1
 
     loaded_item = next((item for item in loaded_room.items if item.noun_name == "rt_item"), None)
@@ -221,7 +224,7 @@ def main() -> int:
 
     mismatches: list[str] = []
     mismatches.extend(_compare_fields("Room", sentinel_room, loaded_room, ROOM_FIELDS))
-    mismatches.extend(_compare_fields("Box", sentinel_box, loaded_box, BOX_FIELDS))
+    mismatches.extend(_compare_fields("Container", sentinel_container, loaded_container, CONTAINER_FIELDS))
     mismatches.extend(_compare_fields("Item", sentinel_item, loaded_item, ITEM_FIELDS))
 
     before_connections = {k: v.name for k, v in sentinel_room.connections.items()}
@@ -254,7 +257,7 @@ def main() -> int:
             print(f" - {mismatch}")
         return 1
 
-    print("PASS: save/load roundtrip preserves all tracked Room/Box/Item constructor fields")
+    print("PASS: save/load roundtrip preserves all tracked Room/Container/Item constructor fields")
     return 0
 
 

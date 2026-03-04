@@ -6,9 +6,7 @@ See demo.py for gameplay examples.
 
 from pathlib import Path
 import argparse
-import os
 import random
-import subprocess
 import sys
 sys.path.append("./src")
 
@@ -17,26 +15,17 @@ from kingdom.model.noun_model import World, Player, Room
 from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.renderer import render_current_room
-
-from kingdom.model.noun_model import DIRECTIONS, DirectionNoun
-
-
 from kingdom.language.lexicon.verb_registry import build_verb_registry
-import kingdom.item_behaviors as item_behaviors
-
-
-from kingdom.parser import parse_command, resolve_command
+from kingdom.parser import resolve_command
 from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal_session
 
 from kingdom.UI import ui
-import kingdom.terminal_style as terminal_style
 
 from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs
 from kingdom.model.verb_model import Verb
 
 # new imports from main refactor - should all be temporary
-from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
-from kingdom.language.lexicon.verb_registry import build_verb_registry
+from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names
 
 
 

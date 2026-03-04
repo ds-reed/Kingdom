@@ -5,8 +5,6 @@ from pathlib import Path
 from dataclasses import dataclass, field, fields
 from typing import Any, Optional, List, Dict, ClassVar
 
-
-
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
 
@@ -121,8 +119,6 @@ class DirectionRegistry:
 
     def all_directions(self):
         return sorted(self.canonical)
-
-
 DIRECTIONS = DirectionRegistry()
 
 
@@ -251,7 +247,7 @@ class Item(Noun):
         Item._by_name[searchkey] = self
 
         self.is_gettable = bool(self.is_gettable)
-        self.refuse_string = self.refuse_string or f"You can't pick up {self.name}"
+        self.refuse_string = self.refuse_string
         self.is_openable = bool(self.is_openable)
         self.is_open = bool(self.is_open)
 
