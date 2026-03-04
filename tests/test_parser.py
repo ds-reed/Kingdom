@@ -1,22 +1,23 @@
 # tests/test_parser_harness.py
 
-from kingdom.verbs.verb_registry import build_verb_registry
-from tests.development_parser import NewParser
+import sys
+sys.path.append("./src")
 
-def run_test(command):
-    registry = build_verb_registry()
-    parser = NewParser(registry)
-    result = parser.parse(command)
-    print(f"INPUT: {command}")
-    print(f"VERB: {result.verb.name if result else None}")
-    print(f"TARGET: {result.target}")
-    print(f"MODIFIERS: {result.modifiers}")
-    print(f"DIRECTION: {result.direction_candidate}")
-    print(f"TOKENS: {result.tokens}")
-    print("-" * 40)
+from kingdom.tests.dummy_lexicon import build_dummy_lexicon
+from kingdom.tests.test_parser_dataset import TESTS
+from kingdom.tests.parser_test_harness import run_parser_tests
+from kingdom.language.parser.parser import NewParser
+
+parser = NewParser()
+lexicon = build_dummy_lexicon()
+
+run_parser_tests(parser, lexicon, TESTS)
+
+def main():
+    parser = NewParser()
+    run_parser_tests(parser, lexicon, TESTS)
+
 
 if __name__ == "__main__":
-    run_test("look in box")
-    run_test("go in box")
-    run_test("take all in the bag")
-    run_test("enter in")
+    main()
+

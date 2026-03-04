@@ -9,7 +9,7 @@ def dummy_handler(target, words):
 # Each Verb uses dummy_handler and includes synonyms where natural.
 # ------------------------------------------------------------
 
-from kingdom.verbs.verb import Verb
+from kingdom.model.verb_model import Verb
 
 test_verbs = [
 

@@ -252,4 +252,26 @@ TESTS = {
             }
         },
     ],
+    # Add at the end of OUT_OF_SCOPE or create a new group
+
+    "intentional_failures": [
+        {
+            "input": "intentional failure 1",
+            "expected": {
+                "primary_verb_token": "XYZZY",
+                "diagnostics": ["This is an intentional failure case."]
+            }
+        },
+        {
+            "input": "intentional failure 2",
+            "expected": {
+                "primary_verb_token": "PLUGH",
+                "diagnostics": ["This is an intentional failure case."]
+            }
+        }
+    ]
+
+    
 }
+
+

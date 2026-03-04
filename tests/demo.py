@@ -8,7 +8,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.model.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
 from kingdom.model.models import GameActionState, init_session, get_action_state
-from kingdom.verbs.verb_registry import build_verb_registry
+from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
 
