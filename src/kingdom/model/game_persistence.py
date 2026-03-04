@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from . import game_init as model_api
-from .noun_model import Player
+from .noun_model import Player, Item
 
 
 def load_game(world, filepath) -> Path:
@@ -65,7 +65,7 @@ def save_game(world, filepath) -> Path:
     payload = {
         "player": {
             "name": player.name,
-            "inventory": [model_api._serialize_item(item) for item in player.sack.contents],
+            "inventory": [Item._serialize_item(item) for item in player.sack.contents],
         }
         if player
         else None,

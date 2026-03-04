@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from dataclasses import dataclass, field, fields
+from typing import Any, Optional, List, Dict, ClassVar
 
 
 
@@ -124,6 +126,16 @@ class DirectionRegistry:
 DIRECTIONS = DirectionRegistry()
 
 
+def _load_directions(json_data):
+    directions = json_data.get("directions", {})
+    for canonical, info in directions.items():
+        DIRECTIONS.register(
+            canonical,
+            synonyms=info.get("aliases", []),
+            reverse=info.get("reverse"),
+        )
+
+
 class DirectionNoun(Noun):
     def __init__(self, reference_name: str, canonical_direction: str):
         super().__init__()
@@ -177,9 +189,107 @@ class DirectionNoun(Noun):
         return nouns
 
 
+@dataclass
 class Item(Noun):
-    all_items = []
-    _by_name = {}
+    all_items: ClassVar[List["Item"]] = []
+    _by_name: ClassVar[Dict[str, "Item"]] = {}
+
+    name: str = field(metadata={"persist": "always"})
+    is_gettable: bool = True
+    refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    presence_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    noun_name: Optional[str] = field(default=None, metadata={"persist": "always"})
+    is_openable: bool = False
+    is_open: bool = field(default=False, metadata={"persist_if_parent": "is_openable"})
+    opened_state_description: Optional[str] = None
+    closed_state_description: Optional[str] = None
+    lit_state_description: Optional[str] = None
+    unlit_state_description: Optional[str] = None
+    open_action_description: Optional[str] = None
+    close_action_description: Optional[str] = None
+    examine_string: Optional[str] = None
+    open_exit_direction: Optional[str] = None
+    open_exit_destination: Optional[str] = None
+    is_lockable: bool = False
+    is_locked: bool = field(default=False, metadata={"persist_if_parent": "is_lockable"})
+    unlock_key: Optional[str] = None
+    locked_state_description: Optional[str] = None
+    unlocked_state_description: Optional[str] = None
+    unlockable_description: Optional[str] = None
+    is_edible: bool = False
+    is_verbally_interactive: bool = False
+    is_lightable: bool = False
+    is_lit: bool = field(default=False, metadata={"persist_if_parent": "is_lightable"})
+    can_ignite: bool = False
+    ignite_success_string: Optional[str] = None
+    is_rubbable: bool = False
+    is_rubbed: bool = False
+    rubbed_state_description: Optional[str] = None
+    rub_success_string: Optional[str] = None
+    trigger_room: Optional[str] = None
+    too_heavy_to_swim: bool = False
+    eat_refuse_string: Optional[str] = None
+    eaten_success_string: Optional[str] = None
+    get_refuse_string: Optional[str] = None
+    special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "if_set"})
+
+    # Runtime fields
+    current_container: "Container | None" = field(default=None, init=False)
+    is_broken: bool = field(default=False, init=False)
+    descriptive_phrase: str = field(default="", init=False)
+
+    def __post_init__(self):
+        super().__init__()
+
+        self.name = str(self.name).strip()
+        self.descriptive_phrase = self.name
+        self.noun_name = str(self.noun_name).strip().lower() if self.noun_name else _derive_noun_name(self.name)
+
+        searchkey = self.noun_name.lower()
+        if searchkey in Item._by_name:
+            print(f"Warning: duplicate item name '{searchkey}' - overwriting previous")
+        Item._by_name[searchkey] = self
+
+        self.is_gettable = bool(self.is_gettable)
+        self.refuse_string = self.refuse_string or f"You can't pick up {self.name}"
+        self.is_openable = bool(self.is_openable)
+        self.is_open = bool(self.is_open)
+
+        self.open_exit_direction = (
+            str(self.open_exit_direction).strip().lower()
+            if self.open_exit_direction is not None and str(self.open_exit_direction).strip()
+            else None
+        )
+        self.open_exit_destination = (
+            str(self.open_exit_destination).strip()
+            if self.open_exit_destination is not None and str(self.open_exit_destination).strip()
+            else None
+        )
+
+        self.is_lockable = bool(self.is_lockable)
+        self.is_locked = bool(self.is_locked)
+        self.unlock_key = (
+            str(self.unlock_key).strip().lower()
+            if self.unlock_key is not None and str(self.unlock_key).strip()
+            else None
+        )
+
+        self.is_edible = bool(self.is_edible)
+        self.is_verbally_interactive = bool(self.is_verbally_interactive)
+        self.is_lightable = bool(self.is_lightable)
+        self.is_lit = bool(self.is_lit)
+        self.can_ignite = bool(self.can_ignite)
+        self.is_rubbable = bool(self.is_rubbable)
+        self.is_rubbed = bool(self.is_rubbed)
+        self.trigger_room = str(self.trigger_room).strip() if self.trigger_room is not None and str(self.trigger_room).strip() else None
+        self.too_heavy_to_swim = bool(self.too_heavy_to_swim)
+
+        if self.special_handlers is None:
+            self.special_handlers = {}
+        else:
+            self.special_handlers = dict(self.special_handlers)
+
+        Item.all_items.append(self)
 
     @classmethod
     def get_by_name(cls, name: str) -> "Item | None":
@@ -187,108 +297,6 @@ class Item(Noun):
             return None
         key = str(name).strip().lower()
         return cls._by_name.get(key)
-
-    def __init__(
-        self,
-        name,
-        is_gettable=True,
-        refuse_string=None,
-        presence_string=None,
-        noun_name=None,
-        is_openable=False,
-        is_open=False,
-        opened_state_description=None,
-        closed_state_description=None,
-        lit_state_description=None,
-        unlit_state_description=None,
-        open_action_description=None,
-        close_action_description=None,
-        examine_string=None,
-        open_exit_direction=None,
-        open_exit_destination=None,
-        is_lockable=False,
-        is_locked=False,
-        unlock_key=None,
-        locked_state_description=None,
-        unlocked_state_description=None,
-        unlockable_description=None,
-        is_edible=False,
-        is_verbally_interactive=False,
-        is_lightable=False,
-        is_lit=False,
-        can_ignite=False,
-        ignite_success_string=None,
-        is_rubbable=False,
-        is_rubbed=False,
-        rubbed_state_description=None,
-        rub_success_string=None,
-        trigger_room=None,
-        too_heavy_to_swim=False,
-        eat_refuse_string=None,
-        eaten_success_string=None,
-        get_refuse_string=None,
-        special_handlers=None,
-    ):
-        super().__init__()
-        self.name = str(name).strip()
-        self.descriptive_phrase = self.name
-        self.noun_name = str(noun_name).strip().lower() if noun_name else _derive_noun_name(self.name)
-        searchkey = self.noun_name.lower()
-        if searchkey in Item._by_name:
-            print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
-        Item._by_name[searchkey] = self
-        self.current_container = None
-        self.is_broken = False
-        self.is_gettable = is_gettable
-        self.refuse_string = refuse_string or f"You can't pick up {self.name}"
-        self.presence_string = presence_string
-        self.is_openable = bool(is_openable)
-        self.is_open = bool(is_open)
-        self.opened_state_description = opened_state_description
-        self.closed_state_description = closed_state_description
-        self.lit_state_description = lit_state_description
-        self.unlit_state_description = unlit_state_description
-        self.open_action_description = open_action_description
-        self.close_action_description = close_action_description
-        self.examine_string = examine_string
-        self.open_exit_direction = (
-            str(open_exit_direction).strip().lower()
-            if open_exit_direction is not None and str(open_exit_direction).strip()
-            else None
-        )
-        self.open_exit_destination = (
-            str(open_exit_destination).strip()
-            if open_exit_destination is not None and str(open_exit_destination).strip()
-            else None
-        )
-        self.is_lockable = bool(is_lockable)
-        self.is_locked = bool(is_locked)
-        self.unlock_key = (
-            str(unlock_key).strip().lower()
-            if unlock_key is not None and str(unlock_key).strip()
-            else None
-        )
-        self.locked_state_description = locked_state_description
-        self.unlocked_state_description = unlocked_state_description
-        self.unlockable_description = unlockable_description
-        self.is_edible = bool(is_edible)
-        self.is_verbally_interactive = bool(is_verbally_interactive)
-        self.is_lightable = bool(is_lightable)
-        self.is_lit = bool(is_lit)
-        self.can_ignite = bool(can_ignite)
-        self.ignite_success_string = ignite_success_string
-        self.is_rubbable = bool(is_rubbable)
-        self.is_rubbed = bool(is_rubbed)
-        self.rubbed_state_description = rubbed_state_description
-        self.rub_success_string = rub_success_string
-        self.trigger_room = str(trigger_room).strip() if trigger_room is not None and str(trigger_room).strip() else None
-        self.too_heavy_to_swim = bool(too_heavy_to_swim)
-        self.eat_refuse_string = eat_refuse_string
-        self.eaten_success_string = eaten_success_string
-        self.get_refuse_string = get_refuse_string
-        self.is_verbally_interactive = bool(is_verbally_interactive)
-        self.special_handlers = special_handlers or {}
-        Item.all_items.append(self)
 
     def get_presence_text(self):
         if self.is_lockable and self.is_locked and self.locked_state_description:
@@ -307,41 +315,6 @@ class Item(Noun):
             return self.presence_string
         return f"There is {self.name} here."
 
-    def _remove_from_known_containers(self, dispatch_context: object | None = None) -> bool:
-        if self.current_container is not None:
-            if self in self.current_container.contents:
-                self.current_container.contents.remove(self)
-                self.current_container = None
-                return True
-            self.current_container = None
-
-        from . import game_init as model_api
-
-        state = getattr(dispatch_context, "state", None)
-        if state is None:
-            try:
-                state = model_api.get_action_state()
-            except RuntimeError:
-                return False
-
-        if state is not None and getattr(state, "current_room", None) is not None:
-            room = state.current_room
-            if self in room.items:
-                room.items.remove(self)
-                return True
-
-            for container in room.containers:
-                if self in container.contents:
-                    container.contents.remove(self)
-                    return True
-
-        player = getattr(state, "current_player", None)
-
-        if player is not None and self in player.sack.contents:
-            player.sack.contents.remove(self)
-            return True
-
-        return False
 
     def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
         if verb_name == "take" and not self.is_gettable:
@@ -353,7 +326,7 @@ class Item(Noun):
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
 
-        for handler in self.behavior_handlers:
+        for handler in getattr(self, "behavior_handlers", []):
             handled_result = handler(self, verb_name, args, dispatch_context)
             if handled_result is not None:
                 return handled_result
@@ -366,10 +339,35 @@ class Item(Noun):
     def display_name(self):
         return self.name
 
-  
+    def to_dict(self) -> dict:
+        """
+        Metadata-driven persistence with a couple of legacy compatibility rules.
+        """
+        payload = serialize_non_default(self)
 
-from dataclasses import dataclass, field, fields
-from typing import Any, Optional, List, Dict, ClassVar
+        default_refusal = f"You can't pick up {self.name}"
+        if payload.get("refuse_string") == default_refusal:
+            payload.pop("refuse_string", None)
+
+        if payload.get("get_refuse_string") == default_refusal:
+            payload.pop("get_refuse_string", None)
+
+        if not payload.get("special_handlers"):
+            payload.pop("special_handlers", None)
+
+        return payload
+
+    @classmethod
+    def _serialize_item(cls, item: "Item") -> dict:
+        if hasattr(item, "to_dict"):
+            return item.to_dict()
+
+        return {
+            "name": getattr(item, "name", str(item)),
+            "noun_name": getattr(item, "get_noun_name", lambda: str(item))(),
+        }
+
+  
 
 def serialize_non_default(obj: Any) -> dict:
     """
@@ -534,8 +532,6 @@ class Container(Noun):
         Convert to dict for saving.
         Fully automatic + one special case for contents → items.
         """
-        from . import game_init as model_api
-
         payload = serialize_non_default(self)
 
         if self.contents:
@@ -544,7 +540,7 @@ class Container(Noun):
                 if hasattr(item, "to_dict"):
                     serialized_items.append(item.to_dict())
                 else:
-                    serialized_items.append(model_api._serialize_item(item))  # legacy fallback
+                    serialized_items.append(Item._serialize_item(item))
             payload["items"] = serialized_items
 
 
@@ -730,8 +726,6 @@ class Room(Noun):
         return False
 
     def to_dict(self) -> dict:
-        from . import game_init as model_api
-
         payload = serialize_non_default(self)
 
         payload.setdefault("name", self.name)
@@ -742,7 +736,7 @@ class Room(Noun):
         payload["dark_description"] = self.dark_description
         payload["discover_points"] = int(self.discover_points)
 
-        payload["items"] = [model_api._serialize_item(item) for item in self.items]
+        payload["items"] = [Item._serialize_item(item) for item in self.items]
         payload["Container"] = [container._serialize_container() for container in self.containers]
         payload["connections"] = {
             direction: destination.name
@@ -881,7 +875,7 @@ class World(Noun):
 
         from . import game_init as model_api
 
-        model_api._load_directions(data)
+        _load_directions(data)
         DirectionNoun.ensure_direction_nouns()
 
         Room.DIRECTIONS = DIRECTIONS.canonical
