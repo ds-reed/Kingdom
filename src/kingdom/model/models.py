@@ -51,7 +51,7 @@ _prefs: SessionPrefs | None = None
 
 
 def init_session(
-    game: World | None = None,
+    world: World | None = None,
     current_player: Player | None = None,
     initial_room: Room | None = None,
     player_name: str | None = None,
@@ -64,15 +64,15 @@ def init_session(
     resolved_player_name = player_name or getattr(resolved_player, "name", None)
     
     _action_state = GameActionState(
-        game=game,
+        game=world,
         current_player=resolved_player,
         current_room=initial_room,
         player_name=resolved_player_name,
         score=0,
     )
 
-    if game is not None:
-        game.state = _action_state
+    if world is not None:
+        world.state = _action_state
 
     _prefs = SessionPrefs(
         save_directory=save_path.parent if save_path else Path("saves"),
@@ -90,6 +90,10 @@ def get_action_state() -> GameActionState:
 def set_action_state(new_state: GameActionState) -> None:
     global _action_state
     _action_state = new_state
+
+    world = getattr(new_state, "game", None)
+    if world is not None:
+        world.state = new_state
 
 
 def set_prefs(new_prefs: SessionPrefs) -> None:

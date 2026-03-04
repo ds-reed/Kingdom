@@ -106,7 +106,6 @@ def demo():
     game = World.get_instance()
     game.setup_world(data_path)
     player = Player("DemoHero")
-    game.set_current_player(player)
 
     _expect(len(game.rooms) > 0, "World loads rooms")
     _expect(len(game.boxes) > 0, "World loads boxes")
@@ -114,7 +113,7 @@ def demo():
     start_room = game.rooms.get(game.start_room_name) if isinstance(game.rooms, dict) else None
     _expect(start_room is not None, "Start room resolves from world data")
 
-    init_session(game=game, current_player=player, initial_room=start_room, player_name="DemoHero", save_path=demo_save_path)
+    init_session(world=game, current_player=player, initial_room=start_room, player_name="DemoHero", save_path=demo_save_path)
     action_state = get_action_state()
 
     ui = UI()

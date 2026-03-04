@@ -26,8 +26,6 @@ def _iter_local_target_candidates(game: World, state: GameActionState):
                     yield item
 
     player = getattr(state, "current_player", None)
-    if player is None:
-        player = game.current_player
     if player is not None:
         for item in player.sack.contents:
             yield item

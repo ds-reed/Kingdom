@@ -828,13 +828,11 @@ class World(Noun):
 
         if action_state.current_player is None:
             action_state.current_player = Player(player_name)
-
-        self.current_player = action_state.current_player
         self.setup_world(data)
 
-        player = self.require_player(return_error=True)
-        if isinstance(player, str):
-            raise RuntimeError(player)
+        player = action_state.current_player
+        if player is None:
+            raise RuntimeError("No hero is active yet.")
 
         player.sack.contents.clear()
         if player_data:
@@ -858,17 +856,19 @@ class World(Noun):
         target.parent.mkdir(parents=True, exist_ok=True)
 
         from . import models as model_api
+        action_state = model_api.get_action_state()
+        player = action_state.current_player
 
         payload = {
             "player": {
-                "name": self.current_player.name,
-                "inventory": [model_api._serialize_item(item) for item in self.current_player.sack.contents],
+                "name": player.name,
+                "inventory": [model_api._serialize_item(item) for item in player.sack.contents],
             }
-            if self.current_player
+            if player
             else None,
-            "current_room": model_api.get_action_state().current_room.name,
+            "current_room": action_state.current_room.name,
             "start_room": self.start_room_name,
-            "score": int(model_api.get_action_state().score),
+            "score": int(action_state.score),
             "rooms": [],
         }
 

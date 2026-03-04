@@ -50,11 +50,11 @@ def init_game_state() -> World | None:
         base_dir = Path(__file__).resolve().parent
         data_path = base_dir / "data" / "initial_state.json"
 
-        # Build the game
-        game = World.get_instance()
-        game.setup_world(data_path)
+        # Initialize world and game state
+        world = World.get_instance()
+        world.setup_world(data_path)
 
-        if game.rooms: current_room = game.rooms[game.start_room_name]
+        if world.rooms: current_room = world.rooms[world.start_room_name]
         else: raise ValueError("No rooms found in game data.")    
 
 
@@ -62,13 +62,12 @@ def init_game_state() -> World | None:
 
         player_name = ui.prompt("Enter hero name: ").strip() or "Hero"
         player = Player(player_name)
-        game.set_current_player(player)
 
         ui.print(f"Welcome {player_name}!","\n")
         
         save_path = base_dir / "saves" / f"{player_name}.json"
 
-        init_session(game=game, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
+        init_session(world=world, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
         action_state = get_action_state()  # retrieve the initialized action state
          
         #------------------------------------------------------------
@@ -84,11 +83,11 @@ def init_game_state() -> World | None:
         print(f"Critical error during game initialization: {e}")
         return None
     
-    return game   # initialization successful
+    return world   # initialization successful
 
 def handle_game_over(
     game_over: GameOver,
-    game: World,
+    world: World,
     start_room: Room,
 ) -> tuple[bool, bool]:
     """
@@ -133,7 +132,7 @@ def handle_game_over(
 def process_command(
     command: str,
     verbs: dict,
-    game: World,
+    world: World,
     action_state: GameActionState,
     recovery_mode: bool,
 ) -> tuple[bool, bool, str | None]:
@@ -154,7 +153,7 @@ def process_command(
     resolved_command = resolve_command(
         command,
         known_verbs=verbs.keys(),
-        known_nouns=iter_known_noun_names(game),
+        known_nouns=iter_known_noun_names(world),
     )
 
     if resolved_command is None:
@@ -162,7 +161,7 @@ def process_command(
 
     verb_word = resolved_command.verb
     args = resolved_command.args
-    target_noun = _resolve_target_noun(game, action_state, resolved_command)
+    target_noun = _resolve_target_noun(world, action_state, resolved_command)
 
     if recovery_mode and verb_word not in recovery_allowed_verbs:
         return False, recovery_mode, "You are dead. Load a saved game or quit."
@@ -180,7 +179,7 @@ def process_command(
             return False, recovery_mode, "Load cancelled."
 
         try:
-            loaded_path = game.load_game(path)
+            loaded_path = world.load_game(path)
         except RuntimeError as e:
             return False, recovery_mode, f"Load failed: {e}"
 
@@ -197,7 +196,7 @@ def process_command(
             return False, recovery_mode, "Save cancelled."
 
         try:
-            saved_path = game.save_game(path)
+            saved_path = world.save_game(path)
         except RuntimeError as e:
             return False, recovery_mode, f"Save failed: {e}"
 
@@ -209,10 +208,10 @@ def process_command(
         else: return False, recovery_mode, "Quit cancelled."
         
     except GameOver as game_over:
-        start_room = Room.by_name(game.start_room_name)
+        start_room = Room.by_name(world.start_room_name)
         should_quit, recovery_mode = handle_game_over(
             game_over,
-            game,
+            world,
             start_room,
         )
         if should_quit:
@@ -258,10 +257,10 @@ def main() -> None:
 
     try:
         
-        game = init_game_state()
+        world = init_game_state()
    
-        if not game:
-            print(f"Failed to initialize game. Please check logfile for details.")
+        if not world:
+            print(f"Failed to initialize world. Please check logfile for details.")
             return
         
         recovery_mode = False
@@ -275,7 +274,7 @@ def main() -> None:
             should_quit, recovery_mode, output = process_command(
                 command=command,
                 verbs=Verb.registry,
-                game=game,
+                world=world,
                 action_state=get_action_state(),
                 recovery_mode=recovery_mode,
             )

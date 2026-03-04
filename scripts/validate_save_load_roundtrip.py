@@ -110,11 +110,10 @@ def main() -> int:
     game.setup_world(data_path)
 
     player = Player("RoundtripHero")
-    game.set_current_player(player)
 
     start_room = game.rooms.get(game.start_room_name)
     init_session(
-        game=game,
+        world=game,
         current_player=player,
         initial_room=start_room,
         player_name=player.name,

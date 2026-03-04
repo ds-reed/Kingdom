@@ -1,6 +1,10 @@
 
+from kingdom.model.noun_model import Item, Box, DirectionNoun
+
 
 def populate_noun_registry(game, noun_registry):
+    from kingdom.model.models import get_action_state
+
     # Items
     for item in Item.all_items:
         noun_registry.register(
@@ -53,7 +57,7 @@ def populate_noun_registry(game, noun_registry):
         )
 
     # Player
-    player = game.state.current_player
+    player = get_action_state().current_player
     noun_registry.register(
         canonical="me",
         synonyms={"self", "myself"},
