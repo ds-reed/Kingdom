@@ -59,12 +59,12 @@ class RoomRenderer:
 
         # Items
         if room.items:
-            names = ", ".join(item.name for item in room.items)
+            names = ", ".join(item.display_name() for item in room.items)
             lines.append(f"You see {names}")
 
         # Boxes
         if room.boxes:
-            names = ", ".join(box.name for box in room.boxes)
+            names = ", ".join(box.display_name() for box in room.boxes)
             lines.append(f"There is {names} here.")
 
         # Exits
@@ -80,16 +80,16 @@ class RoomRenderer:
         desc = getattr(item, "description", None)
         if desc:
             return desc
-        return f"You look at {item.get_noun_name()} carefully."
+        return f"You look at {item.display_name()} carefully."
 
     def describe_box_contents(self, box: Box) -> str:
         """Return a description of a box's contents."""
         if box.is_openable and not box.is_open:
-            return f"The {box.get_noun_name()} is closed."
+            return f"You see {box.display_name()} is closed."
         if not box.contents:
-            return f"The {box.get_noun_name()} is empty."
-        names = ", ".join(item.name for item in box.contents)
-        return f"Inside the {box.get_noun_name()} you see: {names}."
+            return f"You see {box.display_name()} is empty."
+        names = ", ".join(item.display_name() for item in box.contents)
+        return f"Inside {box.display_name()} you see: {names}."
 
     # ----------------------------------------------------------------------
     # Darkness logic

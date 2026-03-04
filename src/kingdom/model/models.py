@@ -166,20 +166,6 @@ class ItemLocation:
                 return "somewhere strange"
             
 
-def _normalize_tokens(text: str) -> list[str]:
-    return [token for token in str(text).strip().lower().split() if token]
-
-
-def _derive_noun_name(text: str) -> str:
-    tokens = _normalize_tokens(text)
-    if not tokens:
-        return ""
-    articles = {"a", "an", "the"}
-    if tokens[0] in articles and len(tokens) > 1:
-        tokens = tokens[1:]
-    return tokens[-1]
-
-
 def _serialize_item(item: "Item") -> dict:
     payload = {
         "name": item.name,

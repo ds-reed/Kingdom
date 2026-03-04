@@ -4,9 +4,7 @@
                     "east": { "reverse": "west", "aliases": ["e"] },
                     "west": { "reverse": "east", "aliases": ["w"] },
                     "up": { "reverse": "down", "aliases": ["u"] },
-                    "down": { "reverse": "up", "aliases": ["d"] },
-                    "in": { "reverse": "out", "aliases": ["inside"] },
-                    "out": { "reverse": "in", "aliases": ["outside"] }
+                    "down": { "reverse": "up", "aliases": ["d"] }
     },
     "score": 0,
     "start_room": "Tower Cell",
@@ -201,7 +199,7 @@
                     "close_action_description": "You push the wardrobe doors shut.",
                     "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
                     "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
-                    "open_exit_direction": "in",
+                    "open_exit_direction": "west",
                     "open_exit_destination": "Narnia",
                     "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable.",
                     "items": []
