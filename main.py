@@ -21,7 +21,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 
 from kingdom.UI import ui
 
-from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs
+from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs, setup_world
 from kingdom.model.verb_model import Verb
 
 # new imports from main refactor - should all be temporary
@@ -42,7 +42,7 @@ def init_game_state() -> World | None:
 
         # Initialize world and game state
         world = World.get_instance()
-        world.setup_world(data_path)
+        setup_world(world, data_path)
 
         if world.rooms: current_room = world.rooms[world.start_room_name]
         else: raise ValueError("No rooms found in game data.")    

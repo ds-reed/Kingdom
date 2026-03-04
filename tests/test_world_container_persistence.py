@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import init_session, reset_all_state
+from kingdom.model.game_init import init_session, reset_all_state, setup_world
 from kingdom.model.game_persistence import load_game, save_game
 from kingdom.model.noun_model import Player, World
 
@@ -26,7 +26,7 @@ def _find_container(room, container_name: str):
 def _bootstrap_world(save_path: Path) -> World:
     reset_all_state()
     world = World()
-    world.setup_world("data/initial_state.json")
+    setup_world(world, "data/initial_state.json")
 
     start_room = _find_room(world, world.start_room_name)
     player = Player("TestHero")

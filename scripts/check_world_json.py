@@ -29,6 +29,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.append(str(ROOT / "src"))
 
 from kingdom.model.noun_model import World  # noqa: E402
+from kingdom.model.game_init import setup_world  # noqa: E402
 
 
 @dataclass
@@ -220,7 +221,7 @@ def _validate_top_level(payload: dict[str, Any], result: ValidationResult) -> No
 def _validate_loadability(path: Path, result: ValidationResult) -> None:
     game = World.get_instance()
     try:
-        game.setup_world(path)
+        setup_world(game, path)
     except Exception as exc:
         result.errors.append(f"Current model loader rejected this file: {type(exc).__name__}: {exc}")
 

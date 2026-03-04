@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from dataclasses import dataclass, field, fields
 from typing import Any, Optional, List, Dict, ClassVar
 
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
-
 
 def _derive_noun_name(text: str) -> str:
     tokens = _normalize_tokens(text)
@@ -848,49 +845,4 @@ class World(Noun):
         if item not in to_room.items:
             to_room.items.append(item)
 
-    def setup_world(self, source):
-        if isinstance(source, (str, Path)):
-            with open(source, "r") as file:
-                data = json.load(file)
-        elif isinstance(source, dict):
-            data = source
-        else:
-            raise TypeError("setup_world expects a filepath or a dict")
 
-        # Clear all registries
-        Room.all_rooms.clear()
-        Container.all_containers.clear()      
-        Item.all_items.clear()
-        Noun.all_nouns.clear()
-
-        # Reset lookup dictionaries
-        Room._by_name = {}
-        Container._by_name = {}                     #
-        Item._by_name = {}
-
-
-        from . import game_init as model_api
-
-        _load_directions(data)
-        DirectionNoun.ensure_direction_nouns()
-
-        Room.DIRECTIONS = DIRECTIONS.canonical
-
-        if isinstance(data, dict):
-            containers = model_api._construct_containers(data.get("Container", []))   
-            rooms = model_api._construct_rooms(data.get("rooms", []))
-        else:
-            containers = []
-            rooms = []
-
-        # Pass containers to set_world
-        self.set_world(containers, rooms)
-        self.rooms = {room.name: room for room in rooms}
-        start_room_name = data.get("start_room")
-        self.start_room_name = start_room_name
-
-        return containers, self.rooms
-    
-
-# Backward-compatibility alias; remove after call sites fully migrate.
-Game = World

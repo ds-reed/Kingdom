@@ -31,7 +31,7 @@ def load_game(world, filepath) -> Path:
 
     if action_state.current_player is None:
         action_state.current_player = Player(player_name)
-    world.setup_world(data)
+    model_api.setup_world(world, data)
 
     player = action_state.current_player
     if player is None:

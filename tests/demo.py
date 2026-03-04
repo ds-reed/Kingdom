@@ -8,7 +8,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.model.noun_model import World, Player, DirectionNoun
 from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
-from kingdom.model.game_init import GameActionState, init_session, get_action_state
+from kingdom.model.game_init import GameActionState, init_session, get_action_state, setup_world
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.language.lexicon.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command
@@ -111,7 +111,7 @@ def demo():
     demo_save_path = PROJECT_ROOT / "data" / "working_state.demo.json"
 
     game = World.get_instance()
-    game.setup_world(data_path)
+    setup_world(game, data_path)
     player = Player("DemoHero")
 
     _expect(len(game.rooms) > 0, "World loads rooms")

@@ -4,9 +4,14 @@ Handles world loading, serialization, and runtime entity management.
 """
 
 from __future__ import annotations
+import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
 from kingdom.model.noun_model import (
+    Noun,
+    DIRECTIONS,
+    DirectionNoun,
+    _load_directions,
     Item,
     Container,
     Player,
@@ -115,6 +120,43 @@ class SaveGame(Exception):
 
 class LoadGame(Exception):
     pass
+
+
+def setup_world(world: World, source):
+    if isinstance(source, (str, Path)):
+        with open(source, "r") as file:
+            data = json.load(file)
+    elif isinstance(source, dict):
+        data = source
+    else:
+        raise TypeError("setup_world expects a filepath or a dict")
+
+    # Clear all registries before reconstructing world entities.
+    Room.all_rooms.clear()
+    Container.all_containers.clear()
+    Item.all_items.clear()
+    Noun.all_nouns.clear()
+
+    Room._by_name = {}
+    Container._by_name = {}
+    Item._by_name = {}
+
+    _load_directions(data)
+    DirectionNoun.ensure_direction_nouns()
+    Room.DIRECTIONS = DIRECTIONS.canonical
+
+    if isinstance(data, dict):
+        containers = _construct_containers(data.get("Container", []))
+        rooms = _construct_rooms(data.get("rooms", []))
+    else:
+        containers = []
+        rooms = []
+
+    world.set_world(containers, rooms)
+    world.rooms = {room.name: room for room in rooms}
+    world.start_room_name = data.get("start_room")
+
+    return containers, world.rooms
 
             
 def _construct_item_from_spec(item_spec) -> "Item":
