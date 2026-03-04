@@ -14,7 +14,7 @@ sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
 from kingdom.model.noun_model import World, Player, Room
-from kingdom.model.models import QuitGame, GameOver, SaveGame, LoadGame
+from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.renderer import render_current_room
 
@@ -31,7 +31,7 @@ from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal
 from kingdom.UI import ui
 import kingdom.terminal_style as terminal_style
 
-from kingdom.model.models import GameActionState, init_session , get_action_state, get_prefs
+from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs
 from kingdom.model.verb_model import Verb
 
 # new imports from main refactor - should all be temporary
