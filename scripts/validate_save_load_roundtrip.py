@@ -5,7 +5,8 @@ from pathlib import Path
 
 sys.path.append("./src")
 
-from kingdom.model.models import Game, Player, Room, Box, Item, init_session, get_action_state
+from kingdom.model.noun_model import World, Player, Room, Box, Item
+from kingdom.model.models import init_session, get_action_state
 
 
 ROOM_FIELDS = [
@@ -105,7 +106,7 @@ def main() -> int:
     data_path = base_dir / "data" / "initial_state.json"
     save_path = base_dir / "data" / "roundtrip_validation.tmp.json"
 
-    game = Game.get_instance()
+    game = World.get_instance()
     game.setup_world(data_path)
 
     player = Player("RoundtripHero")

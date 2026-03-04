@@ -1,14 +1,15 @@
-from kingdom.model.models import Game, DirectionNoun, GameActionState
+from kingdom.model.noun_model import World, DirectionNoun
+from kingdom.model.models import GameActionState
 
 
-def iter_known_noun_names(game: Game):
+def iter_known_noun_names(game: World):
     for noun in game.get_all_nouns():
         yield noun.get_name()
         yield noun.get_descriptive_phrase()
         yield noun.get_noun_name()
 
 
-def _iter_local_target_candidates(game: Game, state: GameActionState):
+def _iter_local_target_candidates(game: World, state: GameActionState):
     yield game
 
     if state.current_room is not None:
@@ -32,7 +33,7 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
             yield item
 
 
-def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -> object | None:
+def _resolve_target_noun(game: World, state: GameActionState, resolved_command) -> object | None:
     noun_matches = resolved_command.parse.nouns
     if not noun_matches:
         return None

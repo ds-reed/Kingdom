@@ -4,13 +4,14 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import VerbHandler
 
-from kingdom.model.models import Noun, Item, DirectionRegistry
+from kingdom.model.noun_model import Noun, Item, DirectionRegistry
 from kingdom.renderer import RoomRenderer, render_current_room
 
 
 
 
 class StateVerbHandler(VerbHandler):
+
 
     # ------------------------------------------------------------
     # state change helper

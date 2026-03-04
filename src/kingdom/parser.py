@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
-from kingdom.model.models import Noun 
-from kingdom.model.models import DIRECTIONS, DirectionNoun
+from kingdom.model.noun_model import Noun
+from kingdom.model.noun_model import DIRECTIONS, DirectionNoun
 from kingdom.model.verb_model import Verb
 
 

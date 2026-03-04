@@ -6,21 +6,22 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
-from kingdom.model.models import Game, Player, QuitGame, SaveGame, LoadGame, DirectionNoun
+from kingdom.model.noun_model import World, Player, DirectionNoun
+from kingdom.model.models import QuitGame, SaveGame, LoadGame
 from kingdom.model.models import GameActionState, init_session, get_action_state
 from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command
 from kingdom.UI import UI
 
 
-def _iter_known_noun_names(game: Game):
+def _iter_known_noun_names(game: World):
     for noun in game.get_all_nouns():
         yield noun.get_name()
         yield noun.get_descriptive_phrase()
         yield noun.get_noun_name()
 
 
-def _iter_local_target_candidates(game: Game, state: GameActionState):
+def _iter_local_target_candidates(game: World, state: GameActionState):
     yield game
 
     if state.current_room is not None:
@@ -42,7 +43,7 @@ def _iter_local_target_candidates(game: Game, state: GameActionState):
             yield item
 
 
-def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -> object | None:
+def _resolve_target_noun(game: World, state: GameActionState, resolved_command) -> object | None:
     noun_matches = resolved_command.parse.nouns
     if not noun_matches:
         return None
@@ -56,7 +57,7 @@ def _resolve_target_noun(game: Game, state: GameActionState, resolved_command) -
     return None
 
 
-def _run_command(game: Game, state: GameActionState, verbs, command, demo_save_path: Path | None = None):
+def _run_command(game: World, state: GameActionState, verbs, command, demo_save_path: Path | None = None):
     resolved_command = resolve_command(
         command,
         known_verbs=verbs.keys(),
@@ -102,7 +103,7 @@ def demo():
     data_path = PROJECT_ROOT / "data" / "initial_state.json"
     demo_save_path = PROJECT_ROOT / "data" / "working_state.demo.json"
 
-    game = Game.get_instance()
+    game = World.get_instance()
     game.setup_world(data_path)
     player = Player("DemoHero")
     game.set_current_player(player)

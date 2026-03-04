@@ -1,6 +1,6 @@
 """
 Kingdom Game World Simulator - Core API
-Uses Game model methods for setup, save, and load functionality.
+Uses World model methods for setup, save, and load functionality.
 See demo.py for gameplay examples.
 """
 
@@ -13,11 +13,11 @@ import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.model.models import Game, Player, Room
+from kingdom.model.noun_model import World, Player, Room
 from kingdom.model.models import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.renderer import render_current_room
 
-from kingdom.model.models import DIRECTIONS, DirectionNoun
+from kingdom.model.noun_model import DIRECTIONS, DirectionNoun
 
 
 from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
@@ -40,7 +40,7 @@ from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
 
 
 #------------------ Design Note: Main Refactor (v2) ------------------
-def init_game_state() -> Game | None:
+def init_game_state() -> World | None:
     """
     Welcome player and initialize game world.
     """
@@ -51,7 +51,7 @@ def init_game_state() -> Game | None:
         data_path = base_dir / "data" / "initial_state.json"
 
         # Build the game
-        game = Game.get_instance()
+        game = World.get_instance()
         game.setup_world(data_path)
 
         if game.rooms: current_room = game.rooms[game.start_room_name]
@@ -88,7 +88,7 @@ def init_game_state() -> Game | None:
 
 def handle_game_over(
     game_over: GameOver,
-    game: Game,
+    game: World,
     start_room: Room,
 ) -> tuple[bool, bool]:
     """
@@ -133,7 +133,7 @@ def handle_game_over(
 def process_command(
     command: str,
     verbs: dict,
-    game: Game,
+    game: World,
     action_state: GameActionState,
     recovery_mode: bool,
 ) -> tuple[bool, bool, str | None]:

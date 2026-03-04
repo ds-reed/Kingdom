@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "src") not in sys.path:
     sys.path.append(str(ROOT / "src"))
 
-from kingdom.model.models import Game  # noqa: E402
+from kingdom.model.noun_model import World  # noqa: E402
 
 
 @dataclass
@@ -218,7 +218,7 @@ def _validate_top_level(payload: dict[str, Any], result: ValidationResult) -> No
 
 
 def _validate_loadability(path: Path, result: ValidationResult) -> None:
-    game = Game.get_instance()
+    game = World.get_instance()
     try:
         game.setup_world(path)
     except Exception as exc:

@@ -59,6 +59,7 @@ def get_behavior(name: str) -> Optional[ItemBehaviorHandler]:
     """Look up a registered behavior by name."""
     return _ITEM_BEHAVIORS.get(str(name).strip())
 
+
 #--------------------------------------------------------------
 # Verb central lookup and pass control for item-specific special handling
 #--------------------------------------------------------------
@@ -110,7 +111,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, noun_name:
         if getattr(existing, "noun_name", None) == noun_name:
             return
 
-    from kingdom.model.models import Item
+    from kingdom.model.noun_model import Item
 
     new_item = Item(
         name,

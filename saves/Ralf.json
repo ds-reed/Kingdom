@@ -3,9 +3,9 @@
         "name": "ralf",
         "inventory": []
     },
-    "current_room": "Tower Cell",
+    "current_room": "Demo Landing",
     "start_room": "Tower Cell",
-    "score": 0,
+    "score": 10,
     "rooms": [
         {
             "name": "Djinni Lair",
@@ -121,7 +121,6 @@
                         }
                     ],
                     "is_openable": true,
-                    "is_open": true,
                     "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
                     "closed_state_description": "a greasy brown lunch bag with its top folded shut.",
                     "open_action_description": "You unfold the top of the greasy lunch bag.",

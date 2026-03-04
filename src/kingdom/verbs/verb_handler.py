@@ -3,9 +3,9 @@
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
 
-from kingdom.model.models import Noun, Item, Room, Box, ItemLocation, LocationType, Game, DirectionNoun 
+from kingdom.model.noun_model import Noun, Item, Room, Box, World, DirectionNoun, DIRECTIONS
+from kingdom.model.models import ItemLocation, LocationType
 from kingdom.model.models import get_action_state
-from kingdom.model.models import DIRECTIONS
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
 class VerbHandler:
