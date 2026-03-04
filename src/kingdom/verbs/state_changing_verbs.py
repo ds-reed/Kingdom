@@ -4,7 +4,7 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import VerbHandler
 
-from kingdom.model.noun_model import Noun, Item, Box, DirectionRegistry
+from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry
 from kingdom.renderer import RoomRenderer, render_current_room
 
 
@@ -751,8 +751,8 @@ class StateVerbHandler(VerbHandler):
         if "inside" in keywords or "in" in keywords:
             if target is None:
                 return self.build_message("Look inside what?")
-            if isinstance(target, Box):
-                return self.build_message(renderer.describe_box_contents(target))
+            if isinstance(target, Container):
+                return self.build_message(renderer.describe_container_contents(target))
             return self.build_message(f"You can't look inside the {target.display_name()}.")
         
  #      if not target: target = noun
@@ -760,7 +760,7 @@ class StateVerbHandler(VerbHandler):
         if target is not None:
             if getattr(target, "examine_string", None) is not None:
                 return self.build_message(target.examine_string)
-            elif isinstance(target, Box):
+            elif isinstance(target, Container):
                 return self.build_message(f"You see {target.display_name()}. There might be something interesting inside.")
             elif room.has_item(target):
                 return self.build_message(f"You see {target.display_name()} here.")

@@ -1,6 +1,6 @@
 # inventory Verbs
 
-from kingdom.model.noun_model import Noun, Item, Box, Room, World, Player
+from kingdom.model.noun_model import Noun, Item, Container, Room, World, Player
 from kingdom.verbs.verb_handler import VerbHandler, VerbControl
 
 class InventoryVerbHandler(VerbHandler):
@@ -47,17 +47,17 @@ class InventoryVerbHandler(VerbHandler):
         if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
             getable: list[Item] = []
 
-            # Items on floor - need a function in the room class to get all gettable items to handle boxes and other containers in the future
+
             for item in room.items:
                 getable.append(item)
 
-            # Items in open boxes - need a function in the room class to get all gettable items to handle nested boxes and other containers in the future
-            for box in room.boxes:
-                if box.is_openable and box.is_open:
-                    for item in box.contents:
+            # Items in open containers
+            for container in room.containers:
+                if container.is_openable and container.is_open:
+                    for item in container.contents:
                         getable.append(item)
                 else:
-                    getable.append(box)  # if box isn't open, we still try to take it and let the refusal message come from the box's special handler
+                    getable.append(container)  # if container isn't open, we still try to take it and let the refusal message come from the container's special handler
 
             return self.handle_all(getable, self.take, "take")
         
@@ -86,7 +86,7 @@ class InventoryVerbHandler(VerbHandler):
         # 5. If it's here but not gettable
         # ------------------------------------------------------------
         if not getattr(target, "is_gettable", True) \
-                    or isinstance(target, Box):  #can't take boxes for now
+                    or isinstance(target, Container):  #can't take containers for now
             refuse = getattr(target, "get_refuse_string", None)
             return self.build_message(refuse or f"You can't take {target.display_name()}.")
 
@@ -99,16 +99,16 @@ class InventoryVerbHandler(VerbHandler):
             return self.build_message(f"You take {target.display_name()}.")
 
         # ------------------------------------------------------------
-        # 8. Take from open box
+        # 8. Take from open container
         # ------------------------------------------------------------
-        if loc.type is self.LocationType.INSIDE_BOX:
-            # Find the box again (loc.container should have it)
-            found_box = loc.container
-            found_box.remove_item(target)
+        if loc.type is self.LocationType.INSIDE_CONTAINER:
+            # Find the container again (loc.container should have it)
+            found_container = loc.container
+            found_container.remove_item(target)
             player.add_to_sack(target)
             return self.build_message(
                 f"You take {target.display_name()} "
-                f"from {found_box.display_name()}."
+                f"from {found_container.display_name()}."
             )
 
         # ------------------------------------------------------------

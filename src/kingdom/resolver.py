@@ -19,10 +19,10 @@ def _iter_local_target_candidates(game: World, state: GameActionState):
         yield state.current_room
         for item in state.current_room.items:
             yield item
-        for box in state.current_room.boxes:
-            yield box
-            if not box.is_openable or box.is_open:
-                for item in box.contents:
+        for container in state.current_room.containers:
+            yield container
+            if not container.is_openable or container.is_open:
+                for item in container.contents:
                     yield item
 
     player = getattr(state, "current_player", None)

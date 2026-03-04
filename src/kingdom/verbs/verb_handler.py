@@ -5,7 +5,7 @@ from typing import Optional, Iterable, Callable
 from enum import Enum, auto
 from dataclasses import dataclass
 
-from kingdom.model.noun_model import Noun, Item, Room, Box, World, DirectionNoun, DIRECTIONS
+from kingdom.model.noun_model import Noun, Item, Room, Container, World, DirectionNoun, DIRECTIONS
 from kingdom.model.game_init import get_action_state
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
@@ -37,22 +37,22 @@ class VerbHandler:
         """Where an item can physically be in the game world."""
         INVENTORY     = auto()   # directly in player's sack/inventory
         ROOM_FLOOR    = auto()   # loose on the room floor
-        BOX_IN_ROOM   = auto()   # the box/container itself is present in the room
-        INSIDE_BOX    = auto()   # inside a box (or other container)
+        CONTAINER_IN_ROOM   = auto()   # the container itself is present in the room
+        INSIDE_CONTAINER    = auto()   # inside a container
 
     @dataclass(frozen=True)
     class ItemLocation:
         """Precise, type-safe description of an item's location."""
         type: 'VerbHandler.LocationType'
-        container: Optional['Box'] = None   # only relevant for INSIDE_BOX
+        container: Optional['Container'] = None   # only relevant for INSIDE_CONTAINER
 
         def is_accessible(self) -> bool:
             """Quick default rule — override or extend per verb if needed."""
             match self.type:
-                case VerbHandler.LocationType.INVENTORY | VerbHandler.LocationType.ROOM_FLOOR | VerbHandler.LocationType.BOX_IN_ROOM:
+                case VerbHandler.LocationType.INVENTORY | VerbHandler.LocationType.ROOM_FLOOR | VerbHandler.LocationType.CONTAINER_IN_ROOM:
                     return True
-                case VerbHandler.LocationType.INSIDE_BOX:
-                    # Assuming Box has .is_open (bool) or similar
+                case VerbHandler.LocationType.INSIDE_CONTAINER:
+                    # Assuming Container has .is_open (bool) or similar
                     return self.container is not None and self.container.is_open
                 case _:
                     return False
@@ -64,9 +64,9 @@ class VerbHandler:
                     return "in your inventory"
                 case VerbHandler.LocationType.ROOM_FLOOR:
                     return "here on the ground"
-                case VerbHandler.LocationType.BOX_IN_ROOM:
+                case VerbHandler.LocationType.CONTAINER_IN_ROOM:
                     return "here (as a container)"
-                case VerbHandler.LocationType.INSIDE_BOX if self.container:
+                case VerbHandler.LocationType.INSIDE_CONTAINER if self.container:
                     return f"inside the {self.container.display_name()}"
                 case _:
                     return "somewhere strange"
@@ -194,7 +194,7 @@ class VerbHandler:
 
         return "\n".join(messages)
 
-    # looks for item in inventory, room or in boxes or a box itself if asked for.
+    # looks for item in inventory, room or in containers or a container itself if asked for.
     def locate_item(self, item: Noun) -> Optional[ItemLocation]:
         """
         Determine exactly where an item is located, returning a rich ItemLocation
@@ -214,14 +214,14 @@ class VerbHandler:
         if room.has_item(item):      # ← use your Room helper
             return self.ItemLocation(self.LocationType.ROOM_FLOOR)
 
-        # 3. The item is a box/container and is present in the room itself
-        if isinstance(item, Box) and room.has_box(item):   # ← use your Room helper
-            return self.ItemLocation(self.LocationType.BOX_IN_ROOM)
+        # 3. The item is a containerand is present in the room itself
+        if isinstance(item, Container) and room.has_container(item):   # ← use your Room helper
+            return self.ItemLocation(self.LocationType.CONTAINER_IN_ROOM)
 
-        # 4. Item is inside some box/container in the room
-        containing_box = room.find_containing_box(item)   # ← use your Room helper
-        if containing_box is not None:
-            return self.ItemLocation(self.LocationType.INSIDE_BOX, container=containing_box)
+        # 4. Item is inside some container in the room
+        containing_container = room.find_containing_container(item)   # ← use your Room helper
+        if containing_container is not None:
+            return self.ItemLocation(self.LocationType.INSIDE_CONTAINER, container=containing_container)
 
         return None
 

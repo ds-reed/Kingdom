@@ -1,5 +1,5 @@
 
-from kingdom.model.noun_model import Item, Box, DirectionNoun
+from kingdom.model.noun_model import Item, Container, DirectionNoun
 
 
 def populate_noun_registry(game, noun_registry):
@@ -15,14 +15,14 @@ def populate_noun_registry(game, noun_registry):
             world_object=item
         )
 
-    # Boxes
-    for box in Box.all_boxes:
+    # Containers
+    for container in Container.all_:
         noun_registry.register(
-            canonical=box.noun_name,
-            synonyms={box.noun_name},
+            canonical=container.name,
+            synonyms={container.name},
             adjectives=set(),
-            category="box",
-            world_object=box
+            category="container",
+            world_object=container
         )
 
     # Features

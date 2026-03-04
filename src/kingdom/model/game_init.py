@@ -1,6 +1,6 @@
 """Core game models and world state.
 
-Defines Noun, Item, Box, Room, Player, World, and related helpers.
+Defines Noun, Item, Container, Room, Player, World, and related helpers.
 Handles world loading, serialization, and runtime entity management.
 """
 
@@ -9,14 +9,14 @@ import json
 from pathlib import Path
 from typing import Iterable, Optional
 from enum import Enum, auto
-from dataclasses import dataclass
+from dataclasses import dataclass, fields as dataclass_fields
 from kingdom.model.noun_model import (
     Noun,
     DirectionRegistry,
     DIRECTIONS,
     DirectionNoun,
     Item,
-    Box,
+    Container,
     Player,
     Room,
     Feature,
@@ -124,8 +124,8 @@ class SaveGame(Exception):
 
 class LoadGame(Exception):
     pass
-            
 
+            
 def _serialize_item(item: "Item") -> dict:
     payload = {
         "name": item.name,
@@ -248,61 +248,6 @@ def _serialize_item(item: "Item") -> dict:
     return payload
 
 
-def _serialize_box(box: "Box") -> dict:
-    payload = {
-        "canonical_name": box.canonical_name(), 
-        "box_name": box.box_name,
-        "items": [_serialize_item(item) for item in box.contents],
-    }
-
-    if box.presence_string:
-        payload["presence_string"] = box.presence_string
-
-    if box.capacity is not None:
-        payload["capacity"] = box.capacity
-
-    if getattr(box, "is_openable", False):
-        payload["is_openable"] = True
-
-    if getattr(box, "is_open", False):
-        payload["is_open"] = True
-
-    if getattr(box, "opened_state_description", None):
-        payload["opened_state_description"] = box.opened_state_description
-
-    if getattr(box, "closed_state_description", None):
-        payload["closed_state_description"] = box.closed_state_description
-
-    if getattr(box, "open_action_description", None):
-        payload["open_action_description"] = box.open_action_description
-
-    if getattr(box, "close_action_description", None):
-        payload["close_action_description"] = box.close_action_description
-
-    if getattr(box, "examine_string", None):
-        payload["examine_string"] = box.examine_string
-
-    if getattr(box, "is_lockable", False):
-        payload["is_lockable"] = True
-
-    if getattr(box, "is_locked", False):
-        payload["is_locked"] = True
-
-    if getattr(box, "unlock_key", None):
-        payload["unlock_key"] = box.unlock_key
-
-    if getattr(box, "locked_description", None):
-        payload["locked_description"] = box.locked_description
-
-    if getattr(box, "open_exit_direction", None):
-        payload["open_exit_direction"] = box.open_exit_direction
-
-    if getattr(box, "open_exit_destination", None):
-        payload["open_exit_destination"] = box.open_exit_destination
-
-    return payload
-
-
 def _construct_item_from_spec(item_spec) -> "Item":
     if isinstance(item_spec, str):
         return Item(item_spec)
@@ -373,44 +318,57 @@ def _load_directions(json_data):
             reverse=info.get("reverse")
         )
 
-def _construct_boxes(data):
-    """Construct Box and Item objects from loaded JSON data list.
 
-    Expects `data` to be a list of dicts with keys 'box_name' and 'items'.
-    Each item can be a string or a dict with 'name', 'is_gettable', 'refuse_string'.
+def _construct_containers(data):
+    """Construct Container objects from loaded JSON data list.
+
+    Expects `data` to be a list of dicts with keys like 'name', 'description', 'items', etc.
     """
-    Box.all_boxes.clear()  # Clear existing boxes for a clean load
+    Container.all_containers.clear()           # Clear for clean load
+    Container._by_name.clear()
+
     for entry in data:
-        new_box = Box(
-            entry["canonical_name"], # canonical_name (parser-facing)
-            entry["box_name"], # box_name (display-facing)
-            capacity=entry.get("capacity"),
-            presence_string=entry.get("presence_string"),
-            is_openable=entry.get("is_openable", False),
-            is_open=entry.get("is_open", False),
-            open_action_description=entry.get("open_action_description"),
-            close_action_description=entry.get("close_action_description"),
-            open_exit_direction=entry.get("open_exit_direction"),
-            open_exit_destination=entry.get("open_exit_destination"),
-            examine_string=entry.get("examine_string"),
-            opened_state_description=entry.get("opened_state_description"),
-            closed_state_description=entry.get("closed_state_description"),
-            is_lockable=entry.get("is_lockable", False),
-            is_locked=entry.get("is_locked", False),
-            unlock_key=entry.get("unlock_key"),
-            locked_description=entry.get("locked_description"),
-        )
+        container = _construct_container_from_spec(entry)
+
+        # Add contained items
         for item_spec in entry.get("items", []):
             new_item = _construct_item_from_spec(item_spec)
-            new_box.add_item(new_item)
-    return Box.all_boxes
+            container.add_item(new_item)
+
+    return Container.all_containers
 
 
+def _construct_container_from_spec(container_spec) -> "Container":
+    if isinstance(container_spec, str):
+        return Container(name=container_spec)
+
+    if not isinstance(container_spec, dict):
+        raise TypeError("Container spec must be a dict or string")
+
+    init_field_names = {f.name for f in dataclass_fields(Container) if f.init}
+
+    normalized = dict(container_spec)
+    if "name" not in normalized:
+        if normalized.get("box_name"):
+            normalized["name"] = normalized["box_name"]
+        elif normalized.get("canonical_name"):
+            normalized["name"] = normalized["canonical_name"]
+
+    if "handle" not in normalized and normalized.get("canonical_name"):
+        normalized["handle"] = normalized["canonical_name"]
+
+    constructor_kwargs = {
+        key: value
+        for key, value in normalized.items()
+        if key in init_field_names
+    }
+
+    return Container(**constructor_kwargs)
 
 def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.
 
-    Each room dict should have 'name', 'description', optional 'items', optional 'boxes', and optional 'connections'.
+    Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
     Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
     """
     Room.all_rooms.clear()  # Clear existing rooms for a clean load
@@ -428,31 +386,16 @@ def _construct_rooms(data):
         # Add items to the room
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
-        # Add boxes to the room
-        for box_data in entry.get("boxes", []):
-            box = Box(
-                canonical_name=box_data.get("canonical_name"),
-                box_name=box_data.get("box_name"),
-                capacity=box_data.get("capacity"),
-                presence_string=box_data.get("presence_string"),
-                is_openable=box_data.get("is_openable", False),
-                is_open=box_data.get("is_open", False),
-                opened_state_description=box_data.get("opened_state_description"),
-                closed_state_description=box_data.get("closed_state_description"),
-                open_action_description=box_data.get("open_action_description"),
-                close_action_description=box_data.get("close_action_description"),
-                open_exit_direction=box_data.get("open_exit_direction"),
-                open_exit_destination=box_data.get("open_exit_destination"),
-                is_lockable=box_data.get("is_lockable", False),
-                is_locked=box_data.get("is_locked", False),
-                unlock_key=box_data.get("unlock_key"),
-                locked_description=box_data.get("locked_description"),
-                examine_string=box_data.get("examine_string"),
-            )
-            for item_spec in box_data.get("items", []):
+        # Add Containers to the room
+        for container_data in entry.get("Container", []):
+            container = _construct_container_from_spec(container_data)
+
+            for item_spec in container_data.get("items", []):
                 item_obj = _construct_item_from_spec(item_spec)
-                box.add_item(item_obj)
-            room.add_box(box)
+                container.add_item(item_obj)
+
+            room.add_container(container) 
+
         room.swim_exits = entry.get("swim_exits", {})
 
         hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))

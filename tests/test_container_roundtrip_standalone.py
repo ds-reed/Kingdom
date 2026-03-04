@@ -9,7 +9,7 @@ from typing import Any
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.container_model import Container
+from kingdom.model.noun_model import Container
 
 
 class SerializableStubItem:

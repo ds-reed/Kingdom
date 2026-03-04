@@ -23,7 +23,7 @@
                     "special_handlers": {"say": "speak_djinni", "make": "make_djinni"}
                 }
             ],
-            "boxes": [],
+            "Container": [],
             "connections": {}
         },
         {
@@ -80,10 +80,10 @@
                     "examine_string": "The ladder hums with soft blue light. Runes crawl up the rungs like fireflies trapped in glass."
                 }
             ],
-            "boxes": [
+            "Container": [
                 {
-                    "canonical_name": "bag",
-                    "box_name": "a greasy brown lunch bag",
+                    "name": "lunch bag",
+                    "description": "a greasy brown lunch bag",
                     "is_openable": true,
                     "is_open": false,
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
@@ -148,7 +148,7 @@
                     "examine_string": "The mural depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements."
                 }
             ],
-            "boxes": [],
+            "Container": [],
             "connections": {}
         },
         {
@@ -166,7 +166,7 @@
                     "too_heavy_to_swim": true
                 }
             ],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "east": "Blank Chamber"
             }
@@ -189,10 +189,10 @@
                     "is_lit": true
                 }
             ],
-            "boxes": [
+            "Container": [
                 {
-                    "canonical_name": "wardrobe",
-                    "box_name": "a large wooden wardrobe",
+                    "name": "wardrobe",
+                    "description": "a large wooden wardrobe",
                     "is_openable": true,
                     "is_open": false,
                     "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
@@ -212,7 +212,7 @@
             "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
             "discover_points": 10,
             "items": [],
-            "boxes": [],
+            "Container": [],
             "connections": {}
         },
         {
@@ -226,7 +226,7 @@
                     "is_edible": true
                 }
             ],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "down": "Tower Cell",
                 "north": "Clockwork Court",
@@ -239,7 +239,7 @@
             "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
             "discover_points": 10,
             "items": [],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -250,7 +250,7 @@
             "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
             "discover_points": 10,
             "items": [],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -261,7 +261,7 @@
             "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
             "discover_points": 10,
             "items": [],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
@@ -272,7 +272,7 @@
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
             "discover_points": 10,
             "items": [],
-            "boxes": [],
+            "Container": [],
             "connections": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"

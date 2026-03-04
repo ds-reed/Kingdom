@@ -1,13 +1,13 @@
 # kingdom/renderer.py
 
 from typing import Sequence
-from kingdom.model.noun_model import Room, Item, Box
+from kingdom.model.noun_model import Room, Item, Container
 from kingdom.model.game_init import get_action_state
 
 
 class RoomRenderer:
     """
-    Pure presentation logic for describing rooms, items, boxes, and exits.
+    Pure presentation logic for describing rooms, items, containers, and exits.
     Produces semantic text; UI layer decides how to display it.
     """
 
@@ -31,16 +31,16 @@ class RoomRenderer:
         exits = room.available_directions(visible_only=True)
         exits_text = self.build_visible_exits_text(exits)
 
-        # Items and boxes (presence text)
-        presence = []
-        for obj in [*room.items, *room.boxes]:
-            text = obj.get_presence_text()
+        # Items and containers (display text)
+        display_text = []
+        for obj in [*room.items, *room.containers]:
+            text = obj.display_name()
             if text:
-                presence.append(text)
+                display_text.append(text)
 
-        presence_text = " ".join(presence)
-        if presence_text:
-            return f"{desc} {presence_text} {exits_text}".strip()
+        display_text_str = " ".join(display_text)
+        if display_text_str:
+            return f"{desc} {display_text_str} {exits_text}".strip()
 
         return f"{desc} {exits_text}".strip()
 
@@ -62,9 +62,9 @@ class RoomRenderer:
             names = ", ".join(item.display_name() for item in room.items)
             lines.append(f"You see {names}")
 
-        # Boxes
-        if room.boxes:
-            names = ", ".join(box.display_name() for box in room.boxes)
+        # Containers
+        if room.containers:
+            names = ", ".join(container.display_name() for container in room.containers)
             lines.append(f"There is {names} here.")
 
         # Exits
@@ -82,14 +82,14 @@ class RoomRenderer:
             return desc
         return f"You look at {item.display_name()} carefully."
 
-    def describe_box_contents(self, box: Box) -> str:
-        """Return a description of a box's contents."""
-        if box.is_openable and not box.is_open:
-            return f"You see {box.display_name()} is closed."
-        if not box.contents:
-            return f"You see {box.display_name()} is empty."
-        names = ", ".join(item.display_name() for item in box.contents)
-        return f"Inside {box.display_name()} you see: {names}."
+    def describe_container_contents(self, container: Container) -> str:
+        """Return a description of a container's contents."""
+        if container.is_openable and not container.is_open:
+            return f"You see {container.display_name()} is closed."
+        if not container.contents:
+            return f"You see {container.display_name()} is empty."
+        names = ", ".join(item.display_name() for item in container.contents)
+        return f"Inside {container.display_name()} you see: {names}."
 
     # ----------------------------------------------------------------------
     # Darkness logic
@@ -115,11 +115,11 @@ class RoomRenderer:
             if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                 return False
 
-        # Boxes (only open ones)
-        for box in room.boxes:
-            if box.is_openable and not box.is_open:
+        # Containers (only open ones)
+        for container in room.containers:
+            if container.is_openable and not container.is_open:
                 continue
-            for item in box.contents:
+            for item in container.contents:
                 if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                     return False
 

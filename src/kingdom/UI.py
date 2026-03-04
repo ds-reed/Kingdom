@@ -1,7 +1,7 @@
 """
 User Interface level
 
-This module formats rooms, exits, items, boxes, and dark-room behavior.
+This module formats rooms, exits, items, containers, and dark-room behavior.
 It depends on game models and terminal_style, but NOT on actions or verbs.
 
 """

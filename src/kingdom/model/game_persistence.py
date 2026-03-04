@@ -81,7 +81,7 @@ def save_game(world, filepath) -> Path:
             "description": room.description,
             "visited": room.visited,
             "items": [model_api._serialize_item(item) for item in room.items],
-            "boxes": [],
+            "Container": [],
             "connections": {direction: destination.name for direction, destination in room.connections.items()},
             "swim_exits": {direction: destination.name for direction, destination in room.swim_exits.items()},
             "hidden_directions": list(room.hidden_directions),
@@ -91,8 +91,8 @@ def save_game(world, filepath) -> Path:
             "discover_points": room.discover_points,
         }
 
-        for box in room.boxes:
-            room_payload["boxes"].append(model_api._serialize_box(box))
+        for container in room.containers:
+            room_payload["Container"].append(container._serialize_container())
 
         payload["rooms"].append(room_payload)
 

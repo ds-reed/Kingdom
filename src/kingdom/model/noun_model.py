@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 
+
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
 
@@ -19,7 +20,7 @@ def _derive_noun_name(text: str) -> str:
 
 
 class Noun:
-    """Parent class for all game world entities (items, boxes, rooms)."""
+    """Parent class for all game world entities (items, containers, rooms)."""
 
     all_nouns = []
 
@@ -236,7 +237,7 @@ class Item(Noun):
         if searchkey in Item._by_name:
             print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
         Item._by_name[searchkey] = self
-        self.current_box = None
+        self.current_container = None
         self.is_broken = False
         self.is_gettable = is_gettable
         self.refuse_string = refuse_string or f"You can't pick up {self.name}"
@@ -307,12 +308,12 @@ class Item(Noun):
         return f"There is {self.name} here."
 
     def _remove_from_known_containers(self, dispatch_context: object | None = None) -> bool:
-        if self.current_box is not None:
-            if self in self.current_box.contents:
-                self.current_box.contents.remove(self)
-                self.current_box = None
+        if self.current_container is not None:
+            if self in self.current_container.contents:
+                self.current_container.contents.remove(self)
+                self.current_container = None
                 return True
-            self.current_box = None
+            self.current_container = None
 
         from . import game_init as model_api
 
@@ -329,9 +330,9 @@ class Item(Noun):
                 room.items.remove(self)
                 return True
 
-            for box in room.boxes:
-                if self in box.contents:
-                    box.contents.remove(self)
+            for container in room.containers:
+                if self in container.contents:
+                    container.contents.remove(self)
                     return True
 
         player = getattr(state, "current_player", None)
@@ -365,103 +366,153 @@ class Item(Noun):
     def display_name(self):
         return self.name
 
+  
 
-class Box(Noun):
-    all_boxes = []
-    _by_name = {}
+from dataclasses import dataclass, field, fields
+from typing import Any, Optional, List, Dict, ClassVar
 
-    def __init__(
-        self,
-        canonical_name,
-        box_name,
-        capacity=None,
-        presence_string=None,
-        is_openable=False,
-        is_open=False,
-        opened_state_description=None,
-        closed_state_description=None,
-        open_action_description=None,
-        close_action_description=None,
-        is_lockable=False,
-        is_locked=False,
-        unlock_key=None,
-        locked_description=None,
-        open_exit_direction=None,
-        open_exit_destination=None,
-        examine_string=None,
-    ):
+def serialize_non_default(obj: Any) -> dict:
+    """
+    Serialize dataclass fields according to persistence rules.
+    - Skips runtime fields (init=False)
+    - Uses metadata: "always", "if_set", "persist_if_parent", default=non_default
+    """
+    payload = {}
+    for f in fields(obj):
+        if f.init is False:
+            continue
+
+        value = getattr(obj, f.name)
+        persist_rule = f.metadata.get("persist", "non_default")
+        parent_field = f.metadata.get("persist_if_parent")
+
+        # Save if parent is True (even if value == default)
+        if parent_field:
+            parent_value = getattr(obj, parent_field, False)
+            if parent_value is True:
+                payload[f.name] = value
+                continue
+
+        if persist_rule == "always":
+            payload[f.name] = value
+            continue
+
+        if persist_rule == "if_set":
+            if value is not None:
+                payload[f.name] = value
+            continue
+
+        # Default: omit None / False / default value
+        if value is None:
+            continue
+        if isinstance(value, bool) and not value:
+            continue
+        if value == f.default:
+            continue
+
+        payload[f.name] = value
+
+    return payload
+
+
+@dataclass
+class Container(Noun):
+    """
+    A container that can hold items, be opened/closed, locked, etc.
+    """
+    all_containers: ClassVar[List["Container"]] = []
+    _by_name: ClassVar[Dict[str, "Container"]] = {}
+
+    # Required: what the player sees / reads in text
+    name: str = field(metadata={"persist": "always"})
+
+    # Optional override: parser/search key (stable, lowercase)
+    # Auto-derived from name if missing
+    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+
+    # Legacy field (preserved but unused; will be removed later)
+    noun_name: str = field(init=False)
+
+    # Optional long text for examine/look
+    description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+
+    # Normal optional fields
+    capacity: Optional[int] = None
+    is_openable: bool = False
+    is_open: bool = field(default=False, metadata={"persist_if_parent": "is_openable"})
+    opened_state_description: Optional[str] = None
+    closed_state_description: Optional[str] = None
+    open_action_description: Optional[str] = None
+    close_action_description: Optional[str] = None
+    is_lockable: bool = False
+    is_locked: bool = field(default=False, metadata={"persist_if_parent": "is_lockable"})
+    unlock_key: Optional[str] = None
+    locked_description: Optional[str] = None
+    open_exit_direction: Optional[str] = None
+    open_exit_destination: Optional[str] = None
+    examine_string: Optional[str] = None  
+
+    # Runtime state – never saved
+    contents: List["Item"] = field(default_factory=list, init=False)
+
+    def __post_init__(self):
         super().__init__()
-        self.noun_name = canonical_name
-        self.box_name = box_name
-        self.name = box_name
-        self.contents = []
-        self.capacity = capacity
-        searchkey = self.noun_name.lower()
-        if searchkey in Box._by_name:
-            print(f"Warning: duplicate item name '{searchkey}' — overwriting previous")
-        Box._by_name[searchkey] = self
-        self.presence_string = presence_string
-        self.is_openable = bool(is_openable)
-        self.is_open = bool(is_open)
-        self.opened_state_description = opened_state_description
-        self.closed_state_description = closed_state_description
-        self.open_action_description = open_action_description
-        self.close_action_description = close_action_description
-        self.examine_string = examine_string
-        self.is_lockable = bool(is_lockable)
-        self.is_locked = bool(is_locked)
-        self.unlock_key = (
-            str(unlock_key).strip().lower()
-            if unlock_key is not None and str(unlock_key).strip()
-            else None
-        )
-        self.locked_description = locked_description
-        self.open_exit_direction = (
-            str(open_exit_direction).strip().lower()
-            if open_exit_direction is not None and str(open_exit_direction).strip()
-            else None
-        )
-        self.open_exit_destination = (
-            str(open_exit_destination).strip()
-            if open_exit_destination is not None and str(open_exit_destination).strip()
-            else None
-        )
-        Box.all_boxes.append(self)
-        Box._by_name[self.noun_name.lower()] = self
 
-    def __repr__(self):
-        cls = self.__class__.__name__
-        contents = [item.name for item in self.contents]
-        return f"<{cls} name={self.name!r} open={self.is_open} contents={contents}>"
+        # Legacy support (remove later)
+        self.noun_name = self.name
 
-    def get_presence_text(self):
-        if self.is_lockable and self.is_locked and self.locked_description:
-            return self.locked_description
-        if self.is_openable:
-            if self.is_open and self.opened_state_description:
-                return self.opened_state_description
-            if not self.is_open and self.closed_state_description:
-                return self.closed_state_description
-        if self.presence_string:
-            return self.presence_string
-        return f"There is {self.box_name} here."
+        # Set parser handle: explicit → derived → fallback
+        self.handle = (
+            self.handle
+            or _derive_noun_name(self.name)
+            or self.name.lower()
+        )
+
+        # Register using parser-friendly handle (lowercased)
+        searchkey = self.handle.lower()
+        if searchkey in Container._by_name:
+            print(f"Warning: duplicate handle '{searchkey}' — overwriting previous")
+        Container._by_name[searchkey] = self
+        Container.all_containers.append(self)
+
+    # ───────────────────────────────────────────────
+    # Noun interface methods
+    # ───────────────────────────────────────────────
+
+    def get_name(self) -> str:
+        """Legacy - will be removed in favor of canonical_name"""
+        return self.name
+
+    def display_name(self) -> str:
+        """What the player sees in text / inventory"""
+        return self.description or self.name
+
+    def canonical_name(self) -> str:
+        """Stable parser / lookup key"""
+        return self.handle
+    
+    # ───────────────────────────────────────────────
+    # Item interface methods
+    # ───────────────────────────────────────────────
 
     def add_item(self, item):
         if item is None:
             print("ERROR: add_item received None")
             return
+
         if self.capacity is not None and len(self.contents) >= self.capacity:
-            print(f"ERROR: Cannot add {item.name} to {self.box_name} - capacity reached")
-            return
-        if item.current_box == self:
-            print(f"ERROR: {item.name} is already in {self.box_name}")
+            print(f"ERROR: Cannot add {item.name} to {self.name} - capacity reached")
             return
 
-        if item.current_box is not None:
-            item.current_box.contents.remove(item)
+        if item.current_container == self:
+            print(f"ERROR: {item.name} is already in {self.name}")
+            return
+
+        if item.current_container is not None:
+            item.current_container.contents.remove(item)
 
         self.contents.append(item)
-        item.current_box = self
+        item.current_container = self
 
         return
 
@@ -471,14 +522,37 @@ class Box(Noun):
     def remove_item(self, item):
         if item in self.contents:
             self.contents.remove(item)
-            item.current_box = None
+            item.current_container = None
             return
+        
+    # ───────────────────────────────────────────────
+    # Serialization
+    # ───────────────────────────────────────────────
 
-    def canonical_name(self):
-        return getattr(self, "noun_name")
+    def to_dict(self) -> dict:
+        """
+        Convert to dict for saving.
+        Fully automatic + one special case for contents → items.
+        """
+        from . import game_init as model_api
 
-    def display_name(self):
-        return self.box_name
+        payload = serialize_non_default(self)
+
+        if self.contents:
+            serialized_items = []
+            for item in self.contents:
+                if hasattr(item, "to_dict"):
+                    serialized_items.append(item.to_dict())
+                else:
+                    serialized_items.append(model_api._serialize_item(item))  # legacy fallback
+            payload["items"] = serialized_items
+
+
+        return payload
+    
+    def _serialize_container(self) -> dict:
+        return self.to_dict()
+
 
 
 class Player:
@@ -486,9 +560,9 @@ class Player:
 
     def __init__(self, name):
         self.name = name
-        self.sack = Box(
-            canonical_name="inventory",
-            box_name=f"{name}'s sack",
+        self.sack = Container(
+            name="inventory",
+            description=f"{name}'s sack",
             capacity=10,
         )
 
@@ -531,7 +605,7 @@ class Room(Noun):
             print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
         Room._by_name[searchkey] = self
         self.items = []
-        self.boxes = []
+        self.containers = []
         self.connections = {}
         self.hidden_directions = set()
         self.minigame = None
@@ -540,11 +614,11 @@ class Room(Noun):
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
-        boxes_str = [b.box_name for b in self.boxes]
+        containers_str = [c.display_name() for c in self.containers]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
             f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
-            f"boxes={boxes_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
+            f"containers={containers_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
     def add_item(self, item) -> bool:
@@ -556,10 +630,10 @@ class Room(Noun):
             raise TypeError("Room.add_item expects an Item or str")
         return True
 
-    def add_box(self, box) -> bool:
-        if not isinstance(box, Box):
-            raise TypeError("Room.add_box expects a Box instance")
-        self.boxes.append(box)
+    def add_container(self, container) -> bool:
+        if not isinstance(container, Container):
+            raise TypeError("Room.add_container expects a Container instance")
+        self.containers.append(container)
         return True
 
     def remove_item(self, item) -> bool:
@@ -568,22 +642,22 @@ class Room(Noun):
             return True
         return False
 
-    def remove_box(self, box) -> bool:
-        if box in self.boxes:
-            self.boxes.remove(box)
+    def remove_container(self, container) -> bool:
+        if container in self.containers:
+            self.containers.remove(container)
             return True
         return False
 
     def has_item(self, item) -> bool:
         return item in self.items
 
-    def has_box(self, box) -> bool:
-        return box in self.boxes
+    def has_container(self, container) -> bool:
+        return container in self.containers
 
-    def find_containing_box(self, item) -> "Box | None":
-        for box in self.boxes:
-            if item in box.contents:
-                return box
+    def find_containing_container(self, item) -> "Container | None":
+        for container in self.containers:
+            if item in container.contents:
+                return container
         return None
 
     def add_direction(self, direction):
@@ -639,10 +713,10 @@ class Room(Noun):
             if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                 return True
 
-        for box in self.boxes:
-            if box.is_openable and not box.is_open:
+        for container in self.containers:
+            if container.is_openable and not container.is_open:
                 continue
-            for item in box.contents:
+            for item in container.contents:
                 if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                     return True
 
@@ -697,7 +771,7 @@ class World(Noun):
     def __init__(self):
         super().__init__()
         self.name = "World"
-        self.boxes = []
+        self.containers = []
         self.rooms = []
         self.start_room_name = None
         self.start_room = None
@@ -730,8 +804,8 @@ class World(Noun):
             cls._instance = World()
         return cls._instance
 
-    def set_world(self, boxes, rooms):
-        self.boxes = boxes
+    def set_world(self, containers, rooms):
+        self.containers = containers
         self.rooms = rooms
 
     def set_current_player(self, player):
@@ -773,13 +847,17 @@ class World(Noun):
         else:
             raise TypeError("setup_world expects a filepath or a dict")
 
+        # Clear all registries
         Room.all_rooms.clear()
-        Box.all_boxes.clear()
+        Container.all_containers.clear()      
         Item.all_items.clear()
         Noun.all_nouns.clear()
+
+        # Reset lookup dictionaries
         Room._by_name = {}
-        Box._by_name = {}
+        Container._by_name = {}                     #
         Item._by_name = {}
+
 
         from . import game_init as model_api
 
@@ -789,131 +867,20 @@ class World(Noun):
         Room.DIRECTIONS = DIRECTIONS.canonical
 
         if isinstance(data, dict):
-            boxes = model_api._construct_boxes(data.get("boxes", []))
+            containers = model_api._construct_containers(data.get("Container", []))   
             rooms = model_api._construct_rooms(data.get("rooms", []))
         else:
+            containers = []
             rooms = []
-            boxes = []
 
-        self.set_world(boxes, rooms)
+        # Pass containers to set_world
+        self.set_world(containers, rooms)
         self.rooms = {room.name: room for room in rooms}
         start_room_name = data.get("start_room")
         self.start_room_name = start_room_name
 
-        return boxes, self.rooms
-
-    def load_game(self, filepath) -> Path:
-        target = Path(filepath).expanduser()
-        if not target.suffix:
-            target = target.with_suffix(".json")
-        if not target.is_file():
-            raise RuntimeError(f"Save file not found: {target}")
-
-        try:
-            with target.open("r", encoding="utf-8") as file:
-                data = json.load(file)
-        except json.JSONDecodeError as error:
-            raise RuntimeError(f"Invalid save file format: {target} ({error})") from error
-        except OSError as error:
-            raise RuntimeError(f"Unable to read save file: {target} ({error})") from error
-
-        player_data = data.pop("player", None)
-        current_room_name = data.get("current_room")
-        player_name = player_data.get("name", "Hero") if player_data else "Hero"
-
-        from . import game_init as model_api
-
-        action_state = model_api.get_action_state()
-        action_state.player_name = player_name
-
-        if action_state.current_player is None:
-            action_state.current_player = Player(player_name)
-
-        self.current_player = action_state.current_player
-        self.setup_world(data)
-
-        player = self.require_player(return_error=True)
-        if isinstance(player, str):
-            raise RuntimeError(player)
-
-        player.sack.contents.clear()
-        if player_data:
-            for item_json in player_data.get("inventory", []):
-                item = model_api._construct_item_from_spec(item_json)
-                player.sack.add_item(item)
-
-        if current_room_name and current_room_name in self.rooms:
-            model_api.get_action_state().current_room = self.rooms[current_room_name]
-
-        model_api.get_action_state().score = int(data.get("score", 0))
-
-        return target
-
-    def save_game(self, filepath) -> Path:
-        target = Path(filepath).expanduser()
-        if not target.suffix:
-            target = target.with_suffix(".json")
-        if target.name == "initial_state.json":
-            raise RuntimeError("Refusing to overwrite initial_state.json")
-        target.parent.mkdir(parents=True, exist_ok=True)
-
-        from . import game_init as model_api
-
-        payload = {
-            "player": {
-                "name": self.current_player.name,
-                "inventory": [model_api._serialize_item(item) for item in self.current_player.sack.contents],
-            }
-            if self.current_player
-            else None,
-            "current_room": model_api.get_action_state().current_room.name,
-            "start_room": self.start_room_name,
-            "score": int(model_api.get_action_state().score),
-            "rooms": [],
-        }
-
-        for room in self.rooms.values():
-            room_payload = {
-                "name": room.name,
-                "description": room.description,
-                "visited": room.visited,
-                "items": [model_api._serialize_item(item) for item in room.items],
-                "boxes": [],
-                "connections": {direction: destination.name for direction, destination in room.connections.items()},
-                "swim_exits": {direction: destination.name for direction, destination in room.swim_exits.items()},
-                "hidden_directions": list(room.hidden_directions),
-                "is_dark": room.is_dark,
-                "has_water": room.has_water,
-                "dark_description": room.dark_description,
-                "discover_points": room.discover_points,
-            }
-
-            for box in room.boxes:
-                room_payload["boxes"].append(model_api._serialize_box(box))
-
-            payload["rooms"].append(room_payload)
-
-        try:
-            with target.open("w", encoding="utf-8") as file:
-                json.dump(payload, file, indent=4)
-        except OSError as error:
-            raise RuntimeError(f"Unable to write save file: {target} ({error})") from error
-
-        return target
-
-    def create_state_verbs(self):
-        from kingdom.model.verb_model import Verb
-
-        def save_action(path):
-            self.save_game(path)
-            return f"Game saved to {path}"
-
-        def load_action(path):
-            self.load_game(path)
-            return f"Game loaded from {path}"
-
-        return Verb("save", save_action), Verb("load", load_action)
-
+        return containers, self.rooms
+    
 
 # Backward-compatibility alias; remove after call sites fully migrate.
 Game = World
