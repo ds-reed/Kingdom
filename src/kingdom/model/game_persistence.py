@@ -76,25 +76,7 @@ def save_game(world, filepath) -> Path:
     }
 
     for room in world.rooms.values():
-        room_payload = {
-            "name": room.name,
-            "description": room.description,
-            "visited": room.visited,
-            "items": [model_api._serialize_item(item) for item in room.items],
-            "Container": [],
-            "connections": {direction: destination.name for direction, destination in room.connections.items()},
-            "swim_exits": {direction: destination.name for direction, destination in room.swim_exits.items()},
-            "hidden_directions": list(room.hidden_directions),
-            "is_dark": room.is_dark,
-            "has_water": room.has_water,
-            "dark_description": room.dark_description,
-            "discover_points": room.discover_points,
-        }
-
-        for container in room.containers:
-            room_payload["Container"].append(container._serialize_container())
-
-        payload["rooms"].append(room_payload)
+        payload["rooms"].append(room._serialize_room())
 
     try:
         with target.open("w", encoding="utf-8") as file:

@@ -585,32 +585,42 @@ class Player:
         return self.name
 
 
+@dataclass
 class Room(Noun):
-    all_rooms = []
-    DIRECTIONS = []
-    _by_name = {}
+    all_rooms: ClassVar[List["Room"]] = []
+    DIRECTIONS: ClassVar[list[str] | set[str]] = []
+    _by_name: ClassVar[Dict[str, "Room"]] = {}
 
-    def __init__(self, name, description, visited=False, is_dark=False, has_water=False, dark_description=None, discover_points=10):
+    name: str = field(metadata={"persist": "always"})
+    description: str = field(default="", metadata={"persist": "always"})
+    visited: bool = False
+    is_dark: bool = False
+    has_water: bool = False
+    dark_description: Optional[str] = None
+    discover_points: int = 10
+
+    swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
+    items: List["Item"] = field(default_factory=list, init=False)
+    containers: List["Container"] = field(default_factory=list, init=False)
+    connections: Dict[str, "Room"] = field(default_factory=dict, init=False)
+    hidden_directions: set[str] = field(default_factory=set, init=False)
+
+    def __post_init__(self):
         super().__init__()
-        self.name = name
-        self.description = description
-        self.visited = bool(visited)
-        self.is_dark = bool(is_dark)
-        self.has_water = bool(has_water)
-        self.dark_description = dark_description or None
-        self.discover_points = max(0, discover_points)
-        self.swim_exits: dict[str, "Room"] = {}
+
+        self.name = str(self.name)
+        self.description = str(self.description)
+        self.visited = bool(self.visited)
+        self.is_dark = bool(self.is_dark)
+        self.has_water = bool(self.has_water)
+        self.dark_description = self.dark_description or None
+        self.discover_points = max(0, int(self.discover_points))
+
         searchkey = self.name.lower()
         if searchkey in Room._by_name:
             print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
         Room._by_name[searchkey] = self
-        self.items = []
-        self.containers = []
-        self.connections = {}
-        self.hidden_directions = set()
-        self.minigame = None
         Room.all_rooms.append(self)
-        Room._by_name[self.name.lower()] = self
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -699,9 +709,6 @@ class Room(Noun):
             self.hidden_directions.add(canonical_direction)
         return True
 
-    def can_go(self, direction):
-        return self.get_connection(direction) is not None
-
     def available_directions(self, visible_only=False):
         directions = sorted(self.connections.keys())
         if not visible_only:
@@ -722,22 +729,35 @@ class Room(Noun):
 
         return False
 
-    def move(self, direction):
-        destination = self.get_connection(direction)
-        if destination is None:
-            raise ValueError(f"No connection from {self.name} via '{direction}'")
-        return destination
+    def to_dict(self) -> dict:
+        from . import game_init as model_api
 
-    def get_description(self):
-        return self.description
+        payload = serialize_non_default(self)
 
-    def set_minigame(self, func):
-        self.minigame = func
+        payload.setdefault("name", self.name)
+        payload.setdefault("description", self.description)
+        payload["visited"] = bool(self.visited)
+        payload["is_dark"] = bool(self.is_dark)
+        payload["has_water"] = bool(self.has_water)
+        payload["dark_description"] = self.dark_description
+        payload["discover_points"] = int(self.discover_points)
 
-    def play_minigame(self, *args, **kwargs):
-        if callable(self.minigame):
-            return self.minigame(*args, **kwargs)
-        return None
+        payload["items"] = [model_api._serialize_item(item) for item in self.items]
+        payload["Container"] = [container._serialize_container() for container in self.containers]
+        payload["connections"] = {
+            direction: destination.name
+            for direction, destination in self.connections.items()
+        }
+        payload["swim_exits"] = {
+            direction: destination.name if hasattr(destination, "name") else str(destination)
+            for direction, destination in self.swim_exits.items()
+        }
+        payload["hidden_directions"] = list(self.hidden_directions)
+
+        return payload
+
+    def _serialize_room(self) -> dict:
+        return self.to_dict()
 
     def canonical_name(self):
         return getattr(self, "noun_name", None) or self.name.lower()
