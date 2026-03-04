@@ -1,7 +1,6 @@
 # inventory Verbs
 
 from kingdom.model.noun_model import Noun, Item, Box, Room, World, Player
-from kingdom.model.models import LocationType
 from kingdom.verbs.verb_handler import VerbHandler, VerbControl
 
 class InventoryVerbHandler(VerbHandler):
@@ -80,7 +79,7 @@ class InventoryVerbHandler(VerbHandler):
         # 4. Determine if item is already in inventory
         # ------------------------------------------------------------
         loc = self.locate_item(target)
-        if loc.type == LocationType.INVENTORY:
+        if loc.type == self.LocationType.INVENTORY:
             return self.build_message(f"You already have {target.display_name()}.")
 
         # ------------------------------------------------------------
@@ -94,7 +93,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 7. Take from room
         # ------------------------------------------------------------
-        if loc.type is LocationType.ROOM_FLOOR:
+        if loc.type is self.LocationType.ROOM_FLOOR:
             room.remove_item(target)
             player.add_to_sack(target)
             return self.build_message(f"You take {target.display_name()}.")
@@ -102,7 +101,7 @@ class InventoryVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 8. Take from open box
         # ------------------------------------------------------------
-        if loc.type is LocationType.INSIDE_BOX:
+        if loc.type is self.LocationType.INSIDE_BOX:
             # Find the box again (loc.container should have it)
             found_box = loc.container
             found_box.remove_item(target)
@@ -159,7 +158,7 @@ class InventoryVerbHandler(VerbHandler):
         loc = self.locate_item(target)
 
         # Not in inventory
-        if loc.type != LocationType.INVENTORY:
+        if loc.type != self.LocationType.INVENTORY:
             name = target.display_name()
             if name:
                 return self.build_message(f"You aren't carrying {name}.")

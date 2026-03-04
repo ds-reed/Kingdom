@@ -39,7 +39,7 @@ _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
 
 
 def _active_state():
-    from kingdom.model.models import get_action_state
+    from kingdom.model.game_init import get_action_state
 
     try:
         return get_action_state()

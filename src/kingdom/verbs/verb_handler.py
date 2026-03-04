@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 from typing import Optional, Iterable, Callable
+from enum import Enum, auto
+from dataclasses import dataclass
 
 from kingdom.model.noun_model import Noun, Item, Room, Box, World, DirectionNoun, DIRECTIONS
-from kingdom.model.models import ItemLocation, LocationType
-from kingdom.model.models import get_action_state
+from kingdom.model.game_init import get_action_state
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
 class VerbHandler:
@@ -31,6 +32,46 @@ class VerbHandler:
         -  Note: internal helper functions should return strings or lists and not call 
                  build_message directly 
     """
+
+    class LocationType(Enum):
+        """Where an item can physically be in the game world."""
+        INVENTORY     = auto()   # directly in player's sack/inventory
+        ROOM_FLOOR    = auto()   # loose on the room floor
+        BOX_IN_ROOM   = auto()   # the box/container itself is present in the room
+        INSIDE_BOX    = auto()   # inside a box (or other container)
+
+    @dataclass(frozen=True)
+    class ItemLocation:
+        """Precise, type-safe description of an item's location."""
+        type: 'VerbHandler.LocationType'
+        container: Optional['Box'] = None   # only relevant for INSIDE_BOX
+
+        def is_accessible(self) -> bool:
+            """Quick default rule — override or extend per verb if needed."""
+            match self.type:
+                case VerbHandler.LocationType.INVENTORY | VerbHandler.LocationType.ROOM_FLOOR | VerbHandler.LocationType.BOX_IN_ROOM:
+                    return True
+                case VerbHandler.LocationType.INSIDE_BOX:
+                    # Assuming Box has .is_open (bool) or similar
+                    return self.container is not None and self.container.is_open
+                case _:
+                    return False
+
+        def describe(self) -> str:
+            """Human-readable phrase for messages."""
+            match self.type:
+                case VerbHandler.LocationType.INVENTORY:
+                    return "in your inventory"
+                case VerbHandler.LocationType.ROOM_FLOOR:
+                    return "here on the ground"
+                case VerbHandler.LocationType.BOX_IN_ROOM:
+                    return "here (as a container)"
+                case VerbHandler.LocationType.INSIDE_BOX if self.container:
+                    return f"inside the {self.container.display_name()}"
+                case _:
+                    return "somewhere strange"
+
+
 
     # ------------------------------------------------------------
     # Context accessors
@@ -167,20 +208,20 @@ class VerbHandler:
 
         # 1. Directly in player's inventory / sack
         if player.has_item(item):                  # ← use your Player helper method
-            return ItemLocation(LocationType.INVENTORY)
+            return self.ItemLocation(self.LocationType.INVENTORY)
 
         # 2. Loose on the room floor
         if room.has_item(item):      # ← use your Room helper
-            return ItemLocation(LocationType.ROOM_FLOOR)
+            return self.ItemLocation(self.LocationType.ROOM_FLOOR)
 
         # 3. The item is a box/container and is present in the room itself
         if isinstance(item, Box) and room.has_box(item):   # ← use your Room helper
-            return ItemLocation(LocationType.BOX_IN_ROOM)
+            return self.ItemLocation(self.LocationType.BOX_IN_ROOM)
 
         # 4. Item is inside some box/container in the room
         containing_box = room.find_containing_box(item)   # ← use your Room helper
         if containing_box is not None:
-            return ItemLocation(LocationType.INSIDE_BOX, container=containing_box)
+            return self.ItemLocation(self.LocationType.INSIDE_BOX, container=containing_box)
 
         return None
 

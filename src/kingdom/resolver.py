@@ -1,5 +1,5 @@
 from kingdom.model.noun_model import World, DirectionNoun
-from kingdom.model.models import GameActionState
+from kingdom.model.game_init import GameActionState
 
 
 def iter_known_noun_names(game: World):

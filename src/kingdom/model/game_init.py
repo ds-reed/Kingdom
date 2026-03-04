@@ -113,8 +113,6 @@ def reset_all_state() -> None:
     _prefs = None
 
 
-
-
 class GameOver(Exception):
     pass
 
@@ -126,44 +124,6 @@ class SaveGame(Exception):
 
 class LoadGame(Exception):
     pass
-
-class LocationType(Enum):
-    """Where an item can physically be in the game world."""
-    INVENTORY     = auto()   # directly in player's sack/inventory
-    ROOM_FLOOR    = auto()   # loose on the room floor
-    BOX_IN_ROOM   = auto()   # the box/container itself is present in the room
-    INSIDE_BOX    = auto()   # inside a box (or other container)
-
-@dataclass(frozen=True)
-class ItemLocation:
-    """Precise, type-safe description of an item's location."""
-    type: LocationType
-    container: Optional['Box'] = None   # only relevant for INSIDE_BOX
-
-    def is_accessible(self) -> bool:
-        """Quick default rule — override or extend per verb if needed."""
-        match self.type:
-            case LocationType.INVENTORY | LocationType.ROOM_FLOOR | LocationType.BOX_IN_ROOM:
-                return True
-            case LocationType.INSIDE_BOX:
-                # Assuming Box has .is_open (bool) or similar
-                return self.container is not None and self.container.is_open
-            case _:
-                return False
-
-    def describe(self) -> str:
-        """Human-readable phrase for messages."""
-        match self.type:
-            case LocationType.INVENTORY:
-                return "in your inventory"
-            case LocationType.ROOM_FLOOR:
-                return "here on the ground"
-            case LocationType.BOX_IN_ROOM:
-                return "here (as a container)"
-            case LocationType.INSIDE_BOX if self.container:
-                return f"inside the {self.container.display_name()}"
-            case _:
-                return "somewhere strange"
             
 
 def _serialize_item(item: "Item") -> dict:

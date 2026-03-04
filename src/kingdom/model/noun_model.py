@@ -314,7 +314,7 @@ class Item(Noun):
                 return True
             self.current_box = None
 
-        from . import models as model_api
+        from . import game_init as model_api
 
         state = getattr(dispatch_context, "state", None)
         if state is None:
@@ -781,7 +781,7 @@ class World(Noun):
         Box._by_name = {}
         Item._by_name = {}
 
-        from . import models as model_api
+        from . import game_init as model_api
 
         model_api._load_directions(data)
         DirectionNoun.ensure_direction_nouns()
@@ -821,7 +821,7 @@ class World(Noun):
         current_room_name = data.get("current_room")
         player_name = player_data.get("name", "Hero") if player_data else "Hero"
 
-        from . import models as model_api
+        from . import game_init as model_api
 
         action_state = model_api.get_action_state()
         action_state.player_name = player_name
@@ -857,7 +857,7 @@ class World(Noun):
             raise RuntimeError("Refusing to overwrite initial_state.json")
         target.parent.mkdir(parents=True, exist_ok=True)
 
-        from . import models as model_api
+        from . import game_init as model_api
 
         payload = {
             "player": {

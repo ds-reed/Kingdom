@@ -3,7 +3,7 @@
 from unittest import result
 
 from kingdom.model.noun_model import Noun
-from kingdom.model.models import QuitGame, SaveGame, LoadGame, GameOver
+from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.verbs.verb_handler import VerbHandler
 from kingdom.model.verb_model import Verb
 

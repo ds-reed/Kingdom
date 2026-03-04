@@ -2,7 +2,7 @@
 
 from typing import Sequence
 from kingdom.model.noun_model import Room, Item, Box
-from kingdom.model.models import get_action_state
+from kingdom.model.game_init import get_action_state
 
 
 class RoomRenderer:

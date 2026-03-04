@@ -7,8 +7,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.model.noun_model import World, Player, DirectionNoun
-from kingdom.model.models import QuitGame, SaveGame, LoadGame
-from kingdom.model.models import GameActionState, init_session, get_action_state
+from kingdom.model.game_init import QuitGame, SaveGame, LoadGame
+from kingdom.model.game_init import GameActionState, init_session, get_action_state
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
 from kingdom.parser import resolve_command

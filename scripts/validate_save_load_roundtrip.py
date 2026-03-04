@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append("./src")
 
 from kingdom.model.noun_model import World, Player, Room, Box, Item
-from kingdom.model.models import init_session, get_action_state
+from kingdom.model.game_init import init_session, get_action_state
 from kingdom.model.game_persistence import save_game, load_game
 
 

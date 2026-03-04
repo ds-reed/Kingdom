@@ -3,7 +3,7 @@ from kingdom.model.noun_model import Item, Box, DirectionNoun
 
 
 def populate_noun_registry(game, noun_registry):
-    from kingdom.model.models import get_action_state
+    from kingdom.model.game_init import get_action_state
 
     # Items
     for item in Item.all_items:
