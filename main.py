@@ -21,7 +21,7 @@ from kingdom.renderer import render_current_room
 from kingdom.model.noun_model import DIRECTIONS, DirectionNoun
 
 
-from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
+from kingdom.language.lexicon.verb_registry import build_verb_registry
 import kingdom.item_behaviors as item_behaviors
 
 
@@ -36,7 +36,7 @@ from kingdom.model.verb_model import Verb
 
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names, _iter_local_target_candidates
-from kingdom.language.lexicon.verbs.verb_registry import build_verb_registry
+from kingdom.language.lexicon.verb_registry import build_verb_registry
 
 
 
