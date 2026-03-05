@@ -163,6 +163,18 @@ class VerbHandler:
 
         return result
 
+    def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None):
+
+        if capability_attr and not getattr(target, capability_attr, False):
+            return self.cannot(target, verb_phrase)
+
+        if current_state_attr is not None:
+            current = getattr(target, current_state_attr, None)
+            if current == desired_state:
+                return self.already(target, already_msg)
+
+        return None
+
     # ------------------------------------------------------------
     # ALL-handling framework  - needs a re-write
     # ------------------------------------------------------------

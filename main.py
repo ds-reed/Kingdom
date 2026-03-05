@@ -15,7 +15,7 @@ from kingdom.model.noun_model import World, Player, Room
 from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.renderer import render_current_room
-from kingdom.verbs.verb_registry import register_verbs
+from kingdom.verbs.verb_registration import register_verbs
 from kingdom.parser import resolve_command
 from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal_session
 

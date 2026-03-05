@@ -10,7 +10,8 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
-from kingdom.verbs.verb_registry import build_verb_registry
+from kingdom.verbs.verb_registration import register_verbs
+from kingdom.model.verb_model import Verb
 from kingdom.model.game_init import (
     GameActionState,
     GameOver,
@@ -137,7 +138,8 @@ def smoke_context(tmp_path: Path):
         save_path=demo_save_path,
     )
     action_state = get_action_state()
-    verbs = build_verb_registry()
+    register_verbs()
+    verbs = Verb.registry
     covered_verbs: set[str] = set()
 
     def run(command: str):

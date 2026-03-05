@@ -76,7 +76,7 @@ def ensure_terminal_session() -> bool:
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# Helper functions
+# Helper functions for terminal session management and relaunching on Windows.
 # ───────────────────────────────────────────────────────────────────────────────
 
 def _is_windows() -> bool:
@@ -141,10 +141,25 @@ def _relaunch_in_terminal() -> None:
     )
 
 
-
-
 def init_terminal_mode(args):
     if args is None:
         args = parse_args()
     terminal_style.ACTIVE_TERMINAL_MODE = args.mode
 
+# ───────────────────────────────────────────────────────────────────────────────
+# Gene utilities for Kingdom functions and classes.
+# ───────────────────────────────────────────────────────────────────────────────
+
+def normalize_key(text: str) -> str:
+    """Normalize a string for dictionary look-up."""
+
+    DETERMINERS = {"the", "a", "an"}
+
+    if not text:
+        return ""
+    key = text.lower().split()
+    if key and key[0] in DETERMINERS:
+        key = key[1:]
+    return " ".join(key)
+
+    

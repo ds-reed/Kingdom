@@ -196,7 +196,6 @@ class DirectionNoun(Noun):
 
 @dataclass
 class Item(Noun):
-    all_items: ClassVar[List["Item"]] = []
     _by_name: ClassVar[Dict[str, "Item"]] = {}
 
     name: str = field(metadata={"persist": "always"})
@@ -298,8 +297,6 @@ class Item(Noun):
             self.special_handlers = {}
         else:
             self.special_handlers = dict(self.special_handlers)
-
-        Item.all_items.append(self)
 
     @classmethod
     def get_by_name(cls, name: str) -> "Item | None":
@@ -589,7 +586,6 @@ class Player:
 
 @dataclass
 class Room(Noun):
-    all_rooms: ClassVar[List["Room"]] = []
     DIRECTIONS: ClassVar[list[str] | set[str]] = []
     _by_name: ClassVar[Dict[str, "Room"]] = {}
 
@@ -623,7 +619,6 @@ class Room(Noun):
         if searchkey in Room._by_name:
             print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
         Room._by_name[searchkey] = self
-        Room.all_rooms.append(self)
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -785,8 +780,6 @@ class Room(Noun):
 
 @dataclass
 class Feature(Noun):
-
-    all_features: ClassVar[List["Feature"]] = []
     _by_name: ClassVar[Dict[str, "Feature"]] = {}
 
     name: str = field(metadata={"persist": "always"})
@@ -815,7 +808,6 @@ class Feature(Noun):
         if searchkey in Feature._by_name:
             print(f"Warning: duplicate feature name '{searchkey}' - overwriting previous")
         Feature._by_name[searchkey] = self
-        Feature.all_features.append(self)
 
     def _normalized_identity_tokens(self) -> set[str]:
         return super()._normalized_identity_tokens() | set(self.synonyms)

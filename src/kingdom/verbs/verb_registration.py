@@ -15,12 +15,14 @@ def register_verbs():
      from kingdom.verbs.inventory_verbs import InventoryVerbHandler
      from kingdom.verbs.meta_verbs import MetaVerbHandler
      from kingdom.verbs.movement_verbs import MovementVerbHandler
-     from kingdom.verbs.state_changing_verbs import StateVerbHandler
+     from kingdom.verbs.state_changing_verbs import ChangeStateVerbHandler
+     from kingdom.verbs.state_dependent_verbs import StatefulVerbHandler
 
      inventory = InventoryVerbHandler()
      meta = MetaVerbHandler()
      movement = MovementVerbHandler()
-     state = StateVerbHandler()
+     change = ChangeStateVerbHandler()
+     stateful = StatefulVerbHandler()
 
      # Rebuild from a clean slate so repeated calls don't accumulate duplicates.
      Verb.all_verbs.clear()
@@ -45,57 +47,62 @@ def register_verbs():
                modifiers=set(),
                uses_directions=True),
 
-          # State-changing verbs
-          Verb("light", state.light,
+          # Change state verbs
+          Verb("light", change.light,
                synonyms=[],
                modifiers={"all", "everything"},
                uses_directions=False),
 
-          Verb("extinguish", state.extinguish,
+          Verb("extinguish", change.extinguish,
                synonyms=["douse", "put out"],
                modifiers={"all", "everything"},
                uses_directions=False),
 
-          Verb("open", state.open,
+          Verb("open", change.open,
                synonyms=[],
                modifiers={"with","using", "all", "everything"},
                uses_directions=False),
 
-          Verb("close", state.close,
+          Verb("close", change.close,
                synonyms=[],
                modifiers={"all", "everything"},
                uses_directions=False),
 
-          Verb("unlock", state.unlock,
+          Verb("unlock", change.unlock,
                synonyms=[],
                modifiers={"with", "all", "everything"},
                uses_directions=False),
 
-          Verb("eat", state.eat,
-               synonyms=["consume"],
-               modifiers={"all", "everything"},
-               uses_directions=False),
-
-          Verb("rub", state.rub,
+          #singleton - most should be pairs (maybe tarnish is opposite of rub)
+          Verb("rub", change.rub,
                synonyms=["polish", "clean"],
                modifiers={"all", "everything"},
                uses_directions=False),
 
-          Verb("say", state.say,
+
+          # Stateful verbs (require state checks but no changes)
+
+          Verb("say", stateful.say,
                synonyms=["speak", "talk", "shout", "whisper"],
                modifiers=set(),
                uses_directions=False),
 
-          Verb("make", state.make,
+          Verb("make", stateful.make,
                synonyms=["wish"],
                hidden=True,
                modifiers={"wish"},
                uses_directions=False),
 
-          Verb("look", state.look,
+          Verb("look", stateful.look,
                synonyms=["examine", "inspect"],
                modifiers={"in", "inside", "at"},
                uses_directions=False),
+
+          Verb("eat", stateful.eat,
+               synonyms=["consume"],
+               modifiers={"all", "everything"},
+               uses_directions=False),
+
 
           # Meta verbs
           Verb("help", meta.help,

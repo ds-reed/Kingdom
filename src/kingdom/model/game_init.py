@@ -132,10 +132,7 @@ def setup_world(world: World, source):
         raise TypeError("setup_world expects a filepath or a dict")
 
     # Clear all registries before reconstructing world entities.
-    Room.all_rooms.clear()
     Container.all_containers.clear()
-    Item.all_items.clear()
-    Feature.all_features.clear()
     Noun.all_nouns.clear()
 
     Room._by_name = {}
@@ -279,7 +276,8 @@ def _construct_rooms(data):
     Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
     Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
     """
-    Room.all_rooms.clear()  # Clear existing rooms for a clean load
+    Room._by_name.clear()  # Clear existing rooms for a clean load
+    rooms: list[Room] = []
     pending_connections = []
     for entry in data:
         room = Room(
@@ -290,7 +288,9 @@ def _construct_rooms(data):
             has_water=entry.get("has_water", False),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
-        )        
+        )
+        rooms.append(room)
+
         # Add items to the room
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
@@ -314,7 +314,7 @@ def _construct_rooms(data):
         hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))
         pending_connections.append((room, entry.get("connections", {}), hidden_directions))
 
-    room_by_name = {room.name: room for room in Room.all_rooms}
+    room_by_name = {room.name: room for room in rooms}
     for room, raw_connections, hidden_exits in pending_connections:
         if isinstance(raw_connections, dict):
             iterable = raw_connections.items()
@@ -361,5 +361,5 @@ def _construct_rooms(data):
 
         room.swim_exits = resolved_swim_exits
 
-    return Room.all_rooms
+    return rooms
 

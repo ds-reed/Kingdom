@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Callable, ClassVar
+from kingdom.utilities import normalize_key   
 
 
 @dataclass(repr=False)
@@ -31,7 +32,7 @@ class Verb:
         self.uses_directions = bool(self.uses_directions)
 
         self.modifiers = {
-            str(modifier).strip().lower()
+            normalize_key(modifier)
             for modifier in (self.modifiers or [])
             if str(modifier).strip()
         }
@@ -50,8 +51,7 @@ class Verb:
         Verb.all_verbs.append(self)
 
         # Register canonical name + synonyms for parser-friendly lookup.
-        self.searchkey = self.name.lower()
-
+        self.searchkey = normalize_key(self.name)
         if self.searchkey in Verb.registry and Verb.registry[self.searchkey] is not self:
             print(f"Warning: duplicate verb key '{self.searchkey}' - overwriting previous")
         Verb.registry[self.searchkey] = self
@@ -95,7 +95,7 @@ class Verb:
         if not name:
             return None
         key = str(name).strip().lower()
-        return cls._by_name.get(key)
+        return cls.registry.get(key)
     
 
 
