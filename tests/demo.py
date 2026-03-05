@@ -139,7 +139,7 @@ def smoke_context(tmp_path: Path):
     )
     action_state = get_action_state()
     register_verbs()
-    verbs = Verb.registry
+    verbs = Verb._by_name
     covered_verbs: set[str] = set()
 
     def run(command: str):

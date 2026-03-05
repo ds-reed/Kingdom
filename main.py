@@ -27,7 +27,7 @@ from kingdom.model.verb_model import Verb
 # new imports from main refactor - should all be temporary
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names
 
-
+from kingdom.language.lexicon.lexicon import Lexicon, lex
 
 #------------------ Design Note: Main Refactor (v2) ------------------
 def init_game_state() -> World | None:
@@ -64,7 +64,7 @@ def init_game_state() -> World | None:
 
         # Build verbs for parser access
         register_verbs()
-
+        lexicon = lex()  # build lexicon for parser access
 
         lines = render_current_room(action_state, display=False)
         ui.render_room(lines, clear=False)
@@ -263,7 +263,7 @@ def main() -> None:
 
             should_quit, recovery_mode, output = process_command(
                 command=command,
-                verbs=Verb.registry,
+                verbs=Verb._by_name,
                 world=world,
                 action_state=get_action_state(),
                 recovery_mode=recovery_mode,

@@ -17,7 +17,7 @@ class Verb:
     """
 
     all_verbs: ClassVar[list["Verb"]] = []
-    registry: ClassVar[dict[str, "Verb"]] = {}
+    _by_name: ClassVar[dict[str, "Verb"]] = {}
 
     name: str
     action: Callable
@@ -31,30 +31,32 @@ class Verb:
         self.hidden = bool(self.hidden)
         self.uses_directions = bool(self.uses_directions)
 
+        # Better to keep modifiers & synonyms as sets for fast lookup
         self.modifiers = {
             normalize_key(modifier)
             for modifier in (self.modifiers or [])
             if str(modifier).strip()
         }
 
-        # Normalize synonyms
-        self.synonyms = list(
-            sorted(
-                {
-                    str(synonym).strip().lower()
-                    for synonym in (self.synonyms or [])
-                    if str(synonym).strip().lower() != self.name and str(synonym).strip()
-                }
-            )
-        )
+        raw_synonyms = {
+            str(s).strip().lower()
+            for s in (self.synonyms or [])
+            if str(s).strip() and str(s).strip().lower() != self.name
+        }
+        self.synonyms = sorted(raw_synonyms)   # keep nice list for display/help
 
         Verb.all_verbs.append(self)
 
-        # Register canonical name + synonyms for parser-friendly lookup.
+        # ─── Register all lookup keys ──────────────────────────────
         self.searchkey = normalize_key(self.name)
-        if self.searchkey in Verb.registry and Verb.registry[self.searchkey] is not self:
-            print(f"Warning: duplicate verb key '{self.searchkey}' - overwriting previous")
-        Verb.registry[self.searchkey] = self
+
+        # Register search key, avoiding duplicates but allowing overwrites with a warning
+        if self.searchkey in Verb._by_name:
+            other = Verb._by_name[self.searchkey]
+            if other is not self:
+                print(f"Warning: verb key '{self.searchkey}' already registered to '{other.name}', "
+                      f"overwriting with '{self.name}'")
+        Verb._by_name[self.searchkey] = self
 
     def __repr__(self):
         if self.synonyms:
@@ -95,7 +97,7 @@ class Verb:
         if not name:
             return None
         key = str(name).strip().lower()
-        return cls.registry.get(key)
+        return cls._by_name.get(key)
     
 
 

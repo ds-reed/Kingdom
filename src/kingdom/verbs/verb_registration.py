@@ -4,6 +4,7 @@ from __future__ import annotations
 from kingdom.model.verb_model import Verb
 
 
+
 def register_verbs():
      """Build the complete verb registry.
 
@@ -26,7 +27,7 @@ def register_verbs():
 
      # Rebuild from a clean slate so repeated calls don't accumulate duplicates.
      Verb.all_verbs.clear()
-     Verb.registry.clear()
+     Verb._by_name.clear()
 
      core_verbs = [
 
