@@ -11,6 +11,7 @@ Single caller‑supplied object containing:
 
 - verbs: canonical name, synonyms, modifiers, uses_directions  
 - nouns: canonical name, synonyms, adjectives (future), category tag (optional)  
+- directions: canonical name, synonyms        (note directions will no longer be in the noun class or noun registry)
 - prepositions: global list  
 - conjunctions  
 - particles (optional)  
@@ -197,6 +198,7 @@ A single object passed into the parser:
 
 - verbs: canonical name, synonyms, modifiers, uses_directions  
 - nouns: canonical name, synonyms, adjectives (future), category tag (optional)  
+- directions: canonical name, synonyms
 - prepositions: global list  
 - conjunctions  
 - particles (optional)  

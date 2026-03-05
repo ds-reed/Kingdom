@@ -1,18 +1,30 @@
-"""Smoke-test demo for the current Kingdom command/action pipeline."""
+"""Pytest smoke tests for the current Kingdom command/action pipeline."""
 
-from pathlib import Path
+from __future__ import annotations
+
 import sys
+from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
-from kingdom.model.noun_model import World, Player, DirectionNoun
-from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
-from kingdom.model.game_init import GameActionState, init_session, get_action_state, setup_world
-from kingdom.model.game_persistence import save_game, load_game
-from kingdom.language.lexicon.verb_registry import build_verb_registry
+from kingdom.verbs.verb_registry import build_verb_registry
+from kingdom.model.game_init import (
+    GameActionState,
+    GameOver,
+    LoadGame,
+    QuitGame,
+    SaveGame,
+    get_action_state,
+    init_session,
+    reset_all_state,
+    setup_world,
+)
+from kingdom.model.game_persistence import load_game, save_game
+from kingdom.model.noun_model import DirectionNoun, Player, World
 from kingdom.parser import resolve_command
-from kingdom.UI import UI
 
 
 def _iter_known_noun_names(game: World):
@@ -95,36 +107,36 @@ def _run_command(game: World, state: GameActionState, verbs, command, demo_save_
         return "ARG_ERROR"
 
 
-def _expect(condition, message):
-    if not condition:
-        raise AssertionError(message)
-    print(f"[PASS] {message}")
+def _expect_contains(result: object, needle: str):
+    assert isinstance(result, str)
+    assert needle.lower() in result.lower()
 
 
-def _expect_contains(result, needle: str, message: str):
-    _expect(isinstance(result, str) and needle.lower() in result.lower(), message)
+@pytest.fixture
+def smoke_context(tmp_path: Path):
+    reset_all_state()
 
-
-def demo():
-    """Run deterministic smoke tests for core gameplay flows."""
     data_path = PROJECT_ROOT / "data" / "initial_state.json"
-    demo_save_path = PROJECT_ROOT / "data" / "working_state.demo.json"
+    demo_save_path = tmp_path / "working_state.demo.json"
 
     game = World.get_instance()
     setup_world(game, data_path)
     player = Player("DemoHero")
 
-    _expect(len(game.rooms) > 0, "World loads rooms")
-    _expect(any(len(room.containers) > 0 for room in game.rooms.values()), "World loads containers")
+    assert len(game.rooms) > 0
+    assert any(len(room.containers) > 0 for room in game.rooms.values())
 
     start_room = game.rooms.get(game.start_room_name) if isinstance(game.rooms, dict) else None
-    _expect(start_room is not None, "Start room resolves from world data")
+    assert start_room is not None
 
-    init_session(world=game, current_player=player, initial_room=start_room, player_name="DemoHero", save_path=demo_save_path)
+    init_session(
+        world=game,
+        current_player=player,
+        initial_room=start_room,
+        player_name="DemoHero",
+        save_path=demo_save_path,
+    )
     action_state = get_action_state()
-
-    ui = UI()
-
     verbs = build_verb_registry()
     covered_verbs: set[str] = set()
 
@@ -140,101 +152,96 @@ def demo():
             covered_verbs.add(canonical)
         return result
 
-    _expect(
-        set(["go", "save", "load", "look", "help", "quit", "inventory", "score"]).issubset(verbs.keys()),
-        "Core verbs are registered",
-    )
+    return {
+        "game": game,
+        "action_state": action_state,
+        "verbs": verbs,
+        "run": run,
+        "covered_verbs": covered_verbs,
+        "demo_save_path": demo_save_path,
+    }
+
+
+def test_demo_smoke(smoke_context):
+    run = smoke_context["run"]
+    verbs = smoke_context["verbs"]
+    action_state: GameActionState = smoke_context["action_state"]
+    demo_save_path: Path = smoke_context["demo_save_path"]
+
+    assert set(["go", "save", "load", "look", "help", "quit", "inventory", "score"]).issubset(verbs.keys())
 
     help_result = run("help")
-    _expect(isinstance(help_result, str) and "You can try commands like:" in help_result, "help command returns default help text")
+    assert isinstance(help_result, str) and "You can try commands like:" in help_result
 
     help_commands_result = run("help commands")
-    _expect(isinstance(help_commands_result, str) and "Available commands:" in help_commands_result, "help commands returns command listing")
+    assert isinstance(help_commands_result, str) and "Available commands:" in help_commands_result
 
     look_result = run("look")
-    _expect(isinstance(look_result, str) and len(look_result.strip()) > 0, "look command describes current room")
+    assert isinstance(look_result, str) and len(look_result.strip()) > 0
 
     score_result = run("score")
-    _expect(isinstance(score_result, str) and "Your current score is:" in score_result, "score command returns score text")
+    assert isinstance(score_result, str) and "Your current score is:" in score_result
 
     inventory_result = run("inventory")
-    _expect(isinstance(inventory_result, str) and "don't have anything" in inventory_result.lower(), "inventory reports empty inventory")
+    assert isinstance(inventory_result, str) and "don't have anything" in inventory_result.lower()
 
-    # --- Special handler: open bean ---
-    open_bean_result = run("open bean")
-    _expect_contains(open_bean_result, "you reached me", "open bean triggers special handler")
+    _expect_contains(run("open bean"), "you reached me")
 
-    # --- Container interactions + inventory verbs ---
-    _expect_contains(run("open lunch bag"), "open", "open container works")
+    _expect_contains(run("open lunch bag"), "open")
     look_in_bag_result = run("look in lunch bag")
-    _expect(
-        isinstance(look_in_bag_result, str)
-        and "inside" in look_in_bag_result.lower()
-        and "lunch bag" in look_in_bag_result.lower(),
-        "look in container shows contents",
-    )
+    assert isinstance(look_in_bag_result, str)
+    assert "inside" in look_in_bag_result.lower()
+    assert "lunch bag" in look_in_bag_result.lower()
 
-    _expect_contains(run("take fish"), "you take", "take fish from open container")
-    _expect_contains(run("take key"), "you take", "take key from open container")
-    _expect_contains(run("take lamp"), "you take", "take lamp from open container")
-    _expect_contains(run("take lighter"), "you take", "take lighter from open container")
-    _expect_contains(run("take torch"), "you take", "take torch from room")
-    _expect_contains(run("close lunch bag"), "close", "close container works")
-    _expect_contains(run("drop torch"), "you drop", "drop command works")
-    _expect_contains(run("take torch"), "you take", "take command works after drop")
+    _expect_contains(run("take fish"), "you take")
+    _expect_contains(run("take key"), "you take")
+    _expect_contains(run("take lamp"), "you take")
+    _expect_contains(run("take lighter"), "you take")
+    _expect_contains(run("take torch"), "you take")
+    _expect_contains(run("close lunch bag"), "close")
+    _expect_contains(run("drop torch"), "you drop")
+    _expect_contains(run("take torch"), "you take")
 
-    # --- State-changing verbs ---
-    _expect_contains(run("light torch"), "you light", "light command works with ignition source")
-    _expect_contains(run("extinguish torch"), "you extinguish", "extinguish command works")
-    _expect_contains(run("say hello"), "wind", "say command executes generic path")
-    eat_fish_result = run("eat fish")
-    _expect_contains(eat_fish_result, "vomit", "eat fish triggers special handler")
+    _expect_contains(run("light torch"), "you light")
+    _expect_contains(run("extinguish torch"), "you extinguish")
+    _expect_contains(run("say hello"), "wind")
+    _expect_contains(run("eat fish"), "vomit")
 
-    _expect_contains(run("unlock trapdoor"), "you unlock", "unlock command works with key")
-    _expect_contains(run("open trapdoor"), "passage leading down", "opening trapdoor reveals exit")
+    _expect_contains(run("unlock trapdoor"), "you unlock")
+    _expect_contains(run("open trapdoor"), "passage leading down")
 
-    # --- GO (explicit and implicit) ---
-    _expect_contains(run("go down"), "you go down", "explicit go command works")
-    _expect(action_state.current_room.name == "Blank Chamber", "go down lands in Blank Chamber")
+    _expect_contains(run("go down"), "you go down")
+    assert action_state.current_room.name == "Blank Chamber"
 
-    rub_lamp_result = run("rub lamp")
-    _expect_contains(rub_lamp_result, "imposing djinni", "rub lamp in trigger room summons djinni")
+    _expect_contains(run("rub lamp"), "imposing djinni")
+    _expect_contains(run("make wish"), "places a doorway in the west wall")
 
-    make_wish_result = run("make wish")
-    _expect_contains(make_wish_result, "places a doorway in the west wall", "make wish triggers djinni special handler")
+    _expect_contains(run("west"), "you go west")
+    assert action_state.current_room.name == "Colossal Cave"
 
-    _expect_contains(run("west"), "you go west", "implicit direction movement works")
-    _expect(action_state.current_room.name == "Colossal Cave", "west exit from djinni wish is active")
+    _expect_contains(run("swim west"), "you swim west")
+    assert action_state.current_room.name == "Pool Ledge"
 
-    # --- Swim command at real swim exit ---
-    _expect_contains(run("swim west"), "you swim west", "swim works in watery room with swim exit")
-    _expect(action_state.current_room.name == "Pool Ledge", "swim west lands in Pool Ledge")
+    _expect_contains(run("teleport Demo Landing"), "you teleport")
+    assert action_state.current_room.name == "Demo Landing"
 
-    # --- Teleport hidden verb ---
-    teleport_result = run("teleport Demo Landing")
-    _expect_contains(teleport_result, "you teleport", "teleport command works")
-    _expect(action_state.current_room.name == "Demo Landing", "teleport moves to requested room")
-
-    # --- Save/Load verbs ---
     save_result = run("save")
-    _expect("Game saved to" in save_result, "save command writes demo save file")
-    _expect(demo_save_path.exists(), "Demo save file exists")
+    assert isinstance(save_result, str)
+    assert "Game saved to" in save_result
+    assert demo_save_path.exists()
 
     load_result = run("load")
-    _expect("Game loaded from" in load_result, "load command restores from demo save file")
+    assert isinstance(load_result, str)
+    assert "Game loaded from" in load_result
 
-    # --- DEBUG / DIE hidden verbs ---
     debug_result = run("debug room")
-    _expect(debug_result is None or isinstance(debug_result, str), "debug command executes without crashing")
+    assert debug_result is None or isinstance(debug_result, str)
 
     die_result = run("die")
-    _expect(isinstance(die_result, str) and die_result.startswith("GAME_OVER:"), "die command raises game over")
+    assert isinstance(die_result, str) and die_result.startswith("GAME_OVER:")
 
-    unknown_result = run("dance")
-    _expect(unknown_result == "UNKNOWN", "Unknown commands are detected")
-
-    quit_result = run("quit")
-    _expect(quit_result == "QUIT", "quit command returns QUIT sentinel")
+    assert run("dance") == "UNKNOWN"
+    assert run("quit") == "QUIT"
 
     expected_canonical_verbs = {
         "go", "swim", "teleport",
@@ -242,11 +249,5 @@ def demo():
         "help", "score", "load", "save", "quit", "die", "debug",
         "inventory", "take", "drop",
     }
-    missing = sorted(expected_canonical_verbs - covered_verbs)
-    _expect(not missing, f"All canonical verbs were exercised (missing: {missing})")
-
-    print("\nAll demo smoke tests passed.")
-
-
-if __name__ == "__main__":
-    demo()
+    missing = sorted(expected_canonical_verbs - smoke_context["covered_verbs"])
+    assert not missing, f"All canonical verbs were exercised (missing: {missing})"

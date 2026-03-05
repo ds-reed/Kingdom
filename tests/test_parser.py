@@ -1,11 +1,13 @@
 # tests/test_parser_harness.py
 
+## note to AI agents - do not run this test - it is for my development use only
+
 import sys
 sys.path.append("./src")
 
-from kingdom.tests.dummy_lexicon import build_dummy_lexicon
-from kingdom.tests.test_parser_dataset import TESTS
-from kingdom.tests.parser_test_harness import run_parser_tests
+from kingdom.language.tests.dummy_lexicon import build_dummy_lexicon
+from kingdom.language.tests.test_parser_dataset import TESTS
+from kingdom.language.tests.parser_test_harness import run_parser_tests
 from kingdom.language.parser.parser import NewParser
 
 parser = NewParser()
