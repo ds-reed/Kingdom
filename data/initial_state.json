@@ -1,10 +1,10 @@
 {
     "directions": { "north": { "reverse": "south", "aliases": ["n"] },
                     "south": { "reverse": "north", "aliases": ["s"] },
-                    "east": { "reverse": "west", "aliases": ["e"] },
-                    "west": { "reverse": "east", "aliases": ["w"] },
-                    "up": { "reverse": "down", "aliases": ["u"] },
-                    "down": { "reverse": "up", "aliases": ["d"] }
+                    "east":  { "reverse": "west",  "aliases": ["e"] },
+                    "west":  { "reverse": "east",  "aliases": ["w"] },
+                    "up":    { "reverse": "down",  "aliases": ["u"] },
+                    "down":  { "reverse": "up",    "aliases": ["d"] }
     },
     "score": 0,
     "start_room": "Tower Cell",
@@ -15,15 +15,15 @@
             "discover_points": 10,
             "items": [
                 {
-                    "name": "an imposing djinni",
-                    "noun_name": "djinni",
+                    "name": "djinni",
+                    "description": "an imposing djinni",
                     "is_gettable": false,
                     "is_verbally_interactive": true,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {"say": "speak_djinni", "make": "make_djinni"}
                 }
             ],
-            "Container": [],
+            "Containers": [],
             "connections": {}
         },
         {
@@ -32,23 +32,23 @@
             "discover_points": 0,
             "items": [
                 {
-                    "name": "an old wooden torch",
-                    "noun_name": "torch",
+                    "name": "torch",
+                    "description": "an old wooden torch",
                     "is_lightable": true,
                     "is_lit": false,
                     "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls."
                 },
                 {
-                    "name": "a single shiny bean",
-                    "noun_name": "bean",
+                    "name": "bean",
+                    "description": "a single shiny bean",
                     "is_gettable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
                     "special_handlers": {"open": "open_bean"}
                 },
                 {
-                    "name": "an ornate broach",
-                    "noun_name": "broach",
+                    "name": "broach",
+                    "description": "an ornate broach",
                     "is_openable": true,
                     "is_open": false,
                     "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
@@ -56,8 +56,8 @@
                     "closed_state_description": "an ornate broach with a tightly-closed clasp."
                 },
                 {
-                    "name": "a rusty iron trapdoor",
-                    "noun_name": "trapdoor",
+                    "name": "trapdoor",
+                    "description": "a rusty iron trapdoor",
                     "is_gettable": false,
                     "is_openable": true,
                     "is_open": false,
@@ -73,16 +73,15 @@
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
             ],
-            "features": [
+            "Features": [
                 {
-                    "name": "a humming magic ladder",
-                    "noun_name": "ladder",
-                    "examine_string": "The ladder hums with soft blue light. Runes crawl up the rungs like fireflies trapped in glass."
+                    "name": "ladder",
+                    "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass."
                 }
             ],
-            "Container": [
+            "Containers": [
                 {
-                    "name": "lunch bag",
+                    "name": "bag",
                     "description": "a greasy brown lunch bag",
                     "is_openable": true,
                     "is_open": false,
@@ -93,25 +92,25 @@
 
                     "items": [
                         {
-                            "name": "a cheery orange carrot",
-                            "noun_name": "carrot",
+                            "name": "carrot",
+                            "description": "a cheery orange carrot",
                             "is_edible": true,
                             "examine_string": "The carrot cheerfully waves hello!",
                             "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
                         },
                         {
-                            "name": "a suspicious looking fish",
-                            "noun_name": "fish",
+                            "name": "fish",
+                            "description": "a suspicious looking fish",
                             "special_handlers": {"eat": "eat_fish"},
                             "is_edible": true
                         },
                         {
                             "name": "a small brass key",
-                            "noun_name": "key"
+                            "description": "a small brass key"
                         },
                         {
-                            "name": "a battered and dull brass lamp",
-                            "noun_name": "lamp",
+                            "name": "lamp",
+                            "description": "a battered and dull brass lamp",
                             "is_rubbable": true,
                             "is_rubbed": false,
                             "rub_success_string": "The lamp grows shiny from rubbing.",
@@ -120,8 +119,8 @@
                             "trigger_room": "Blank Chamber"
                         },
                         {
-                            "name": "a cheap plastic lighter",
-                            "noun_name": "lighter",
+                            "name": "lighter",
+                            "description": "a cheap plastic lighter",
                             "can_ignite": true,
                             "ignite_success_string": "You flick the lighter and a small flame appears."
                         }
@@ -143,12 +142,11 @@
             ],
             "features": [
                 {
-                    "name": "a vast painted mural",
-                    "noun_name": "mural",
-                    "examine_string": "The mural depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements."
+                    "name": "mural",
+                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements."
                 }
             ],
-            "Container": [],
+            "Containers": [],
             "connections": {}
         },
         {
@@ -161,12 +159,12 @@
             },
             "items": [
                 {
-                    "name": "a heavy solid gold bar",
-                    "noun_name": "gold",
+                    "name": "gold",
+                    "description": "a heavy solid gold bar",
                     "too_heavy_to_swim": true
                 }
             ],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "east": "Blank Chamber"
             }
@@ -183,13 +181,13 @@
             },
             "items": [
                 {
-                    "name": "a lit silver lantern",
-                    "noun_name": "lantern",
+                    "name": "lantern",
+                    "description": "a lit silver lantern",
                     "light_source": true,
                     "is_lit": true
                 }
             ],
-            "Container": [
+            "Containers": [
                 {
                     "name": "wardrobe",
                     "description": "a large wooden wardrobe",
@@ -212,7 +210,7 @@
             "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
             "discover_points": 10,
             "items": [],
-            "Container": [],
+            "Containers": [],
             "connections": {}
         },
         {
@@ -221,12 +219,12 @@
             "discover_points": 10,
             "items": [
                 {
-                    "name": "a bright red apple",
-                    "noun_name": "apple",
+                    "name": "apple",
+                    "description": "a bright red apple",
                     "is_edible": true
                 }
             ],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "down": "Tower Cell",
                 "north": "Clockwork Court",
@@ -239,7 +237,7 @@
             "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
             "discover_points": 10,
             "items": [],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -250,7 +248,7 @@
             "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
             "discover_points": 10,
             "items": [],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -261,7 +259,7 @@
             "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
             "discover_points": 10,
             "items": [],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
@@ -272,7 +270,7 @@
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
             "discover_points": 10,
             "items": [],
-            "Container": [],
+            "Containers": [],
             "connections": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"

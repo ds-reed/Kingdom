@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
 from kingdom.model.game_init import init_session, reset_all_state, setup_world
 from kingdom.model.game_persistence import load_game, save_game
-from kingdom.model.noun_model import Player, World
+from kingdom.model.noun_model import Feature, Player, World
 
 
 def _find_room(world: World, room_name: str):
@@ -46,7 +46,7 @@ def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path:
     world = _bootstrap_world(save_path)
 
     tower_cell = _find_room(world, "Tower Cell")
-    lunch_bag = _find_container(tower_cell, "lunch bag")
+    lunch_bag = _find_container(tower_cell, "bag")
 
     initial_names = [item.name for item in lunch_bag.contents]
     assert len(initial_names) > 0
@@ -62,7 +62,7 @@ def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path:
     load_game(world, save_path)
 
     tower_cell_after_first_load = _find_room(world, "Tower Cell")
-    lunch_bag_after_first_load = _find_container(tower_cell_after_first_load, "lunch bag")
+    lunch_bag_after_first_load = _find_container(tower_cell_after_first_load, "bag")
 
     assert removed_name not in [item.name for item in lunch_bag_after_first_load.contents]
 
@@ -75,7 +75,7 @@ def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path:
     load_game(world, save_path)
 
     tower_cell_after_second_load = _find_room(world, "Tower Cell")
-    lunch_bag_after_second_load = _find_container(tower_cell_after_second_load, "lunch bag")
+    lunch_bag_after_second_load = _find_container(tower_cell_after_second_load, "bag")
 
     assert lunch_bag_after_second_load.contents == []
 
@@ -97,3 +97,29 @@ def test_initially_empty_container_stays_empty_after_save_load(tmp_path: Path) -
     wardrobe_after_load = _find_container(pool_ledge_after_load, "wardrobe")
 
     assert wardrobe_after_load.contents == []
+
+
+def test_room_features_roundtrip_save_load(tmp_path: Path) -> None:
+    save_path = tmp_path / "feature_roundtrip.json"
+
+    world = _bootstrap_world(save_path)
+    tower_cell = _find_room(world, "Tower Cell")
+
+    feature = Feature(
+        name="mural",
+        description="a faded mural",
+        examine_string="A faded mural depicts a forgotten king.",
+        synonyms={"wall mural", "painting"},
+    )
+    tower_cell.add_feature(feature)
+
+    save_game(world, save_path)
+    load_game(world, save_path)
+
+    tower_cell_after_load = _find_room(world, "Tower Cell")
+    loaded = next((f for f in tower_cell_after_load.features if f.name == "mural"), None)
+
+    assert loaded is not None
+    assert loaded.description == "a faded mural"
+    assert loaded.examine_string == "A faded mural depicts a forgotten king."
+    assert "painting" in loaded.synonyms

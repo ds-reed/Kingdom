@@ -1,5 +1,6 @@
-
+# not functioning - ignore this file
 from kingdom.model.noun_model import Item, Container, DirectionNoun
+
 
 
 def populate_noun_registry(game, noun_registry):
@@ -8,8 +9,8 @@ def populate_noun_registry(game, noun_registry):
     # Items
     for item in Item.all_items:
         noun_registry.register(
-            canonical=item.noun_name,
-            synonyms={item.noun_name},
+            canonical=item.name,
+            synonyms={item.name},
             adjectives=set(),
             category="item",
             world_object=item
@@ -29,8 +30,8 @@ def populate_noun_registry(game, noun_registry):
     for room in game.rooms:
         for feature in room.features:
             noun_registry.register(
-                canonical=feature.noun_name,
-                synonyms={feature.noun_name},
+                canonical=feature.name,
+                synonyms={feature.name},
                 adjectives=set(),
                 category="feature",
                 world_object=feature
@@ -50,7 +51,7 @@ def populate_noun_registry(game, noun_registry):
     for dn in DirectionNoun._direction_nouns_by_reference.values():
         noun_registry.register(
             canonical=dn.canonical_direction,
-            synonyms={dn._noun_name},
+            synonyms={dn.canonical_direction},
             adjectives=set(),
             category="direction",
             world_object=dn

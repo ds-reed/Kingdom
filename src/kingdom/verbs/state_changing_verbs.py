@@ -4,7 +4,7 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import VerbHandler
 
-from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry
+from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature
 from kingdom.renderer import RoomRenderer, render_current_room
 
 
@@ -35,10 +35,10 @@ class StateVerbHandler(VerbHandler):
             return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
         return None
 
-    def lookup_required_item_id(self, required_noun_name, verb_phrase) -> Noun | None:
-        required = Item.get_by_name(required_noun_name)
+    def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
+        required = Item.get_by_name(required_name)
         if required is None:
-             print(f"Error: Required noun '{required_noun_name}' not found in game data for {verb_phrase}.")
+             print(f"Error: Required noun '{required_name}' not found in game data for {verb_phrase}.")
              return None
         return required                
 
@@ -742,7 +742,7 @@ class StateVerbHandler(VerbHandler):
         room = self.room()
 
         parse = self.resolve_noun_or_word(words, interest=["inside", "in"])
-#        noun = parse["noun"]
+        noun = parse["noun"]
         keywords = parse["keywords"]
         raw = parse["raw"]
 
@@ -755,13 +755,15 @@ class StateVerbHandler(VerbHandler):
                 return self.build_message(renderer.describe_container_contents(target))
             return self.build_message(f"You can't look inside the {target.display_name()}.")
         
- #      if not target: target = noun
+        if not target: target = noun
 
         if target is not None:
             if getattr(target, "examine_string", None) is not None:
                 return self.build_message(target.examine_string)
             elif isinstance(target, Container):
                 return self.build_message(f"You see {target.display_name()}. There might be something interesting inside.")
+            elif isinstance(target, Feature):
+                return self.build_message(f"Looking closely at the {target.canonical_name()}, you see {target.description}")
             elif room.has_item(target):
                 return self.build_message(f"You see {target.display_name()} here.")
             

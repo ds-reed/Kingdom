@@ -4,7 +4,27 @@ import json
 from pathlib import Path
 
 from . import game_init as model_api
-from .noun_model import Player, Item
+from .noun_model import Player, Item, DIRECTIONS
+
+
+def _serialize_directions() -> dict[str, dict[str, object]]:
+    payload: dict[str, dict[str, object]] = {}
+
+    for canonical in sorted(DIRECTIONS.canonical):
+        aliases = sorted(
+            alias
+            for alias, target in DIRECTIONS.aliases.items()
+            if target == canonical
+        )
+        entry: dict[str, object] = {}
+        reverse = DIRECTIONS.reverse_of(canonical)
+        if reverse is not None:
+            entry["reverse"] = reverse
+        if aliases:
+            entry["aliases"] = aliases
+        payload[canonical] = entry
+
+    return payload
 
 
 def load_game(world, filepath) -> Path:
@@ -63,6 +83,7 @@ def save_game(world, filepath) -> Path:
     player = action_state.current_player
 
     payload = {
+        "directions": _serialize_directions(),
         "player": {
             "name": player.name,
             "inventory": [Item._serialize_item(item) for item in player.sack.contents],

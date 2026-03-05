@@ -11,8 +11,8 @@ from kingdom.model.noun_model import (
     Noun,
     DIRECTIONS,
     DirectionNoun,
-    _load_directions,
     Item,
+    Feature,
     Container,
     Player,
     Room,
@@ -135,18 +135,21 @@ def setup_world(world: World, source):
     Room.all_rooms.clear()
     Container.all_containers.clear()
     Item.all_items.clear()
+    Feature.all_features.clear()
     Noun.all_nouns.clear()
 
     Room._by_name = {}
     Container._by_name = {}
     Item._by_name = {}
+    Feature._by_name = {}
+    Noun._by_name = {}
 
     _load_directions(data)
     DirectionNoun.ensure_direction_nouns()
     Room.DIRECTIONS = DIRECTIONS.canonical
 
     if isinstance(data, dict):
-        containers = _construct_containers(data.get("Container", []))
+        containers = _construct_containers(data.get("Containers", []))
         rooms = _construct_rooms(data.get("rooms", []))
     else:
         containers = []
@@ -180,6 +183,17 @@ def _construct_item_from_spec(item_spec) -> "Item":
 
 
 #----- functions for constructing objects from JSON data -----
+
+
+def _load_directions(json_data):
+    directions = json_data.get("directions", {})
+    for canonical, info in directions.items():
+        DIRECTIONS.register(
+            canonical,
+            synonyms=info.get("aliases", []),
+            reverse=info.get("reverse"),
+        )
+
 
 def _construct_containers(data):
     """Construct Container objects from loaded JSON data list.
@@ -227,6 +241,38 @@ def _construct_container_from_spec(container_spec) -> "Container":
 
     return Container(**constructor_kwargs)
 
+
+def _construct_feature_from_spec(feature_spec) -> "Feature":
+    if isinstance(feature_spec, str):
+        return Feature(name=feature_spec)
+
+    if not isinstance(feature_spec, dict):
+        raise TypeError("Feature spec must be a dict")
+
+    init_field_names = {f.name for f in dataclass_fields(Feature) if f.init}
+
+    normalized = dict(feature_spec)
+    if "name" not in normalized:
+        if normalized.get("canonical_name"):
+            normalized["name"] = normalized["canonical_name"]
+        elif normalized.get("handle"):
+            normalized["name"] = normalized["handle"]
+
+    if "description" not in normalized and normalized.get("name"):
+        normalized["description"] = normalized["name"]
+
+    synonyms = normalized.get("synonyms")
+    if synonyms is not None and not isinstance(synonyms, set):
+        normalized["synonyms"] = set(synonyms)
+
+    constructor_kwargs = {
+        key: value
+        for key, value in normalized.items()
+        if key in init_field_names
+    }
+
+    return Feature(**constructor_kwargs)
+
 def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.
 
@@ -249,7 +295,7 @@ def _construct_rooms(data):
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
         # Add Containers to the room
-        for container_data in entry.get("Container", []):
+        for container_data in entry.get("Containers", []):
             container = _construct_container_from_spec(container_data)
 
             for item_spec in container_data.get("items", []):
@@ -257,6 +303,11 @@ def _construct_rooms(data):
                 container.add_item(item_obj)
 
             room.add_container(container) 
+
+        # Add Features to the room
+        for feature_data in entry.get("Features", entry.get("features", [])):
+            feature = _construct_feature_from_spec(feature_data)
+            room.add_feature(feature)
 
         room.swim_exits = entry.get("swim_exits", {})
 

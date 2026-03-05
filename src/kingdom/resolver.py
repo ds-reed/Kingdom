@@ -4,9 +4,9 @@ from kingdom.model.game_init import GameActionState
 
 def iter_known_noun_names(game: World):
     for noun in game.get_all_nouns():
-        yield noun.get_name()
-        yield noun.get_descriptive_phrase()
-        yield noun.get_noun_name()
+        yield noun.canonical_name()
+        yield noun.display_name()
+
 
 
 def _iter_local_target_candidates(game: World, state: GameActionState):
@@ -37,6 +37,9 @@ def _resolve_target_noun(game: World, state: GameActionState, resolved_command) 
         return None
 
     local_candidates = list(_iter_local_target_candidates(game, state))
+    if state.current_room is not None and resolved_command.verb in {"look", "examine", "inspect", "x"}:
+        for feature in getattr(state.current_room, "features", []):
+            local_candidates.append(feature)
     for noun_match in noun_matches:
         for candidate in local_candidates:
             if candidate.matches_reference(noun_match.text):
