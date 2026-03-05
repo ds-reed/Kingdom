@@ -98,7 +98,7 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(dispatch_context: "object | None", *, name: str, noun_name: str, is_gettable: bool,  get_refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_gettable: bool,  get_refuse_string: str) -> None:
     state = _active_state()
     if state is None:
         return
@@ -108,14 +108,14 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, noun_name:
         return
 
     for existing in getattr(room, "items", []):
-        if getattr(existing, "noun_name", None) == noun_name:
+        if getattr(existing, "obj_handle", lambda: None)() == handle:
             return
 
     from kingdom.model.noun_model import Item
 
     new_item = Item(
         name,
-        noun_name=noun_name,
+        handle=handle,
         is_gettable=is_gettable,
         get_refuse_string=get_refuse_string,
         )
@@ -170,13 +170,13 @@ def eat_fish(item, verb, words, ctx):
 
     # Check if vomit already exists to prevent duplicates
     for obj in room.items: 
-        if getattr(obj, "noun_name", None) == "vomit": 
+        if getattr(obj, "obj_handle", lambda: None)() == "vomit": 
             return VerbOutcome( message="You made quite a mess here!", control=VerbControl.SKIP )
         
     # spawn vomit if it doesn't already exist
     vomit = _spawn_room_item(ctx, 
         name="There is vomit on a nearby wall.",
-        noun_name="vomit",
+        handle="vomit",
         is_gettable=False,      
         get_refuse_string="EW! You can't get that."
     )
@@ -222,7 +222,7 @@ def rub_lamp(item, verb, words, ctx):
 
         # Presence check for list-based room.items
         djinni_present = any(
-            obj.noun_name == "djinni" for obj in room.items
+            getattr(obj, "obj_handle", lambda: None)() == "djinni" for obj in room.items
         )
 
         if not djinni_present:

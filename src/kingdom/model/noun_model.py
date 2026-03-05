@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields, InitVar
+from dataclasses import dataclass, field, fields
 from typing import Any, Optional, List, Dict, ClassVar
 
 def _normalize_tokens(text: str) -> list[str]:
@@ -55,12 +55,6 @@ class Noun:
 
     def get_name(self):
         return self.name
-
-    def get_noun_name(self):
-        return self.obj_handle()
-
-    def get_descriptive_phrase(self):
-        return self.display_name()
 
     def matches_reference(self, reference: str) -> bool:
         candidate = " ".join(_normalize_tokens(reference))
@@ -208,7 +202,6 @@ class Item(Noun):
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    noun_name: InitVar[Optional[str]] = None
     is_gettable: bool = True
     refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     presence_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -250,7 +243,7 @@ class Item(Noun):
     current_container: "Container | None" = field(default=None, init=False)
     is_broken: bool = field(default=False, init=False)
 
-    def __post_init__(self, noun_name: Optional[str]):
+    def __post_init__(self):
         super().__init__()
 
         self.description = self.description or self.name
@@ -258,7 +251,6 @@ class Item(Noun):
         # Set parser handle: explicit → derived → fallback
         self.handle = (
             self.handle
-            or noun_name
             or _derive_handle(self.name)
             or self.name.lower()
         )

@@ -18,8 +18,8 @@ from kingdom.UI import UI
 def _iter_known_noun_names(game: World):
     for noun in game.get_all_nouns():
         yield noun.get_name()
-        yield noun.get_descriptive_phrase()
-        yield noun.get_noun_name()
+        yield noun.display_name()
+        yield noun.obj_handle()
 
 
 def _iter_local_target_candidates(game: World, state: GameActionState):

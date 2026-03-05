@@ -45,7 +45,7 @@ ITEM_FIELDS = [
     "is_gettable",
     "refuse_string",
     "presence_string",
-    "noun_name",
+    "handle",
     "is_openable",
     "is_open",
     "opened_state_description",
@@ -164,7 +164,7 @@ def main() -> int:
         is_gettable=False,
         refuse_string="You may not take the sentinel item.",
         presence_string="A sentinel item glows here.",
-        noun_name="rt_item",
+        handle="rt_item",
         is_openable=True,
         is_open=True,
         opened_state_description="It is open.",
@@ -217,7 +217,7 @@ def main() -> int:
         print("FAIL: sentinel container missing after load")
         return 1
 
-    loaded_item = next((item for item in loaded_room.items if item.noun_name == "rt_item"), None)
+    loaded_item = next((item for item in loaded_room.items if item.obj_handle() == "rt_item"), None)
     if loaded_item is None:
         print("FAIL: sentinel item missing after load")
         return 1
