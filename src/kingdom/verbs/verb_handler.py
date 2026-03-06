@@ -255,7 +255,7 @@ class VerbHandler:
     # ------------------------------------------------------------
     def is_direction(self, token: str) -> bool:
         """
-        True if the token is a known direction or alias.
+        True if the token is a known direction or synonym.
         """
         if not token:
             return False

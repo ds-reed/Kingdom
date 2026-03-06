@@ -1,10 +1,10 @@
 {
-    "directions": { "north": { "reverse": "south", "aliases": ["n"] },
-                    "south": { "reverse": "north", "aliases": ["s"] },
-                    "east":  { "reverse": "west",  "aliases": ["e"] },
-                    "west":  { "reverse": "east",  "aliases": ["w"] },
-                    "up":    { "reverse": "down",  "aliases": ["u"] },
-                    "down":  { "reverse": "up",    "aliases": ["d"] }
+    "directions": { "north": { "reverse": "south", "synonyms": ["n"] },
+                    "south": { "reverse": "north", "synonyms": ["s"] },
+                    "east":  { "reverse": "west",  "synonyms": ["e"] },
+                    "west":  { "reverse": "east",  "synonyms": ["w"] },
+                    "up":    { "reverse": "down",  "synonyms": ["u"] },
+                    "down":  { "reverse": "up",    "synonyms": ["d"] }
     },
     "score": 0,
     "start_room": "Tower Cell",

@@ -152,7 +152,7 @@ TESTS = {
     ],
 
     # ------------------------------------------------------------------
-    # STAGE 4 — Multiword Lexemes + Alias Support
+    # STAGE 4 — Multiword Lexemes + synonym Support
     # ------------------------------------------------------------------
     "stage_4": [
         {

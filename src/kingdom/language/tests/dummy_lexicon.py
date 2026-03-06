@@ -9,20 +9,20 @@ from typing import List, Dict, Optional
 @dataclass(frozen=True)
 class VerbEntry:
     canonical: str
-    aliases: List[str]
+    synonyms: List[str]
     modifiers: List[str] = field(default_factory=list)
     uses_directions: bool = False
 
 @dataclass(frozen=True)
 class NounEntry:
     canonical: str
-    aliases: List[str]
+    synonyms: List[str]
     category: Optional[str] = None  # item, feature, etc.
 
 @dataclass(frozen=True)
 class DirectionEntry:
     canonical: str
-    aliases: List[str]
+    synonyms: List[str]
 
 @dataclass(frozen=True)
 class Lexicon:
@@ -63,7 +63,7 @@ def build_dummy_lexicon() -> Lexicon:
     token_to_verb = {}
     for v in verbs:
         token_to_verb[v.canonical] = v
-        for a in v.aliases:
+        for a in v.synonyms:
             token_to_verb[a] = v
 
 
@@ -95,7 +95,7 @@ def build_dummy_lexicon() -> Lexicon:
     token_to_noun = {}
     for n in nouns:
         token_to_noun[n.canonical] = n
-        for a in n.aliases:
+        for a in n.synonyms:
             token_to_noun[a] = n
 
 
@@ -111,7 +111,7 @@ def build_dummy_lexicon() -> Lexicon:
     token_to_direction = {}
     for d in directions:
         token_to_direction[d.canonical] = d
-        for a in d.aliases:
+        for a in d.synonyms:
             token_to_direction[a] = d
 
 

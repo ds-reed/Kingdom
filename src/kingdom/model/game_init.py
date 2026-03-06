@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
+from kingdom.model.direction_model import NewDirectionRegistry, NewDIRECTIONS
 from kingdom.model.noun_model import (
     Noun,
     DIRECTIONS,
@@ -145,6 +146,7 @@ def setup_world(world: World, source):
     DirectionNoun._direction_nouns_by_reference = {}
     DirectionNoun._direction_nouns_by_canonical = {}
 
+
     _load_directions(data)
     DirectionNoun.ensure_direction_nouns()
     Room.DIRECTIONS = DIRECTIONS.canonical
@@ -191,8 +193,13 @@ def _load_directions(json_data):
     for canonical, info in directions.items():
         DIRECTIONS.register(
             canonical,
-            synonyms=info.get("aliases", []),
+            synonyms=info.get("synonyms", []),
             reverse=info.get("reverse"),
+        )
+        NewDIRECTIONS.register(         #only used for new parser right now, but will replace OLD DIRECTIONS later
+            canonical,
+            synonyms=info.get("synonyms", []),
+            reverse=info.get("reverse"),  
         )
 
 

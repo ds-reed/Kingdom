@@ -60,7 +60,7 @@ class Noun:
         return self.handle
     
     def synonym_names(self) -> list[str]:
-        return self.synonyms if hasattr(self, "synonyms") else []   
+        return self.synonyms  
 
     @classmethod
     def get_by_name(cls, name: str) -> "Noun | None":
@@ -78,8 +78,13 @@ class Noun:
         return None
 
     @classmethod
+    def get_all(cls):
+        for noun in cls._by_name.values():
+            yield noun
+
+    @classmethod
     def iter_by_type(cls, class_name: str) -> Iterator["Noun"]:
-        target = str(class_name).strip().lower()
+        target = str(class_name).strip().lower() if class_name else ""
         if not target:
             return
         for noun in cls._by_name.values():
@@ -115,12 +120,6 @@ class Noun:
 
         return candidate in self._normalized_identity_tokens()
 
-    def get_presence_text(self):
-        return f"There is {self.name} here."
-
-    def on_unlock(self, words):
-        return None
-
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
 
@@ -154,7 +153,7 @@ class Noun:
 class DirectionRegistry:
     def __init__(self):
         self.canonical = set()
-        self.aliases = {}
+        self.synonyms = {}
         self.reverse = {}
 
     def register(self, canonical: str, *, synonyms=None, reverse=None):
@@ -163,7 +162,7 @@ class DirectionRegistry:
 
         if synonyms:
             for synonym in synonyms:
-                self.aliases[synonym.lower().strip()] = canonical
+                self.synonyms[synonym.lower().strip()] = canonical
 
         if reverse:
             reverse = reverse.lower().strip()
@@ -173,7 +172,7 @@ class DirectionRegistry:
 
     def to_canonical(self, token: str) -> str:
         token = token.lower().strip()
-        return self.aliases.get(token, token)
+        return self.synonyms.get(token, token)
 
     def reverse_of(self, canonical: str) -> str | None:
         canonical = canonical.lower().strip()
@@ -184,6 +183,13 @@ class DirectionRegistry:
 
     def all_directions(self):
         return sorted(self.canonical)
+    
+    def all_synonyms(self):
+        return sorted(self.synonyms.keys())
+    
+    def __repr__(self):
+        return f"DirectionRegistry(canonical={self.canonical}, synonyms={self.synonyms}, reverse={self.reverse})"
+    
 DIRECTIONS = DirectionRegistry()
 
 
@@ -223,9 +229,9 @@ class DirectionNoun(Noun):
             DirectionNoun._direction_nouns_by_reference[canonical] = direction_noun
             DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
 
-        for alias, canonical in DIRECTIONS.aliases.items():
-            direction_noun = DirectionNoun(alias, canonical)
-            DirectionNoun._direction_nouns_by_reference[alias] = direction_noun
+        for synonym, canonical in DIRECTIONS.synonyms.items():
+            direction_noun = DirectionNoun(synonym, canonical)
+            DirectionNoun._direction_nouns_by_reference[synonym] = direction_noun
             DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
 
     def get_direction_noun(token: str) -> "DirectionNoun | None":
@@ -341,31 +347,6 @@ class Item(Noun):
             self.special_handlers = {}
         else:
             self.special_handlers = dict(self.special_handlers)
-
-    def get_presence_text(self):
-        if self.is_lockable and self.is_locked and self.locked_state_description:
-            return self.locked_state_description
-        if self.is_openable:
-            if self.is_open and self.opened_state_description:
-                return self.opened_state_description
-            if not self.is_open and self.closed_state_description:
-                return self.closed_state_description
-        if self.is_lightable:
-            if self.is_lit and self.lit_state_description:
-                return self.lit_state_description
-            if not self.is_lit and self.unlit_state_description:
-                return self.unlit_state_description
-        if self.presence_string:
-            return self.presence_string
-        return f"There is {self.name} here."
-
-
-    def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
-        if verb_name == "take" and not self.is_gettable:
-            return False, self.refuse_string
-        if verb_name == "eat":
-            return True, None
-        return super().can_handle_verb(verb_name, *args, **kwargs)
 
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")

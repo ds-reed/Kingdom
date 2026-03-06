@@ -131,12 +131,12 @@ Introduce syntactic structure without semantics.
 
 ---
 
-## 4) Stage 4: Multiword + Alias Support
+## 4) Stage 4: Multiword + synonym Support
 Add richer lexeme matching.
 
 ### Responsibilities
 - Greedy longest‑match for multiword verbs/nouns  
-- Normalize aliases in metadata  
+- Normalize synonyms in metadata  
 - Preserve raw tokens for debugging  
 
 ### Acceptance

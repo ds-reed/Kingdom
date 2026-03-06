@@ -152,7 +152,7 @@ Converts raw player text into a syntactic structure. Understands basic game gram
 - Tokenize the input string  
 - Identify the primary verb word  
 - Extract noun phrases, prepositions, adverbs, and leftover words  
-- Recognize known game verbs and basic noun references/aliases  
+- Recognize known game verbs and basic noun references/synonyms  
 - Produce a `ParsedCommand` object containing only syntactic information  
 
 **Non-Responsibilities**  

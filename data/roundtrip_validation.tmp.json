@@ -2,37 +2,37 @@
     "directions": {
         "down": {
             "reverse": "up",
-            "aliases": [
+            "synonyms": [
                 "d"
             ]
         },
         "east": {
             "reverse": "west",
-            "aliases": [
+            "synonyms": [
                 "e"
             ]
         },
         "north": {
             "reverse": "south",
-            "aliases": [
+            "synonyms": [
                 "n"
             ]
         },
         "south": {
             "reverse": "north",
-            "aliases": [
+            "synonyms": [
                 "s"
             ]
         },
         "up": {
             "reverse": "down",
-            "aliases": [
+            "synonyms": [
                 "u"
             ]
         },
         "west": {
             "reverse": "east",
-            "aliases": [
+            "synonyms": [
                 "w"
             ]
         }

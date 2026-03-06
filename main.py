@@ -11,7 +11,7 @@ import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.model.noun_model import World, Player, Room
+from kingdom.model.noun_model import Noun, World, Player, Room
 from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.model.game_persistence import save_game, load_game
 from kingdom.renderer import render_current_room
@@ -64,7 +64,9 @@ def init_game_state() -> World | None:
 
         # Build verbs for parser access
         register_verbs()
+        
         lexicon = lex()  # build lexicon for parser access
+
 
         lines = render_current_room(action_state, display=False)
         ui.render_room(lines, clear=False)

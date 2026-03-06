@@ -7,7 +7,7 @@ Kingdom loads world state from JSON, parses free-text commands, resolves nouns i
 ## Current Highlights
 
 - Refactored **verb handler architecture** (`src/kingdom/verbs/*`)
-- Registry-based **direction system** with aliases and implicit movement
+- Registry-based **direction system** with synonyms and implicit movement
 - Context-aware command resolution (`parse_command` + `resolve_command`)
 - Room rendering split into semantic presentation logic (`renderer.py`)
 - Save/load support backed by JSON world state (`game_persistence.py`)
@@ -113,7 +113,7 @@ Examples include:
 - `look`, `save`, `load`, `quit`
 - `help`, `score`, `debug` (hidden)
 
-Direction aliases are supported through the direction registry and world data.
+Direction synonyms are supported through the direction registry and world data.
 
 ## Running the Game
 
