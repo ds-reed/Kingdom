@@ -31,20 +31,6 @@ class Verb:
         self.hidden = bool(self.hidden)
         self.uses_directions = bool(self.uses_directions)
 
-        # Better to keep modifiers & synonyms as sets for fast lookup
-        self.modifiers = {
-            normalize_key(modifier)
-            for modifier in (self.modifiers or [])
-            if str(modifier).strip()
-        }
-
-        raw_synonyms = {
-            str(s).strip().lower()
-            for s in (self.synonyms or [])
-            if str(s).strip() and str(s).strip().lower() != self.name
-        }
-        self.synonyms = sorted(raw_synonyms)   # keep nice list for display/help
-
         Verb.all_verbs.append(self)
 
         # ─── Register all lookup keys ──────────────────────────────

@@ -1,17 +1,16 @@
-from kingdom.model.noun_model import World, DirectionNoun
+from kingdom.model.noun_model import World, DirectionNoun, Noun
 from kingdom.model.game_init import GameActionState
 
 
 def iter_known_noun_names(game: World):
-    for noun in game.get_all_nouns():
+    for key, noun in Noun._by_name.items():
+        yield key
         yield noun.canonical_name()
         yield noun.display_name()
 
 
 
 def _iter_local_target_candidates(game: World, state: GameActionState):
-    yield game
-
     if state.current_room is not None:
         for direction_noun in DirectionNoun.get_direction_nouns_for_available_exits(state.current_room):
             yield direction_noun

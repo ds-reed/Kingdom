@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
 from typing import Any, Optional, List, Dict, ClassVar
+from kingdom.utilities import normalize_key
 
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
@@ -29,9 +30,8 @@ class Noun:
     def _register_noun(self) -> None:
         Noun.all_nouns.append(self)
 
-        key = " ".join(_normalize_tokens(self.obj_handle()))
-        if key:
-            Noun._by_name[key] = self
+        key = normalize_key(self.canonical_name())
+        Noun._by_name[key] = self
 
     def _normalized_identity_tokens(self) -> set[str]:
         return {
@@ -40,21 +40,29 @@ class Noun:
             " ".join(_normalize_tokens(self.obj_handle())),
         }
 
+
+    # ───────────────────────────────────────────────
+    # Noun interface methods
+    # ───────────────────────────────────────────────
+
+
     def canonical_name(self) -> str:
         return self.name
 
     def display_name(self) -> str:
-        return self.description or self.name
+        return self.description
 
     def obj_handle(self) -> str:
-        """Stable parser / lookup key"""
-        handle = getattr(self, "handle", None)
-        if handle:
-            return str(handle)
-        return _derive_handle(self.name) or self.name.lower()
+        return self.handle
 
-    def get_name(self):
-        return self.name
+    @classmethod
+    def get_by_name(cls, name: str) -> "Noun | None":
+        return cls._by_name.get(normalize_key(name))
+
+    @classmethod
+    def get_class_name(cls) -> str :
+        return cls.__name__
+
 
     def matches_reference(self, reference: str) -> bool:
         candidate = " ".join(_normalize_tokens(reference))
@@ -149,7 +157,7 @@ class DirectionNoun(Noun):
     def __post_init__(self):
         self.name = str(self.name).strip().lower()
         self.canonical_direction = DIRECTIONS.to_canonical(str(self.canonical_direction).strip().lower())
-        self.handle = (self.handle or self.name).strip().lower()
+        self.handle = normalize_key(self.handle or self.name)
         self.description = self.description or self.name
 
         super().__init__()
@@ -248,11 +256,7 @@ class Item(Noun):
         self.description = self.description or self.name
 
         # Set parser handle: explicit → derived → fallback
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
+        self.handle = normalize_key(self.handle or self.name)
 
         searchkey = self.handle
         if searchkey in Item._by_name:
@@ -298,13 +302,6 @@ class Item(Noun):
         else:
             self.special_handlers = dict(self.special_handlers)
 
-    @classmethod
-    def get_by_name(cls, name: str) -> "Item | None":
-        if not name:
-            return None
-        key = str(name).strip().lower()
-        return cls._by_name.get(key)
-
     def get_presence_text(self):
         if self.is_lockable and self.is_locked and self.locked_state_description:
             return self.locked_state_description
@@ -339,12 +336,6 @@ class Item(Noun):
                 return handled_result
 
         return super().handle_verb(verb_name, *args, **kwargs)
-
-    def canonical_name(self):
-        return self.name
-
-    def display_name(self):
-        return self.description or self.name
 
     def to_dict(self) -> dict:
         """
@@ -428,15 +419,11 @@ class Container(Noun):
     all_containers: ClassVar[List["Container"]] = []
     _by_name: ClassVar[Dict[str, "Container"]] = {}
 
-    # Required: what the player sees / reads in text
+    # Required by noun class
     name: str = field(metadata={"persist": "always"})
-
-    # Optional override: parser/search key (stable, lowercase)
-    # Auto-derived from name if missing
+    description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
-    # Optional long text for examine/look
-    description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
     # Normal optional fields
     capacity: Optional[int] = None
@@ -460,34 +447,16 @@ class Container(Noun):
     def __post_init__(self):
         super().__init__()
 
-        # Set parser handle: explicit → derived → fallback
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
+        self.description = self.description or self.name
+        self.handle = normalize_key(self.handle or self.name)
 
         # Register using parser-friendly handle (lowercased)
-        searchkey = self.handle.lower()
+        searchkey = self.handle
         if searchkey in Container._by_name:
             print(f"Warning: duplicate handle '{searchkey}' — overwriting previous")
         Container._by_name[searchkey] = self
         Container.all_containers.append(self)
 
-    # ───────────────────────────────────────────────
-    # Noun interface methods
-    # ───────────────────────────────────────────────
-
-    def canonical_name(self) -> str:
-        return self.name
-
-    def display_name(self) -> str:
-        return self.description or self.name
-
-    def obj_handle(self) -> str:
-        """Stable parser / lookup key"""
-        return self.handle
-    
     # ───────────────────────────────────────────────
     # Item interface methods
     # ───────────────────────────────────────────────
@@ -577,11 +546,6 @@ class Player:
     def get_inventory_items(self):
         return self.sack.contents
 
-    def canonical_name(self):
-        return self.name.lower()
-
-    def display_name(self):
-        return self.name
 
 
 @dataclass
@@ -591,6 +555,7 @@ class Room(Noun):
 
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
+    handle: str = field(default=None, metadata={"persist": "if_set"})
     visited: bool = False
     is_dark: bool = False
     has_water: bool = False
@@ -614,8 +579,9 @@ class Room(Noun):
         self.has_water = bool(self.has_water)
         self.dark_description = self.dark_description or None
         self.discover_points = max(0, int(self.discover_points))
+        self.handle = normalize_key(self.handle or self.name)
 
-        searchkey = self.name.lower()
+        searchkey = self.handle
         if searchkey in Room._by_name:
             print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
         Room._by_name[searchkey] = self
@@ -772,11 +738,6 @@ class Room(Noun):
     def _serialize_room(self) -> dict:
         return self.to_dict()
 
-    def canonical_name(self):
-        return self.name
-
-    def display_name(self):
-        return self.description or self.name
 
 @dataclass
 class Feature(Noun):
@@ -791,11 +752,8 @@ class Feature(Noun):
     def __post_init__(self):
         self.name = str(self.name)
         self.description = self.description or self.name
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
+        self.handle = normalize_key(self.handle or self.name)
+
         self.synonyms = {
             " ".join(_normalize_tokens(s))
             for s in self.synonyms
@@ -804,7 +762,7 @@ class Feature(Noun):
 
         super().__init__()
 
-        searchkey = self.handle.lower()
+        searchkey = self.handle
         if searchkey in Feature._by_name:
             print(f"Warning: duplicate feature name '{searchkey}' - overwriting previous")
         Feature._by_name[searchkey] = self
@@ -821,7 +779,7 @@ class Feature(Noun):
 
 
 @dataclass
-class World(Noun):
+class World:
     _instance: ClassVar["World | None"] = None
 
     name: str = field(default="World")
@@ -833,7 +791,6 @@ class World(Noun):
     state: object | None = None
 
     def __post_init__(self):
-        super().__init__()
         World._instance = self
 
     @property
@@ -878,9 +835,6 @@ class World(Noun):
             return missing_message
 
         raise RuntimeError(missing_message)
-
-    def get_all_nouns(self):
-        return Noun.all_nouns
 
     def find_item_in_game(self, name: str) -> tuple["Room | None", "Item | None"]:
         for room in self.rooms.values():

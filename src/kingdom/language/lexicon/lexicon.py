@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Callable, Optional
 
+from kingdom.model.noun_model import DirectionNoun, Noun
 from kingdom.model.verb_model import Verb
 
 @dataclass(frozen=True)
@@ -29,9 +30,6 @@ class Lexicon:
     prepositions: List[str]
     conjunctions: List[str]
     particles: List[str]
-    stopwords: List[str]
-
-    # Optional: lookup tables for parser speed
     token_to_verb: Dict[str, VerbEntry] = field(default_factory=dict)
     token_to_noun: Dict[str, NounEntry] = field(default_factory=dict)
 
@@ -54,24 +52,87 @@ def lex() -> Lexicon:
 
     verb_entries = []
 
+
     for token in all_tokens:
         verb = Verb.get_by_name(token)
-        verb_entries.append({
-            "canonical": verb.canonical_name(),
-            "aliases": list(verb.synonym_names()),
-            "modifiers": list(verb.modifiers),
-            "uses_directions": verb.uses_directions,
-        })
+        verb_entries.append(VerbEntry(
+            canonical=verb.canonical_name(),
+            aliases=list(verb.synonym_names()),
+            modifiers=list(verb.modifiers),
+            uses_directions=verb.uses_directions,
+        ))
 
-    print(f"Registered {len(verb_entries)} unique verbs.")
-    print(f"Verbs: {[entry['canonical'] for entry in verb_entries]}")
+    print(f"Built {len(verb_entries)} verb entries")
+    token_to_verb = {}
 
+    for entry in verb_entries:
+        # canonical
+        token_to_verb[entry.canonical] = entry
+
+        # synonyms
+        for syn in entry.aliases:
+            token_to_verb[syn] = entry
+
+    print(f"Built token_to_verb mapping with {len(token_to_verb)} entries")
+
+
+    # -----------------------------
+    # Build NOUN entries
+    # -----------------------------
+
+  #  all_tokens = Noun._by_name.keys()
+
+    all_tokens = [
+    token
+    for token, noun in Noun._by_name.items()
+    if noun.get_class_name() != "DirectionNoun"
+]
+#--- debug
+
+    for token, noun in Noun._by_name.items():
+        print(f"Noun token: '{token}' -> {noun} (class: {noun.get_class_name()})")
+
+
+#----
+
+    noun_entries = []
+
+    for token in all_tokens:
+        noun = Noun.get_by_name(token)
+        noun_entries.append(NounEntry(
+            handle=noun.handle,
+            canonical=noun.canonical_name(),
+            display=noun.display_name(),
+ #           aliases=list(noun.synonym_names()),
+            aliases=[],
+            category=noun.get_class_name(),
+        ))
+
+ #   print(f"Built {len(noun_entries)} noun entries")
+ #   print(f"Sample entries: {noun_entries}")
+
+    token_to_noun = {}
+
+    for entry in noun_entries:
+        # canonical
+        token_to_noun[entry.canonical] = entry
+
+        # synonyms
+        for syn in entry.aliases:
+            token_to_noun[syn] = entry
+
+#    print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
+#    print(f"Token_to_noun items: {list(token_to_noun.items())}")
+
+
+ 
     return Lexicon(
             verbs=[ verb_entry for verb_entry in verb_entries ],
-            nouns=[],  # TODO: build noun entries from game data
+            nouns=[ noun_entry for noun_entry in noun_entries ],
             prepositions=["in", "on", "under", "with", "at", "to", "from", "into", "onto", "off"],
             conjunctions=["and", "or", "but"],
             particles=["the", "a", "an"],
-            stopwords=[]
+            token_to_verb=token_to_verb,  # TODO: build mapping from all verb tokens to their entries
+            token_to_noun=token_to_noun,  # TODO: build mapping from all noun tokens to their entries
     )
 
