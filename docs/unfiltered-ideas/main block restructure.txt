@@ -90,7 +90,7 @@ def handle_command(
     if result:
         trs80_print(result, style=TRS80_WHITE)
         if action_state.current_room:
-            action_state.current_room.visited = True
+            action_state.current_room.found = True
 
     # Handle recovery exit after load/restore
     if (recovery_mode and

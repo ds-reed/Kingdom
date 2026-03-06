@@ -13,6 +13,8 @@ class VerbEntry:
     modifiers: List[str] = field(default_factory=list)
     uses_directions: bool = False
 
+    def __repr__(self):
+        return f"VerbEntry(canonical={self.canonical}, aliases={self.aliases}, modifiers={self.modifiers}, uses_directions={self.uses_directions}\n)"
 
 @dataclass(frozen=True)
 class NounEntry:
@@ -21,6 +23,9 @@ class NounEntry:
     display: str
     aliases: List[str]
     category: Optional[str] = None   # "item", "feature", "room", etc.
+
+    def __repr__(self):
+        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, aliases={self.aliases}, category={self.category} \n)"
 
 
 @dataclass(frozen=True)
@@ -80,8 +85,6 @@ def lex() -> Lexicon:
     # Build NOUN entries
     # -----------------------------
 
-  #  all_tokens = Noun._by_name.keys()
-
     all_tokens = [
     token
     for token, noun in Noun._by_name.items()
@@ -96,13 +99,12 @@ def lex() -> Lexicon:
             handle=noun.handle,
             canonical=noun.canonical_name(),
             display=noun.display_name(),
- #           aliases=list(noun.synonym_names()),
-            aliases=[],
+            aliases=list(noun.synonym_names()),
             category=noun.get_class_name(),
         ))
 
     print(f"Built {len(noun_entries)} noun entries")
-    print(f"Sample entries: {noun_entries[:5]}")
+    print(noun_entries)
 
     token_to_noun = {}
 
@@ -115,7 +117,6 @@ def lex() -> Lexicon:
             token_to_noun[syn] = entry
 
     print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
-
 
 
  

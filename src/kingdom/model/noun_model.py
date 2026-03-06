@@ -58,6 +58,9 @@ class Noun:
 
     def obj_handle(self) -> str:
         return self.handle
+    
+    def synonym_names(self) -> list[str]:
+        return self.synonyms if hasattr(self, "synonyms") else []   
 
     @classmethod
     def get_by_name(cls, name: str) -> "Noun | None":
@@ -248,6 +251,9 @@ class Item(Noun):
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+
+    found: bool = False
     is_gettable: bool = True
     refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     presence_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -453,9 +459,10 @@ class Container(Noun):
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
     # Normal optional fields
+    found: bool = False
     capacity: Optional[int] = None
     is_openable: bool = False
     is_open: bool = field(default=False, metadata={"persist_if_parent": "is_openable"})
@@ -579,11 +586,12 @@ class Room(Noun):
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
     handle: str = field(default=None, metadata={"persist": "if_set"})
-    visited: bool = False
-    is_dark: bool = False
-    has_water: bool = False
-    dark_description: Optional[str] = None
-    discover_points: int = 10
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    found: bool = field(default=False, metadata={"persist": "if_set"})
+    is_dark: bool = field(default=False, metadata={"persist": "if_set"})
+    has_water: bool = field(default=False, metadata={"persist": "if_set"})
+    dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    discover_points: int = field(default=10, metadata={"persist": "if_set"})
 
     swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
     items: List["Item"] = field(default_factory=list, init=False)
@@ -595,7 +603,7 @@ class Room(Noun):
     def __post_init__(self):
         self.name = str(self.name)
         self.description = str(self.description)
-        self.visited = bool(self.visited)
+        self.found = bool(self.found)
         self.is_dark = bool(self.is_dark)
         self.has_water = bool(self.has_water)
         self.dark_description = self.dark_description or None
@@ -610,7 +618,7 @@ class Room(Noun):
         features_str = [f.display_name() for f in self.features]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
@@ -732,7 +740,7 @@ class Room(Noun):
 
         payload.setdefault("name", self.name)
         payload.setdefault("description", self.description)
-        payload["visited"] = bool(self.visited)
+        payload["found"] = bool(self.found)
         payload["is_dark"] = bool(self.is_dark)
         payload["has_water"] = bool(self.has_water)
         payload["dark_description"] = self.dark_description
@@ -763,7 +771,8 @@ class Feature(Noun):
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    synonyms: set[str] = field(default_factory=set, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    found: bool = field(default=False, metadata={"persist": "if_set"})
 
     def __post_init__(self):
         self.name = str(self.name)

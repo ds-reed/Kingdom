@@ -13,7 +13,7 @@ from kingdom.model.noun_model import Container, Item, Player, Room, World
 ROOM_FIELDS = [
     "name",
     "description",
-    "visited",
+    "found",
     "is_dark",
     "has_water",
     "dark_description",
@@ -129,7 +129,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     sentinel_room = Room(
         name="__roundtrip_room__",
         description="Roundtrip validation room",
-        visited=True,
+        found=True,
         is_dark=True,
         has_water=True,
         dark_description="Pitch black sentinel room",

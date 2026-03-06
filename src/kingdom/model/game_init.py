@@ -285,7 +285,7 @@ def _construct_rooms(data):
         room = Room(
             entry.get("name"),
             entry.get("description", ""),
-            visited=entry.get("visited", False),
+            found=entry.get("found", False),
             is_dark=entry.get("is_dark", False),
             has_water=entry.get("has_water", False),
             dark_description=entry.get("dark_description"),

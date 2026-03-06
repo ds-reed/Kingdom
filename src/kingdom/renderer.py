@@ -52,7 +52,7 @@ class RoomRenderer:
         lines: list[str] = []
 
         # Room description
-        if room.visited or not room.description:
+        if room.found or not room.description:
             lines.append(f"You are in {room.name}.")
         else:            
             lines.append(f"You are {room.description}")

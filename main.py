@@ -217,7 +217,7 @@ def process_command(
         recovery_mode = False
 
     if result:
-        current_room.visited = True
+        current_room.found = True
 
     return False, recovery_mode, result
 

@@ -1,53 +1,143 @@
-# ======================================================================
-# Dummy Lexicon Loader
-# ======================================================================
-# Loads the dummy verb and noun registries from the test directory and
-# assembles them into a lexicon object matching the frozen parser contract.
-#
-# Prepositions, conjunctions, particles, and stopwords can be expanded
-# later, but we include minimal sets now so the parser has something
-# to work with.
-# ======================================================================
+# dummy_lexicon.py
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional
 
-from kingdom.tests.dummy_verb_registry import test_registry as dummy_verbs
-from kingdom.tests.dummy_noun_registry import test_noun_registry as dummy_nouns
+# ------------------------------------------------------------
+# Lexicon Entry Types
+# ------------------------------------------------------------
+
+@dataclass(frozen=True)
+class VerbEntry:
+    canonical: str
+    aliases: List[str]
+    modifiers: List[str] = field(default_factory=list)
+    uses_directions: bool = False
+
+@dataclass(frozen=True)
+class NounEntry:
+    canonical: str
+    aliases: List[str]
+    category: Optional[str] = None  # item, feature, etc.
+
+@dataclass(frozen=True)
+class DirectionEntry:
+    canonical: str
+    aliases: List[str]
+
+@dataclass(frozen=True)
+class Lexicon:
+    verbs: List[VerbEntry]
+    nouns: List[NounEntry]
+    directions: List[DirectionEntry]
+    prepositions: List[str]
+    conjunctions: List[str]
+    particles: List[str]
+    token_to_verb: Dict[str, VerbEntry]
+    token_to_noun: Dict[str, NounEntry]
+    token_to_direction: Dict[str, DirectionEntry]
 
 
-# ----------------------------------------------------------------------
-# Minimal placeholder lists (expand later)
-# ----------------------------------------------------------------------
-DUMMY_PREPOSITIONS = [
-    "in", "inside", "into", "through", "past", "over", "around", "across",
-    "under", "behind", "from", "with", "at", "on", "to"
-]
+# ------------------------------------------------------------
+# Dummy Lexicon Builder
+# ------------------------------------------------------------
 
-DUMMY_CONJUNCTIONS = ["and", ","]
+def build_dummy_lexicon() -> Lexicon:
 
-DUMMY_PARTICLES = ["up", "out", "off", "over", "through"]
+    # -----------------------------
+    # Verbs (canonical + synonyms)
+    # -----------------------------
+    verbs = [
+        VerbEntry("go", ["walk", "move"], uses_directions=True),
+        VerbEntry("look", ["examine", "inspect"]),
+        VerbEntry("take", ["grab", "pick", "pick up"]),
+        VerbEntry("drop", []),
+        VerbEntry("inventory", ["inv"]),
+        VerbEntry("put", []),
+        VerbEntry("talk", ["speak"]),
+        VerbEntry("ask", []),
+        VerbEntry("say", []),
+        VerbEntry("attack", ["hit", "strike"]),
+        VerbEntry("sharpen", []),
+    ]
 
-DUMMY_STOPWORDS = ["the", "a", "an", "my", "for", "of", "is", "who", "he", "she", "it"]
+    token_to_verb = {}
+    for v in verbs:
+        token_to_verb[v.canonical] = v
+        for a in v.aliases:
+            token_to_verb[a] = v
 
 
-# ----------------------------------------------------------------------
-# Lexicon builder
-# ----------------------------------------------------------------------
-def build_dummy_lexicon():
-    """
-    Returns a dict matching the parser's lexicon contract:
-        {
-            "verbs": { ... },
-            "nouns": { ... },
-            "prepositions": [...],
-            "conjunctions": [...],
-            "particles": [...],
-            "stopwords": [...],
-        }
-    """
-    return {
-        "verbs": dummy_verbs,
-        "nouns": dummy_nouns,
-        "prepositions": DUMMY_PREPOSITIONS,
-        "conjunctions": DUMMY_CONJUNCTIONS,
-        "particles": DUMMY_PARTICLES,
-        "stopwords": DUMMY_STOPWORDS,
-    }
+    # -----------------------------
+    # Nouns (canonical + synonyms)
+    # -----------------------------
+    nouns = [
+        NounEntry("lamp", []),
+        NounEntry("all", []),
+        NounEntry("sword", []),
+        NounEntry("shield", []),
+        NounEntry("table", []),
+        NounEntry("statue", []),
+        NounEntry("drawer", []),
+        NounEntry("door", []),
+        NounEntry("bag", []),
+        NounEntry("everything", []),
+        NounEntry("chest", []),
+        NounEntry("apple", []),
+        NounEntry("basket", []),
+        NounEntry("guard", []),
+        NounEntry("wizard", []),
+        NounEntry("amulet", []),
+        NounEntry("hello", []),
+        NounEntry("troll", []),
+        NounEntry("knife", []),
+    ]
+
+    token_to_noun = {}
+    for n in nouns:
+        token_to_noun[n.canonical] = n
+        for a in n.aliases:
+            token_to_noun[a] = n
+
+
+    # -----------------------------
+    # Directions
+    # -----------------------------
+    directions = [
+        DirectionEntry("north", []),
+        DirectionEntry("through", []),  # ambiguous
+        DirectionEntry("inside", []),  # ambiguous
+    ]
+
+    token_to_direction = {}
+    for d in directions:
+        token_to_direction[d.canonical] = d
+        for a in d.aliases:
+            token_to_direction[a] = d
+
+
+    # -----------------------------
+    # Prepositions, Conjunctions, Particles
+    # -----------------------------
+    prepositions = [
+        "in", "on", "under", "with", "at", "to", "from",
+        "into", "onto", "off", "about", "through", "inside"
+    ]
+
+    conjunctions = ["and", "or"]
+    particles = ["the", "a", "an"]
+
+
+    # -----------------------------
+    # Final Lexicon Object
+    # -----------------------------
+    return Lexicon(
+        verbs=verbs,
+        nouns=nouns,
+        directions=directions,
+        prepositions=prepositions,
+        conjunctions=conjunctions,
+        particles=particles,
+        token_to_verb=token_to_verb,
+        token_to_noun=token_to_noun,
+        token_to_direction=token_to_direction,
+    )
