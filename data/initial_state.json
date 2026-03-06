@@ -63,7 +63,7 @@
                     "is_open": false,
                     "is_lockable": true,
                     "is_locked": true,
-                    "unlock_key": "key",
+                    "unlock_key": "small brass key",
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key.",

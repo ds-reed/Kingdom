@@ -48,6 +48,7 @@
         {
             "name": "Djinni Lair",
             "description": "You shouldn't be here.",
+            "handle": "djinni lair",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -75,6 +76,7 @@
         {
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "handle": "tower cell",
             "discover_points": 0,
             "visited": false,
             "is_dark": false,
@@ -122,7 +124,7 @@
                     "open_exit_destination": "Blank Chamber",
                     "is_lockable": true,
                     "is_locked": true,
-                    "unlock_key": "key",
+                    "unlock_key": "small brass key",
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key."
@@ -131,8 +133,8 @@
             "Containers": [
                 {
                     "name": "bag",
-                    "handle": "bag",
                     "description": "a greasy brown lunch bag",
+                    "handle": "bag",
                     "is_openable": true,
                     "is_open": false,
                     "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
@@ -160,7 +162,7 @@
                         {
                             "name": "a small brass key",
                             "description": "a small brass key",
-                            "handle": "key"
+                            "handle": "small brass key"
                         },
                         {
                             "name": "lamp",
@@ -201,6 +203,7 @@
         {
             "name": "Blank Chamber",
             "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+            "handle": "blank chamber",
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
             "visited": false,
@@ -223,6 +226,7 @@
         {
             "name": "Colossal Cave",
             "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
+            "handle": "colossal cave",
             "has_water": true,
             "visited": false,
             "is_dark": false,
@@ -249,6 +253,7 @@
         {
             "name": "Pool Ledge",
             "description": "on a narrow ledge across the pool.",
+            "handle": "pool ledge",
             "is_dark": true,
             "has_water": true,
             "dark_description": "It is pitch dark. You can't see anything.",
@@ -265,8 +270,8 @@
             "Containers": [
                 {
                     "name": "wardrobe",
-                    "handle": "wardrobe",
                     "description": "a large wooden wardrobe",
+                    "handle": "wardrobe",
                     "is_openable": true,
                     "is_open": false,
                     "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
@@ -288,6 +293,7 @@
         {
             "name": "Narnia",
             "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
+            "handle": "narnia",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -303,6 +309,7 @@
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
+            "handle": "demo landing",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -330,6 +337,7 @@
         {
             "name": "Whispering Grove",
             "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
+            "handle": "whispering grove",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -348,6 +356,7 @@
         {
             "name": "Mirror Hall",
             "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
+            "handle": "mirror hall",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -366,6 +375,7 @@
         {
             "name": "Clockwork Court",
             "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
+            "handle": "clockwork court",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -384,6 +394,7 @@
         {
             "name": "Lantern Overlook",
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
+            "handle": "lantern overlook",
             "visited": false,
             "is_dark": false,
             "has_water": false,
@@ -402,6 +413,7 @@
         {
             "name": "__roundtrip_room__",
             "description": "Roundtrip validation room",
+            "handle": "__roundtrip_room__",
             "visited": true,
             "is_dark": true,
             "has_water": true,
@@ -455,8 +467,8 @@
             "Containers": [
                 {
                     "name": "Roundtrip Box",
-                    "handle": "rt_box",
                     "description": "A sentinel box sits here.",
+                    "handle": "rt_box",
                     "capacity": 3,
                     "is_openable": true,
                     "is_open": true,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from typing import Any, Optional, List, Dict, ClassVar
+from typing import Any, Optional, List, Dict, ClassVar, Iterator
 from kingdom.utilities import normalize_key
 
 def _normalize_tokens(text: str) -> list[str]:
@@ -30,8 +30,12 @@ class Noun:
     def _register_noun(self) -> None:
         Noun.all_nouns.append(self)
 
-        key = normalize_key(self.canonical_name())
-        Noun._by_name[key] = self
+        for key in self._registry_keys():
+            Noun._by_name[key] = self
+
+    def _registry_keys(self) -> set[str]:
+        canonical_key = normalize_key(self.canonical_name())
+        return {canonical_key} if canonical_key else set()
 
     def _normalized_identity_tokens(self) -> set[str]:
         return {
@@ -57,7 +61,44 @@ class Noun:
 
     @classmethod
     def get_by_name(cls, name: str) -> "Noun | None":
-        return cls._by_name.get(normalize_key(name))
+        candidate = normalize_key(name)
+        if not candidate:
+            return None
+
+        noun = Noun._by_name.get(candidate)
+        if noun is None:
+            return None
+
+        if cls is Noun or isinstance(noun, cls):
+            return noun
+
+        return None
+
+    @classmethod
+    def iter_by_type(cls, class_name: str) -> Iterator["Noun"]:
+        target = str(class_name).strip().lower()
+        if not target:
+            return
+        for noun in cls._by_name.values():
+            if noun.get_class_name().lower() == target:
+                yield noun
+
+    @classmethod
+    def get_typed_by_name(cls, name: str, class_name: str) -> "Noun | None":
+        candidate = normalize_key(name)
+        if not candidate:
+            return None
+
+        typed_match = None
+        for noun in cls.iter_by_type(class_name):
+            if normalize_key(noun.canonical_name()) == candidate:
+                typed_match = noun
+                break
+
+        if typed_match is not None:
+            return typed_match
+
+        return None
 
     @classmethod
     def get_class_name(cls) -> str :
@@ -204,8 +245,6 @@ class DirectionNoun(Noun):
 
 @dataclass
 class Item(Noun):
-    _by_name: ClassVar[Dict[str, "Item"]] = {}
-
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -251,17 +290,12 @@ class Item(Noun):
     is_broken: bool = field(default=False, init=False)
 
     def __post_init__(self):
-        super().__init__()
-
         self.description = self.description or self.name
 
         # Set parser handle: explicit → derived → fallback
         self.handle = normalize_key(self.handle or self.name)
 
-        searchkey = self.handle
-        if searchkey in Item._by_name:
-            print(f"Warning: duplicate item name '{searchkey}' - overwriting previous")
-        Item._by_name[searchkey] = self
+        super().__init__()
 
         self.is_gettable = bool(self.is_gettable)
         self.refuse_string = self.refuse_string
@@ -401,8 +435,6 @@ def serialize_non_default(obj: Any) -> dict:
         # Default: omit None / False / default value
         if value is None:
             continue
-        if isinstance(value, bool) and not value:
-            continue
         if value == f.default:
             continue
 
@@ -417,8 +449,6 @@ class Container(Noun):
     A container that can hold items, be opened/closed, locked, etc.
     """
     all_containers: ClassVar[List["Container"]] = []
-    _by_name: ClassVar[Dict[str, "Container"]] = {}
-
     # Required by noun class
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -445,16 +475,10 @@ class Container(Noun):
     contents: List["Item"] = field(default_factory=list, init=False)
 
     def __post_init__(self):
-        super().__init__()
-
         self.description = self.description or self.name
         self.handle = normalize_key(self.handle or self.name)
 
-        # Register using parser-friendly handle (lowercased)
-        searchkey = self.handle
-        if searchkey in Container._by_name:
-            print(f"Warning: duplicate handle '{searchkey}' — overwriting previous")
-        Container._by_name[searchkey] = self
+        super().__init__()
         Container.all_containers.append(self)
 
     # ───────────────────────────────────────────────
@@ -551,7 +575,6 @@ class Player:
 @dataclass
 class Room(Noun):
     DIRECTIONS: ClassVar[list[str] | set[str]] = []
-    _by_name: ClassVar[Dict[str, "Room"]] = {}
 
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
@@ -570,8 +593,6 @@ class Room(Noun):
     hidden_directions: set[str] = field(default_factory=set, init=False)
 
     def __post_init__(self):
-        super().__init__()
-
         self.name = str(self.name)
         self.description = str(self.description)
         self.visited = bool(self.visited)
@@ -581,10 +602,7 @@ class Room(Noun):
         self.discover_points = max(0, int(self.discover_points))
         self.handle = normalize_key(self.handle or self.name)
 
-        searchkey = self.handle
-        if searchkey in Room._by_name:
-            print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
-        Room._by_name[searchkey] = self
+        super().__init__()
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -741,8 +759,6 @@ class Room(Noun):
 
 @dataclass
 class Feature(Noun):
-    _by_name: ClassVar[Dict[str, "Feature"]] = {}
-
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -761,11 +777,6 @@ class Feature(Noun):
         }
 
         super().__init__()
-
-        searchkey = self.handle
-        if searchkey in Feature._by_name:
-            print(f"Warning: duplicate feature name '{searchkey}' - overwriting previous")
-        Feature._by_name[searchkey] = self
 
     def _normalized_identity_tokens(self) -> set[str]:
         return super()._normalized_identity_tokens() | set(self.synonyms)

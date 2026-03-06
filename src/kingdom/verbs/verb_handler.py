@@ -174,6 +174,19 @@ class VerbHandler:
                 return self.already(target, already_msg)
 
         return None
+    
+    def require_item(self, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
+        player = self.player()
+        if not player.has_item(required_item_id):
+            return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
+        return None
+
+    def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
+        required = Item.get_by_name(required_name)
+        if required is None:
+             print(f"Error: Required noun '{required_name}' not found in game data for {verb_phrase}.")
+             return None
+        return required         
 
     # ------------------------------------------------------------
     # ALL-handling framework  - needs a re-write

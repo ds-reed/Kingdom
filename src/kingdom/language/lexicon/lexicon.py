@@ -87,13 +87,6 @@ def lex() -> Lexicon:
     for token, noun in Noun._by_name.items()
     if noun.get_class_name() != "DirectionNoun"
 ]
-#--- debug
-
-    for token, noun in Noun._by_name.items():
-        print(f"Noun token: '{token}' -> {noun} (class: {noun.get_class_name()})")
-
-
-#----
 
     noun_entries = []
 
@@ -108,8 +101,8 @@ def lex() -> Lexicon:
             category=noun.get_class_name(),
         ))
 
- #   print(f"Built {len(noun_entries)} noun entries")
- #   print(f"Sample entries: {noun_entries}")
+    print(f"Built {len(noun_entries)} noun entries")
+    print(f"Sample entries: {noun_entries[:5]}")
 
     token_to_noun = {}
 
@@ -121,8 +114,8 @@ def lex() -> Lexicon:
         for syn in entry.aliases:
             token_to_noun[syn] = entry
 
-#    print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
-#    print(f"Token_to_noun items: {list(token_to_noun.items())}")
+    print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
+
 
 
  

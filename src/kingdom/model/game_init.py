@@ -108,6 +108,13 @@ def reset_all_state() -> None:
     _action_state = None
     _prefs = None
 
+    # Keep noun registries clean across hard session resets.
+    Container.all_containers.clear()
+    Noun.all_nouns.clear()
+    Noun._by_name = {}
+    DirectionNoun._direction_nouns_by_reference = {}
+    DirectionNoun._direction_nouns_by_canonical = {}
+
 
 class GameOver(Exception):
     pass
@@ -134,12 +141,9 @@ def setup_world(world: World, source):
     # Clear all registries before reconstructing world entities.
     Container.all_containers.clear()
     Noun.all_nouns.clear()
-
-    Room._by_name = {}
-    Container._by_name = {}
-    Item._by_name = {}
-    Feature._by_name = {}
     Noun._by_name = {}
+    DirectionNoun._direction_nouns_by_reference = {}
+    DirectionNoun._direction_nouns_by_canonical = {}
 
     _load_directions(data)
     DirectionNoun.ensure_direction_nouns()
@@ -198,7 +202,6 @@ def _construct_containers(data):
     Expects `data` to be a list of dicts with keys like 'name', 'description', 'items', etc.
     """
     Container.all_containers.clear()           # Clear for clean load
-    Container._by_name.clear()
 
     for entry in data:
         container = _construct_container_from_spec(entry)
@@ -276,7 +279,6 @@ def _construct_rooms(data):
     Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
     Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
     """
-    Room._by_name.clear()  # Clear existing rooms for a clean load
     rooms: list[Room] = []
     pending_connections = []
     for entry in data:
