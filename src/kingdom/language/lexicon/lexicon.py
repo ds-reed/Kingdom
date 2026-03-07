@@ -15,7 +15,7 @@ class VerbEntry:
     uses_directions: bool = False
 
     def __repr__(self):
-        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}\n)"
+        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions})"
 
 @dataclass(frozen=True)
 class NounEntry:
@@ -23,10 +23,11 @@ class NounEntry:
     canonical: str
     display: str
     synonyms: List[str]
+    adjectives: List[str] = field(default_factory=list)
     category: Optional[str] = None   # "item", "feature", "room", etc.
 
     def __repr__(self):
-        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category} \n)"
+        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)})"
 
 @dataclass(frozen=True)
 class DirectionEntry:
@@ -37,22 +38,24 @@ class DirectionEntry:
 
 
     def __repr__(self):
-        return f"DirectionEntry(handle={self.handle}, canonical={self.canonical}, reverse={self.reverse}, synonyms={self.synonyms} \n)"
+        return f"DirectionEntry(handle={self.handle}, canonical={self.canonical}, reverse={self.reverse}, synonyms={self.synonyms})"
 
 @dataclass(frozen=True)
 class Lexicon:
     verbs: List[VerbEntry]
     nouns: List[NounEntry]
     directions: List[DirectionEntry]
+    modifiers: List[str]
+    adjectives: List[str]
     prepositions: List[str]
     conjunctions: List[str]
     particles: List[str]
-    token_to_verb: Dict[str, VerbEntry] = field(default_factory=dict)
-    token_to_noun: Dict[str, NounEntry] = field(default_factory=dict)
-    token_to_direction: Dict[str, DirectionEntry] = field(default_factory=dict)
+    token_to_verb: Dict[str, VerbEntry]
+    token_to_noun: Dict[str, NounEntry]
+    token_to_direction: Dict[str, DirectionEntry]
 
     def __repr__(self):
-        return f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, directions={self.directions}, prepositions={self.prepositions}, conjunctions={self.conjunctions}, particles={self.particles})"
+        return f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, directions={self.directions}, modifiers = {self.modifiers}, prepositions={self.prepositions}, conjunctions={self.conjunctions}, particles={self.particles}, adjectives={self.adjectives})"
 
 
 
@@ -114,6 +117,7 @@ def lex() -> Lexicon:
             display=noun.display_name(),
             synonyms=list(noun.synonym_names()),
             category=noun.get_class_name(),
+            adjectives=list(noun.adjectives),
         ))
 
     print(f"Built {len(noun_entries)} noun entries")
@@ -129,6 +133,7 @@ def lex() -> Lexicon:
             token_to_noun[syn] = entry
 
     print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
+    print(token_to_noun)
 
     # -----------------------------
     # Build DIRECTION entries
@@ -164,6 +169,8 @@ def lex() -> Lexicon:
             verbs=[ verb_entry for verb_entry in verb_entries ],
             nouns=[ noun_entry for noun_entry in noun_entries ],
             directions=[ direction_entry for direction_entry in direction_entries ],
+            modifiers=[ mod for verb_entry in verb_entries for mod in verb_entry.modifiers ], 
+            adjectives=[ adj for noun_entry in noun_entries for adj in noun_entry.adjectives ],
             prepositions=["in", "on", "under", "with", "at", "to", "from", "into", "onto", "off"],
             conjunctions=["and", "or", "but"],
             particles=["the", "a", "an"],

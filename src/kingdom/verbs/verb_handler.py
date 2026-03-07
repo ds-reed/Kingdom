@@ -181,6 +181,8 @@ class VerbHandler:
             return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
         return None
 
+
+# --------------- this needs to be updated to look for required_item field to see if it matches instead of name. Not sure how to do this yet, so it is broken for now. ---------------
     def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
         required = Item.get_by_name(required_name)
         if required is None:
@@ -239,7 +241,7 @@ class VerbHandler:
         if room.has_item(item):      # ← use your Room helper
             return self.ItemLocation(self.LocationType.ROOM_FLOOR)
 
-        # 3. The item is a containerand is present in the room itself
+        # 3. The item is a container and is present in the room itself
         if isinstance(item, Container) and room.has_container(item):   # ← use your Room helper
             return self.ItemLocation(self.LocationType.CONTAINER_IN_ROOM)
 

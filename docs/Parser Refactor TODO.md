@@ -11,11 +11,11 @@ Single caller‑supplied object containing:
 
 - verbs: canonical name, synonyms, modifiers, uses_directions  
 - nouns: canonical name, synonyms, adjectives (future), category tag (optional)  
-- directions: canonical name, synonyms        (note directions will no longer be in the noun class or noun registry)
+- directions: canonical name, reverse, synonyms        (note directions will no longer be in the noun class or noun registry)
 - prepositions: global list  
 - conjunctions  
 - particles (optional)  
-- stopwords (optional)
+
 
 Parser must not import or depend on world/model state.
 

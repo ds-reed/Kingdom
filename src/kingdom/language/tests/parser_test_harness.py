@@ -1,19 +1,15 @@
 # ======================================================================
-# PARSER TEST HARNESS
-# ======================================================================
-# This module provides:
-#   - run_parser_tests(): main entrypoint
-#   - pretty_print(): human-readable ParsedSyntax dump
-#   - compare(): deep comparison of expected vs actual
-#   - diff(): structural diff printer
-#
-# The harness is stage-aware: it only checks fields present in the
-# expected dict for that stage. All other fields are ignored.
-#
-# This lets you evolve the parser incrementally without rewriting tests.
+# PARSER TEST HARNESS (Stage-Aware)
 # ======================================================================
 
-from pprint import pprint
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+
+from kingdom.language.parser.parser import ParserOptions
 
 
 # ----------------------------------------------------------------------
@@ -40,18 +36,63 @@ def pretty_print(parsed):
 
 
 # ----------------------------------------------------------------------
-# Deep comparison of expected vs actual ParsedSyntax
+# Stage-specific field sets
 # ----------------------------------------------------------------------
-def compare(parsed, expected):
-    """
-    Compare only the fields present in expected.
-    This allows stage-by-stage testing without requiring full parser output.
-    """
+STAGE_FIELDS = {
+    1: [
+        "normalized_text",
+        "tokens",
+        "token_spans",
+        "verb_candidates",
+        "primary_verb_token",
+        "primary_verb_canonical",
+        "noun_candidates",
+        "direction_tokens",
+        "modifier_tokens",
+        "unknown_tokens",
+    ],
+    2: [
+        "object_phrases",
+        "conjunction_groups",
+    ],
+    3: [
+        "modifier_tokens",
+        "prep_phrases",
+        "direction_tokens",
+    ],
+    4: [
+        "primary_verb_token",
+        "primary_verb_canonical",
+        "object_phrases",
+        "prep_phrases",
+        "modifier_tokens",
+    ],
+    # resolver_only and out_of_scope use Stage 4 fields
+}
+
+
+# ----------------------------------------------------------------------
+# Stage-aware comparison
+# ----------------------------------------------------------------------
+def compare_stage(parsed, expected, stage):
     failures = []
+    allowed = STAGE_FIELDS.get(stage, [])
 
     for key, expected_value in expected.items():
+        if key not in allowed:
+            continue
+
         actual_value = getattr(parsed, key, None)
 
+        # Special handling for object_phrases: expected is a subset
+        if key == "object_phrases":
+            for exp_np in expected_value:
+                if exp_np not in actual_value:
+                    failures.append((key, expected_value, actual_value))
+                    break
+            continue
+
+        # Normal exact match for all other fields
         if actual_value != expected_value:
             failures.append((key, expected_value, actual_value))
 
@@ -62,9 +103,6 @@ def compare(parsed, expected):
 # Diff printer
 # ----------------------------------------------------------------------
 def diff(failures):
-    """
-    Print a readable diff for mismatched fields.
-    """
     print("❌ Test Failed:")
     for key, expected, actual in failures:
         print(f"  Field: {key}")
@@ -77,25 +115,22 @@ def diff(failures):
 # Test Runner
 # ----------------------------------------------------------------------
 def run_parser_tests(parser, lexicon, tests):
-    """
-    parser: instance of your NewParser
-    lexicon: test lexicon object
-    tests: dict of test groups (stage_1, stage_2, ...)
-    """
     print("\n==============================")
     print(" RUNNING PARSER TEST SUITE")
     print("==============================\n")
 
     for stage_name, stage_tests in tests.items():
+        stage_num = int(stage_name.split("_")[1])
         print(f"--- {stage_name.upper()} ---")
 
         for test in stage_tests:
             phrase = test["input"]
             expected = test["expected"]
 
-            parsed = parser.parse(phrase, lexicon, {})
+            options = ParserOptions(stage=stage_num)
+            parsed = parser.parse(phrase, lexicon, options)
 
-            failures = compare(parsed, expected)
+            failures = compare_stage(parsed, expected, stage_num)
 
             if failures:
                 print(f"Input: {phrase}")

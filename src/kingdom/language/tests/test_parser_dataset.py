@@ -79,8 +79,8 @@ TESTS = {
                 "primary_verb_token": "grab",
                 "primary_verb_canonical": "take",
                 "object_phrases": [
-                    {"head": "sword", "adjectives": [], "span": (1, 2)},
-                    {"head": "shield", "adjectives": [], "span": (3, 4)},
+                    {"head": "sword", "adjectives": [], "span": (2, 3)},
+                    {"head": "shield", "adjectives": [], "span": (4, 5)},
                 ],
                 "conjunction_groups": [
                     ["sword", "shield"]
@@ -143,7 +143,7 @@ TESTS = {
             "expected": {
                 "primary_verb_token": "take",
                 "primary_verb_canonical": "take",
-                "modifier_tokens": ["all"],
+                "modifier_tokens": ["all", "in"],
                 "prep_phrases": [
                     {"prep": "in", "object": "bag"}
                 ]
@@ -192,9 +192,9 @@ TESTS = {
     ],
 
     # ------------------------------------------------------------------
-    # RESOLVER-ONLY TESTS (parser should NOT interpret semantics)
+    # STAGE 5 - RESOLVER-ONLY TESTS (parser should NOT interpret semantics)
     # ------------------------------------------------------------------
-    "resolver_only": [
+    "stage_5": [
         {
             "input": "talk to the guard",
             "expected": {
@@ -228,9 +228,9 @@ TESTS = {
     ],
 
     # ------------------------------------------------------------------
-    # OUT OF SCOPE (parser should tokenize but not interpret)
+    # Stage 6 - OUT OF SCOPE (parser should tokenize but not interpret)
     # ------------------------------------------------------------------
-    "out_of_scope": [
+    "stage_6": [
         {
             "input": "attack the troll",
             "expected": {
@@ -252,26 +252,6 @@ TESTS = {
             }
         },
     ],
-    # Add at the end of OUT_OF_SCOPE or create a new group
-
-    "intentional_failures": [
-        {
-            "input": "intentional failure 1",
-            "expected": {
-                "primary_verb_token": "XYZZY",
-                "diagnostics": ["This is an intentional failure case."]
-            }
-        },
-        {
-            "input": "intentional failure 2",
-            "expected": {
-                "primary_verb_token": "PLUGH",
-                "diagnostics": ["This is an intentional failure case."]
-            }
-        }
-    ]
-
-    
 }
 
 

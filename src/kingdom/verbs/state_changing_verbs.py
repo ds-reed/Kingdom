@@ -286,7 +286,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
         #  Required key (if any)
         key_name = getattr(target, "unlock_key", None)
-        key_id = self.lookup_required_item_id(key_name, "unlock") 
+        key_id = self.lookup_required_item_id(key_name, "unlock")     #this needs to look at the required_item field now. won't currently work
 
         if key_name and key_id:
             no_key_msg = self.require_item(

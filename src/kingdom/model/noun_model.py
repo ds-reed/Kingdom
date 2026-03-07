@@ -258,6 +258,7 @@ class Item(Noun):
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
     found: bool = False
     is_gettable: bool = True
@@ -441,6 +442,7 @@ class Container(Noun):
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
     # Normal optional fields
     found: bool = False
@@ -568,6 +570,7 @@ class Room(Noun):
     description: str = field(default="", metadata={"persist": "always"})
     handle: str = field(default=None, metadata={"persist": "if_set"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
     found: bool = field(default=False, metadata={"persist": "if_set"})
     is_dark: bool = field(default=False, metadata={"persist": "if_set"})
     has_water: bool = field(default=False, metadata={"persist": "if_set"})
@@ -753,6 +756,7 @@ class Feature(Noun):
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
     found: bool = field(default=False, metadata={"persist": "if_set"})
 
     def __post_init__(self):
@@ -773,8 +777,6 @@ class Feature(Noun):
 
     def to_dict(self) -> dict:
         payload = serialize_non_default(self)
-        if "synonyms" in payload and isinstance(payload["synonyms"], set):
-            payload["synonyms"] = sorted(payload["synonyms"])
         return payload
 
 
