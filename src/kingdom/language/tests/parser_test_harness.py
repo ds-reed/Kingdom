@@ -2,7 +2,6 @@
 # PARSER TEST HARNESS (Stage-Aware)
 # ======================================================================
 
-
 import sys
 from pathlib import Path
 
@@ -13,10 +12,11 @@ from kingdom.language.parser.parser import ParserOptions
 
 
 # ----------------------------------------------------------------------
-# Pretty Printer for ParsedSyntax
+# Pretty Printer for ParsedAction
 # ----------------------------------------------------------------------
-def pretty_print(parsed):
-    print("=== ParsedSyntax ===")
+def pretty_print(parsed, index=None):
+    header = f"=== ParsedAction #{index} ===" if index is not None else "=== ParsedAction ==="
+    print(header)
     print(f"raw_text: {parsed.raw_text}")
     print(f"normalized_text: {parsed.normalized_text}")
     print(f"tokens: {parsed.tokens}")
@@ -67,12 +67,11 @@ STAGE_FIELDS = {
         "prep_phrases",
         "modifier_tokens",
     ],
-    # resolver_only and out_of_scope use Stage 4 fields
 }
 
 
 # ----------------------------------------------------------------------
-# Stage-aware comparison
+# Stage-aware comparison for a single ParsedAction
 # ----------------------------------------------------------------------
 def compare_stage(parsed, expected, stage):
     failures = []
@@ -92,7 +91,7 @@ def compare_stage(parsed, expected, stage):
                     break
             continue
 
-        # Normal exact match for all other fields
+        # Normal exact match
         if actual_value != expected_value:
             failures.append((key, expected_value, actual_value))
 
@@ -102,8 +101,8 @@ def compare_stage(parsed, expected, stage):
 # ----------------------------------------------------------------------
 # Diff printer
 # ----------------------------------------------------------------------
-def diff(failures):
-    print("❌ Test Failed:")
+def diff(action_index, failures):
+    print(f"❌ Test Failed in action #{action_index}:")
     for key, expected, actual in failures:
         print(f"  Field: {key}")
         print(f"    Expected: {expected}")
@@ -125,18 +124,32 @@ def run_parser_tests(parser, lexicon, tests):
 
         for test in stage_tests:
             phrase = test["input"]
-            expected = test["expected"]
+            expected_actions = test["expected"]  # now a list of expected dicts
 
             options = ParserOptions(stage=stage_num)
-            parsed = parser.parse(phrase, lexicon, options)
+            parsed_actions = parser.parse(phrase, lexicon, options)
 
-            failures = compare_stage(parsed, expected, stage_num)
+            # Length mismatch check
+            if len(parsed_actions) != len(expected_actions):
+                print(f"❌ Input: {phrase}")
+                print(f"  Expected {len(expected_actions)} actions, got {len(parsed_actions)}")
+                for i, p in enumerate(parsed_actions, start=1):
+                    pretty_print(p, i)
+                continue
 
-            if failures:
+            all_failures = []
+            for i, (parsed, expected) in enumerate(zip(parsed_actions, expected_actions), start=1):
+                failures = compare_stage(parsed, expected, stage_num)
+                if failures:
+                    all_failures.append((i, failures))
+
+            if all_failures:
                 print(f"Input: {phrase}")
-                diff(failures)
-                print("ParsedSyntax dump:")
-                pretty_print(parsed)
+                for action_index, failures in all_failures:
+                    diff(action_index, failures)
+                print("ParsedAction dump:")
+                for i, p in enumerate(parsed_actions, start=1):
+                    pretty_print(p, i)
             else:
                 print(f"✔ {phrase}")
 

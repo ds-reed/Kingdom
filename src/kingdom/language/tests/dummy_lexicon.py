@@ -1,8 +1,6 @@
 # dummy_lexicon.py
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Dict, Optional
-
-from kingdom.language.lexicon import lexicon
 
 # ------------------------------------------------------------
 # Lexicon Entry Types
@@ -21,9 +19,8 @@ class NounEntry:
     canonical: str
     display: str
     synonyms: List[str]
-    adjectives: List[str] 
+    adjectives: List[str]
     category: Optional[str] = None
-
 
 @dataclass(frozen=True)
 class DirectionEntry:
@@ -32,14 +29,13 @@ class DirectionEntry:
     reverse: Optional[str]
     synonyms: List[str]
 
-
 @dataclass(frozen=True)
 class Lexicon:
     verbs: List[VerbEntry]
     nouns: List[NounEntry]
     directions: List[DirectionEntry]
     modifiers: List[str]
-    adjectives: List[str]   
+    adjectives: List[str]
     prepositions: List[str]
     conjunctions: List[str]
     particles: List[str]
@@ -54,271 +50,221 @@ class Lexicon:
 
 def build_dummy_lexicon() -> Lexicon:
 
-    # -----------------------------
-    # Verbs (canonical + synonyms)
-    # -----------------------------
+    # ============================================================
+    # VERBS (≈80% coverage of challenge corpus)
+    # ============================================================
     verbs = [
-        VerbEntry(
-            canonical="go",
-            synonyms=["walk", "move"],
-            modifiers=[],
-            uses_directions=True
-        ),
-        VerbEntry(
-            canonical="look",
-            synonyms=["examine", "inspect"],
-            modifiers=["in"],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="take",
-            synonyms=["grab", "pick", "pick up"],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="drop",
-            synonyms=[],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="inventory",
-            synonyms=["inv"],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="put",
-            synonyms=[],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="talk",
-            synonyms=["speak"],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="ask",
-            synonyms=[],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="say",
-            synonyms=[],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="attack",
-            synonyms=["hit", "strike"],
-            modifiers=[],
-            uses_directions=False
-        ),
-        VerbEntry(
-            canonical="sharpen",
-            synonyms=[],
-            modifiers=[],
-            uses_directions=False
-        ),
+        VerbEntry("go", ["walk", "move"], [], True),
+        VerbEntry("look", ["examine", "inspect", "peer"], ["in", "inside"], False),
+        VerbEntry("take", ["grab", "pick", "pick up"], [], False),
+        VerbEntry("drop", ["put down"], [], False),
+        VerbEntry("put", ["place", "set"], [], False),
+        VerbEntry("open", ["unseal", "unlatch"], [], False),
+        VerbEntry("close", ["shut"], [], False),
+        VerbEntry("push", ["press"], [], False),
+        VerbEntry("pull", ["yank"], [], False),
+        VerbEntry("break", ["shatter", "smash"], [], False),
+        VerbEntry("cut", ["slice", "chop"], [], False),
+        VerbEntry("pour", [], [], False),
+        VerbEntry("fill", [], [], False),
+        VerbEntry("stir", [], [], False),
+        VerbEntry("mix", ["combine"], [], False),
+        VerbEntry("remove", [], [], False),
+        VerbEntry("trade", [], [], False),
+        VerbEntry("swap", [], [], False),
+        VerbEntry("throw", ["toss", "hurl"], [], False),
+        VerbEntry("hang", [], [], False),
+        VerbEntry("lay", [], [], False),
+        VerbEntry("stand", [], [], False),
+        VerbEntry("sit", [], [], False),
+        VerbEntry("climb", [], [], True),
+        VerbEntry("crawl", [], [], True),
+        VerbEntry("jump", [], [], True),
+        VerbEntry("run", [], [], True),
+        VerbEntry("roll", [], [], False),
+        VerbEntry("slide", [], [], False),
+        VerbEntry("give", ["hand", "offer"], [], False),
+        VerbEntry("show", [], [], False),
+        VerbEntry("feed", [], [], False),
+        VerbEntry("light", [], [], False),
+        VerbEntry("extinguish", ["blow out"], [], False),
+        VerbEntry("talk", ["speak"], [], False),
+        VerbEntry("ask", [], [], False),
+        VerbEntry("say", [], [], False),
+        VerbEntry("attack", ["hit", "strike","fight"], [], False),
+        VerbEntry("sharpen", [], [], False),
     ]
 
     token_to_verb = {}
     for v in verbs:
         token_to_verb[v.canonical] = v
-        for a in v.synonyms:
-            token_to_verb[a] = v
+        for s in v.synonyms:
+            token_to_verb[s] = v
 
-
-    # -----------------------------
-    # Nouns (canonical + synonyms)
-    # -----------------------------
-    nouns = [
-        NounEntry(
-            handle="lamp",
-            canonical="lamp",
-            display="Lamp",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="all",
-            canonical="all",
-            display="All",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="sword",
-            canonical="sword",
-            display="Sword",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="shield",
-            canonical="shield",
-            display="Shield",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="table",
-            canonical="table",
-            display="Table",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="statue",
-            canonical="statue",
-            display="Statue",
-            synonyms=[],
-            adjectives=["strange"]
-        ),
-        NounEntry(
-            handle="drawer",
-            canonical="drawer",
-            display="Drawer",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="door",
-            canonical="door",
-            display="Door",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="bag",
-            canonical="bag",
-        display="Bag",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="everything",
-            canonical="everything",
-            display="Everything",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="chest",
-            canonical="chest",
-            display="Chest",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="apple",
-            canonical="apple",
-            display="Apple",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="basket",
-            canonical="basket",
-            display="Basket",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="guard",
-            canonical="guard",
-            display="Guard",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="wizard",
-            canonical="wizard",
-            display="Wizard",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="amulet",
-            canonical="amulet",
-            display="Amulet",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="hello",
-            canonical="hello",
-            display="Hello",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="troll",
-            canonical="troll",
-            display="Troll",
-            synonyms=[],
-            adjectives=[]
-        ),
-        NounEntry(
-            handle="knife",
-            canonical="knife",
-            display="Knife",
-            synonyms=["machete"],
-            adjectives=["pearly-white"]
-        ),
+    # ============================================================
+    # NOUNS (≈80% coverage of challenge corpus)
+    # ============================================================
+    noun_specs = [
+        ("lamp", [], []),
+        ("sword", [], []),
+        ("shield", [], []),
+        ("table", [], []),
+        ("statue", [], ["strange"]),
+        ("drawer", [], []),
+        ("door", [], []),
+        ("bag", [], []),
+        ("everything", [], []),
+        ("chest", [], []),
+        ("apple", [], []),
+        ("basket", [], []),
+        ("guard", [], []),
+        ("wizard", [], []),
+        ("amulet", [], []),
+        ("hello", [], []),
+        ("troll", [], []),
+        ("knife", ["machete"], ["pearly-white"]),
+        ("key", ["skeleton key"], []),
+        ("box", [], []),
+        ("envelope", [], []),
+        ("desk", [], []),
+        ("pedestal", [], []),
+        ("floor", [], []),
+        ("ceiling", [], []),
+        ("hatch", [], []),
+        ("panel", [], []),
+        ("curtain", [], []),
+        ("gate", [], []),
+        ("jug", [], []),
+        ("basin", [], []),
+        ("hook", [], []),
+        ("wall", [], []),
+        ("figurine", [], []),
+        ("crystal", [], []),
+        ("parchment", [], []),
+        ("boots", ["shoes"], []),
+        ("cloak", ["cape"], []),
+        ("wardrobe", [], []),
+        ("anvil", [], []),
+        ("shard", [], []),
+        ("rope", ["cord", "line"], []),
+        ("moss", [], []),
+        ("dirt", [], []),
+        ("wine", [], []),
+        ("journal", [], []),
+        ("page", [], []),
+        ("mirror", [], []),
+        ("coin", ["coins", "currency"], []),
+        ("stone", ["stones"], []),
+        ("powder", ["powders"], []),
+        ("gear", ["gears"], []),
+        ("spring", ["springs"], []),
+        ("pill", ["pills"], []),
+        ("bread", [], []),
+        ("water", [], []),
+        ("stew", [], []),
+        ("meat", [], []),
+        ("barrel", [], []),
+        ("beanstalk", [], []),
+        ("river", [], []),
+        ("fence", [], []),
+        ("cellar", [], []),
+        ("elf", [], []),
+        ("king", [], []),
+        ("thief", [], []),
+        ("beggar", [], []),
+        ("wraith", [], []),
+        ("prisoner", [], []),
+        ("goblin", [], []),
+        ("dragon", [], []),
+        ("bed", [], [])
     ]
 
+    nouns = []
     token_to_noun = {}
-    for n in nouns:
-        token_to_noun[n.canonical] = n
-        for a in n.synonyms:
-            token_to_noun[a] = n
+    for canonical, synonyms, adjectives in noun_specs:
+        entry = NounEntry(
+            handle=canonical,
+            canonical=canonical,
+            display=canonical.capitalize(),
+            synonyms=synonyms,
+            adjectives=adjectives
+        )
+        nouns.append(entry)
+        token_to_noun[canonical] = entry
+        for s in synonyms:
+            token_to_noun[s] = entry
 
-
-    # -----------------------------
-    # Directions
-    # -----------------------------
+    # ============================================================
+    # DIRECTIONS
+    # ============================================================
     directions = [
         DirectionEntry("north", "north", "south", []),
-        DirectionEntry("through", "through", "through", []),  # ambiguous
-        DirectionEntry("inside", "inside", "outside", []),  # ambiguous
+        DirectionEntry("south", "south", "north", []),
+        DirectionEntry("east", "east", "west", []),
+        DirectionEntry("west", "west", "east", []),
+        DirectionEntry("up", "up", "down", []),
+        DirectionEntry("down", "down", "up", []),
+        DirectionEntry("inside", "inside", "outside", []),
+        DirectionEntry("outside", "outside", "inside", []),
+        DirectionEntry("through", "through", "through", []),
+        DirectionEntry("past", "past", None, []),
+        DirectionEntry("toward", "toward", None, []),
     ]
 
     token_to_direction = {}
     for d in directions:
         token_to_direction[d.canonical] = d
-        for a in d.synonyms:
-            token_to_direction[a] = d
+        for s in d.synonyms:
+            token_to_direction[s] = d
 
-
-    # -----------------------------
-    # Prepositions, Conjunctions, Particles
-    # -----------------------------
+    # ============================================================
+    # PREPOSITIONS
+    # ============================================================
     prepositions = [
-        "in", "on", "under", "with", "at", "to", "from",
-        "into", "onto", "off", "about", "through", "inside"
+        "in", "on", "of", "under", "over", "above", "below",
+        "behind", "beneath", "between", "beyond",
+        "across", "past", "toward", "into", "onto",
+        "with", "without", "from", "to", "at", "by",
+        "inside", "outside", "underneath", "atop",
+        "through", "off", "about"
     ]
 
+    # ============================================================
+    # MODIFIERS
+    # ============================================================
+    modifiers = [
+        "all", "everything",
+        "inside", "in", "through",
+        "up", "down", "away", "off", "out",
+        "immediately", "then"
+    ]
+
+    # ============================================================
+    # ADJECTIVES
+    # ============================================================
+    adjectives = [
+        "shimmering", "translucent", "blue",
+        "badly", "charred", "half-burnt",
+        "massive", "ancient", "reinforced",
+        "extremely", "heavy", "rusted", "iron",
+        "small", "intricately", "carved", "ivory",
+        "long", "sharp", "jagged", "glass",
+        "smelly", "old", "tattered", "leather",
+        "barely", "legible", "faded", "crimson",
+        "thick", "solid", "granite",
+        "huge", "dusty", "mahogany",
+        "pearly-white"
+    ]
+
+    # ============================================================
+    # CONJUNCTIONS & PARTICLES
+    # ============================================================
     conjunctions = ["and", "or"]
     particles = ["the", "a", "an"]
-    adjectives = ["pearly-white"]
 
-    modifiers = [
-        "all",       
-        "inside",    
-        "in",        
-        "through",   
-    ]
-
-
-
-    # -----------------------------
-    # Final Lexicon Object
-    # -----------------------------
+    # ============================================================
+    # FINAL LEXICON
+    # ============================================================
     return Lexicon(
         verbs=verbs,
         nouns=nouns,

@@ -18,7 +18,7 @@ class VerbHandler:
     It supports a standard pipeline for verb excution as follows:
     1. The parser identifies the verb and resolves a target noun.
     2. The verb dispatcher calls the corresponding method on the appropriate 
-    VerbHandler subclass, passing context token, target noun, and leftover words.
+    VerbHandler subclass, passing target noun, and leftover words.
     3. The verb handler method uses the following flow
          - First call self.resolve_noun_or_word() to parse the target noun and any keywords 
            of interest from the leftover words.

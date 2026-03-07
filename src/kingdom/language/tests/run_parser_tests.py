@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 from kingdom.language.tests.parser_test_harness import run_parser_tests
 from kingdom.language.tests.dummy_lexicon import build_dummy_lexicon
 from kingdom.language.tests.test_parser_dataset import TESTS
+#from kingdom.language.tests.test_parser_isolate import TESTS
 from kingdom.language.parser import parser   # your parser module
 
 def main():

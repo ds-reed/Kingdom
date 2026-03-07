@@ -4,7 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Any
 
-from .types import ParsedSyntax, Diagnostic
+from .types import ParsedAction, Diagnostic
+
+from kingdom.language.lexicon.lexicon import Lexicon
 
 
 @dataclass
@@ -13,32 +15,32 @@ class ParserOptions:
     debug: bool = False
 
 
-def parse(text: str, lexicon: Any, options: Optional[ParserOptions] = None) -> ParsedSyntax:
+def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) -> list[ParsedAction]:
     if options is None:
         options = ParserOptions()
 
-    ps = ParsedSyntax(raw_text=text)
+    ps_return = []
+    ps_return.append(ParsedAction(raw_text=text))
+    ps = ps_return[0]
 
     # ------------------------------------------------------------
     # 1. Normalize
     # ------------------------------------------------------------
     normalized = text.strip().lower()
+
+    # Strip punctuation that breaks lexicon matching, but keep hyphens and apostrophes
+    # Removes: , . ! ? ; :
+    import re
+    normalized = re.sub(r"[.,!?;:]", "", normalized)
+
     ps.normalized_text = normalized
 
     # ------------------------------------------------------------
-    # 2. Tokenize + spans
+    # 2. Tokenize 
     # ------------------------------------------------------------
     tokens = normalized.split() if normalized else []
     ps.tokens = tokens
 
-    spans = []
-    offset = 0
-    for tok in tokens:
-        start = normalized.find(tok, offset)
-        end = start + len(tok)
-        spans.append((start, end))
-        offset = end
-    ps.token_spans = spans
 
     # ------------------------------------------------------------
     # 3. Stage 1: classify each token
@@ -88,7 +90,7 @@ def parse(text: str, lexicon: Any, options: Optional[ParserOptions] = None) -> P
         unknown_tokens.append(tok)
 
     # ------------------------------------------------------------
-    # 4. Populate ParsedSyntax fields
+    # 4. Populate ParsedAction fields
     # ------------------------------------------------------------
     ps.verb_candidates = verb_candidates
     ps.noun_candidates = noun_candidates
@@ -127,7 +129,7 @@ def parse(text: str, lexicon: Any, options: Optional[ParserOptions] = None) -> P
         stage3_enrich(ps, lexicon)
 
 
-    return ps
+    return ps_return
 
 
 
@@ -352,7 +354,7 @@ def stage3_enrich(parsed, lexicon):
         return None, i
 
     # ------------------------------------------------------------
-    # Main scan
+    # Main scan for phase 3
     # ------------------------------------------------------------
     i = 0
     while i < n:
@@ -374,7 +376,7 @@ def stage3_enrich(parsed, lexicon):
         i = next_i
 
     # ------------------------------------------------------------
-    # Write back to ParsedSyntax
+    # Write back to ParsedAction
     # ------------------------------------------------------------
     parsed.prep_phrases = prep_phrases
     parsed.direction_tokens = direction_tokens

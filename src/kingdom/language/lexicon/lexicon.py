@@ -84,7 +84,6 @@ def lex() -> Lexicon:
             uses_directions=verb.uses_directions,
         ))
 
-    print(f"Built {len(verb_entries)} verb entries")
     token_to_verb = {}
 
     for entry in verb_entries:
@@ -94,8 +93,6 @@ def lex() -> Lexicon:
         # synonyms
         for syn in entry.synonyms:
             token_to_verb[syn] = entry
-
-    print(f"Built token_to_verb mapping with {len(token_to_verb)} entries")
 
 
     # -----------------------------
@@ -120,7 +117,6 @@ def lex() -> Lexicon:
             adjectives=list(noun.adjectives),
         ))
 
-    print(f"Built {len(noun_entries)} noun entries")
 
     token_to_noun = {}
 
@@ -131,9 +127,6 @@ def lex() -> Lexicon:
         # synonyms
         for syn in entry.synonyms:
             token_to_noun[syn] = entry
-
-    print(f"Built token_to_noun mapping with {len(token_to_noun)} entries")
-    print(token_to_noun)
 
     # -----------------------------
     # Build DIRECTION entries
@@ -148,10 +141,8 @@ def lex() -> Lexicon:
             canonical=canonical,
             reverse=info["reverse"],
             synonyms=info["synonyms"],
-
         ))
 
-    print(f"Built {len(direction_entries)} direction entries")
 
     token_to_direction = {}
     for entry in direction_entries:
@@ -161,9 +152,6 @@ def lex() -> Lexicon:
         # synonyms
         for syn in entry.synonyms:
             token_to_direction[syn] = entry
-
-    print(f"Built token_to_direction mapping with {len(token_to_direction)} entries")
-    print(token_to_direction)
 
     return Lexicon(
             verbs=[ verb_entry for verb_entry in verb_entries ],

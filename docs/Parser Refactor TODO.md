@@ -1,156 +1,206 @@
-# Parser Refactor TODO (Unified + Updated)
+# Parser Refactor TODO (Unified + Updated for Interpreter Pipeline)
 
-## 0) Contract Freeze (Do First)
-Lock down the parser’s public API and data structures before writing any logic.
+The parser produces **pure syntax** only.  
+It outputs **List[ParsedAction]**, each representing one syntactic command fragment.  
+The parser does **not** perform semantic interpretation, world lookup, ambiguity resolution, or ALL expansion.
 
-### Parser API
-`parse(text, lexicon, options) -> ParsedSyntax`
+This document defines the full parser roadmap.
 
-### Lexicon Contract
-Single caller‑supplied object containing:
+---
 
-- verbs: canonical name, synonyms, modifiers, uses_directions  
-- nouns: canonical name, synonyms, adjectives (future), category tag (optional)  
-- directions: canonical name, reverse, synonyms        (note directions will no longer be in the noun class or noun registry)
-- prepositions: global list  
-- conjunctions  
-- particles (optional)  
+# 0) Contract Freeze (Do First)
 
+Freeze the parser’s public API and data structures before writing any logic.
+
+## Parser API
+```
+parse(text, lexicon, options) -> List[ParsedAction]
+```
+
+The parser returns **zero, one, or many ParsedAction objects**, one per syntactic command fragment (e.g., “unlock and open trapdoor” → two ParsedActions).
+
+## Lexicon Contract
+A single caller‑supplied object containing:
+
+- **verbs**: canonical name, synonyms, modifiers, uses_directions  
+- **nouns**: canonical name, synonyms, adjectives (future), category tag (optional)  
+- **directions**: canonical name, synonyms  
+- **prepositions**: global list  
+- **conjunctions**  
+- **particles** (optional)  
+- **stopwords** (optional)
 
 Parser must not import or depend on world/model state.
 
-### ParsedSyntax Contract
-All fields exist from day one, even if empty:
+## ParsedAction Contract (Updated)
+All fields exist from Stage 0 onward, even if empty:
 
-- raw_text  
-- normalized_text  
-- tokens[]  
-- token_spans[]  
+### Core fields
+- `raw_text`  
+- `normalized_text`  
+- `tokens[]`  
+- `token_spans[]`  
 
-### Verb fields  
-- verb_candidates[] — all matching verbs (canonical + synonyms)  
-- primary_verb — the canonical Verb object  
-- primary_verb_token — the actual token the user typed (e.g., “grab” → maps to “take”)  
-- primary_verb_canonical — the canonical verb name (“take”)  
+### Verb fields
+- `verb_candidates[]` — all matching verbs (canonical + synonyms)  
+- `primary_verb` — canonical VerbEntry  
+- `primary_verb_token` — the token the user typed  
+- `primary_verb_canonical` — canonical verb name  
 
-### Noun + phrase fields  
-- noun_candidates[]  
-- object_phrases[]  
-- prep_phrases[]  
-- conjunction_groups[]  
+### Noun + phrase fields
+- `noun_candidates[]`  
+- `object_phrases[]` — syntactic noun phrases  
+- `prep_phrases[]` — syntactic prepositional phrases  
+- `conjunction_groups[]` — syntactic grouping only  
 
-### Direction + modifier fields  
-- direction_tokens[] — raw direction tokens (syntax only)  
-- modifier_tokens[] — raw modifier tokens (syntax only; based on verb.modifiers)  
+### Direction + modifier fields
+- `direction_tokens[]` — raw direction tokens  
+- `modifier_tokens[]` — raw modifier tokens (syntax only)  
 
-### Other fields  
-- unknown_tokens[]  
-- diagnostics[]  
+### Other fields
+- `unknown_tokens[]`  
+- `diagnostics[]`  
 
-### Acceptance
-- Parser has zero world/model imports  
+## Acceptance
+- Parser has **zero world/model imports**  
 - Parser API signature is stable for all future stages  
-- Resolver and main loop can evolve without parser changes  
+- Interpreter and main loop can evolve without parser changes  
 
 ---
-## 0.5) Build Test Harness + Challenge Corpus
 
-- Create a frozen test lexicon (dummy verbs, dummy nouns, prepositions, conjunctions, stopwords)
+# 0.5) Build Test Harness + Challenge Corpus
+
+- Create a frozen test lexicon (dummy verbs, nouns, prepositions, conjunctions, stopwords)
 - Create a frozen challenge corpus (100 natural player commands)
 - Create a test harness runner that:
-  - loads the test lexicon
-  - runs each command through the parser
-  - compares ParsedSyntax to expected results
-  - supports stage‑aware validation (only check fields relevant to current stage)
-  - prints clear diffs for mismatches
-- Add a ParsedSyntax pretty‑printer for debugging
-- Add a diagnostics capture and display mechanism
-- Add optional golden‑file mode for approving complex expected results
-- Ensure the harness is independent of world/model state
-- Ensure the harness remains stable across all parser stages
+  - loads the test lexicon  
+  - runs each command through the parser  
+  - compares ParsedAction output to expected results  
+  - supports stage‑aware validation (only check fields relevant to current stage)  
+  - prints clear diffs for mismatches  
+- Add a ParsedAction pretty‑printer  
+- Add diagnostics capture  
+- Add optional golden‑file mode  
+- Ensure harness is independent of world/model state  
+- Ensure harness remains stable across all parser stages  
 
 Acceptance:
-- Test harness runs all stage‑1 tests with dummy parser
-- Harness supports incremental parser development without modification
-- Corpus and lexicon are frozen and reusable for Stage 6 diff‑logging
-
-
-
-## 1) Stage 1: Minimal Syntax Extraction
-Build the smallest useful parser that respects the frozen contract.
-
-### Responsibilities
-- Normalize + tokenize  
-- Identify verb candidates (single‑token only)  
-- Identify noun candidates (single‑token only)  
-- Identify direction tokens (syntax only)  
-- Identify modifier tokens (syntax only; based on verb.modifiers)  
-- Capture unknown tokens  
-- Populate token spans  
-- Populate `primary_verb_token` and `primary_verb_canonical`  
-
-### Acceptance
-- Deterministic output for same input + same lexicon  
-- No world access  
-- Resolver can smoke‑test basic commands  
+- Stage‑1 tests run with dummy parser  
+- Harness supports incremental development  
+- Corpus and lexicon remain frozen for Stage 6 diff‑logging  
 
 ---
 
-## 2) Stage 2: Phrase Grouping + Conjunctions
-Move from token lists to structured phrases.
+## Stage 1 — Minimal Syntax Extraction
+
+Stage 1 produces the smallest stable syntactic structure needed for later phases. It performs no grouping, no semantic inference, and no multi‑token interpretation. Every decision is based strictly on the lexicon.
 
 ### Responsibilities
-- Group noun tokens into noun phrases  
-- Attach adjectives (future)  
-- Detect conjunction chains (“apple and banana and fish”)  
-- Preserve ordering + spans  
+- Normalize input (lowercase, trim).
+- Tokenize and compute character spans.
+- Classify each token using only the lexicon:
+  - **Verb** if the token appears in `lexicon.token_to_verb` (canonical verbs + synonyms).
+  - **Noun** if the token appears in `lexicon.token_to_noun` (canonical nouns only).
+  - **Direction** if the token appears in `lexicon.token_to_direction`.
+  - **Modifier** only if it appears in the **primary verb’s** declared modifier list.
+  - **Unknown** otherwise (adjectives, particles, prepositions, conjunctions, plural nouns, unrecognized verbs, etc.).
+- Identify the **primary verb** (first recognized verb).
+- Populate Stage 1 fields on the ParsedAction:
+  - `tokens`, `token_spans`
+  - `verb_candidates` (canonical forms)
+  - `noun_candidates`
+  - `direction_tokens`
+  - `modifier_tokens`
+  - `unknown_tokens`
+  - `primary_verb_token`
+  - `primary_verb_canonical`
 
-### Acceptance
-- Resolver can distinguish single vs multiple objects  
-- ParsedSyntax expresses phrase boundaries clearly  
+### Guarantees
+- Deterministic output.
+- No world access.
+- Strict lexicon boundaries (no inference).
+- Single‑token verb model (multi‑word verbs not recognized).
+- Syntax‑only; no phrase grouping or prepositional structure.
 
 ---
 
-## 3) Stage 3: Preposition + Modifier Structure
-Introduce syntactic structure without semantics.
+## Stage 2 — Phrase Grouping and Conjunctions
+
+Stage 2 transforms the flat Stage 1 token stream into structured noun phrases and conjunction chains. It still performs no semantic interpretation and does not resolve roles like direct/indirect objects.
 
 ### Responsibilities
-- Detect prepositions (global list)  
-- Detect verb‑declared modifiers (“in”, “with”, “all”, “everything”, etc.)  
-- Build prepositional phrase structures  
-- Preserve ambiguity (e.g., “in” as both direction + modifier)  
-- No semantic role assignment  
+- Identify noun phrases (NPs):
+  - Skip particles (“the”, “a”, “an”).
+  - Collect adjectives (unknown tokens before a noun).
+  - Identify head nouns using `lexicon.token_to_noun`.
+- Detect conjunction chains:
+  - NP1 **and** NP2 → record both NPs and a conjunction group.
+- Detect prepositional phrases syntactically:
+  - Preposition + NP → record as a prepositional phrase.
+  - No semantic role assignment (e.g., not deciding “to the elf” is an indirect object).
+- Populate Stage 2 fields:
+  - `object_phrases`
+  - `conjunction_groups`
+  - `prepositional_phrases`
 
-### Acceptance
-- Resolver receives enough structure for:  
-  - “look in box”  
-  - “go in box”  
-  - “take all in the bag”  
-  - “enter in” (ambiguous)  
-- Parser remains semantics‑free  
+### Guarantees
+- Purely syntactic grouping; no meaning inferred.
+- Preserves token order and spans.
+- Handles multiple NPs and conjunction chains.
+- Prepositions recognized only by membership in `lexicon.prepositions`.
 
 ---
 
-## 4) Stage 4: Multiword + synonym Support
-Add richer lexeme matching.
+## Stage 3 — Prepositions, Modifiers, and Direction Enrichment
+
+Stage 3 enriches the Stage 2 structure with additional syntactic information. It still performs no semantic interpretation and does not resolve ambiguous cases.
 
 ### Responsibilities
-- Greedy longest‑match for multiword verbs/nouns  
-- Normalize synonyms in metadata  
-- Preserve raw tokens for debugging  
+- Identify prepositional phrases in final form:
+  - Preposition + NP → `{ prep, object }`.
+- Identify direction tokens using `lexicon.token_to_direction`.
+- Identify modifiers using the **global** modifier list (`lexicon.modifiers`).
+- Preserve ambiguity:
+  - Tokens like “in”, “up”, “inside”, “through” may be both prepositions and directions; Stage 3 records all applicable classifications.
+- Populate Stage 3 fields:
+  - `prep_phrases`
+  - `direction_tokens`
+  - `modifier_tokens`
 
-### Acceptance
-- Multiword lexemes behave as single syntax units  
-- Unknown token behavior unchanged  
+### Guarantees
+- No semantic role assignment (e.g., “give X to Y” is not interpreted).
+- No resolution of ambiguous prepositions/directions.
+- Provides enough structure for the interpreter to handle:
+  - “look in box”
+  - “go in box”
+  - “take all in the bag”
+  - “enter in” (ambiguous)
 
 ---
 
-## 5) Stage 5: Resolver Integration (No Parser Changes)
-Wire the new parser into the resolver pipeline.
 
-### Responsibilities
-- Feed ParsedSyntax into resolver  
-- Resolver handles:  
+# 3.5) Develop Interpreter (formerly Semantic Resolver)
+
+Before moving further in parser development, implement the Interpreter:
+
+- Converts ParsedAction → zero/one/many ResolvedCommands  
+- Handles ambiguity  
+- Handles ALL expansion  
+- Handles direction interpretation  
+- Handles prepositional semantics  
+- Enforces verb argument rules  
+
+Parser remains unchanged.
+
+---
+
+# 4) Stage 4: Interpreter Integration (No Parser Changes)
+
+Wire the new parser into the Interpreter pipeline.
+
+## Responsibilities
+- Feed ParsedActions into Interpreter  
+- Interpreter handles:
   - noun resolution  
   - direction interpretation  
   - ambiguity resolution  
@@ -159,46 +209,64 @@ Wire the new parser into the resolver pipeline.
   - implicit actions  
 - Parser remains unchanged  
 
-### Acceptance
-- Main loop consumes ResolvedAction, not parser internals  
+## Acceptance
+- Main loop consumes ResolvedCommands  
 - Parser API unchanged from Stage 0  
 
 ---
 
-## 6) Stage 6: Parallel Run + Diff Logging
+# 5) Stage 5: Multiword + Synonym Support
+
+Add richer lexeme matching.
+
+## Responsibilities
+- Greedy longest‑match for multiword verbs/nouns  
+- Normalize synonyms in metadata  
+- Preserve raw tokens for debugging  
+
+## Acceptance
+- Multiword lexemes behave as single syntax units  
+- Unknown token behavior unchanged  
+
+---
+
+# 6) Stage 6: Parallel Run + Diff Logging
+
 Run old and new parsers side‑by‑side.
 
-### Responsibilities
+## Responsibilities
 - Behind a debug flag, run both parsers  
 - Log diffs for curated command corpus  
 - Triage mismatches  
 
-### Acceptance
-- New parser reaches behavioral parity for target command set  
-- No regressions in normal gameplay  
+## Acceptance
+- New parser reaches behavioral parity  
+- No regressions in gameplay  
 
 ---
 
-## 7) Stage 7: Cutover + Cleanup
+# 7) Stage 7: Cutover + Cleanup
+
 Switch fully to the new parser.
 
-### Responsibilities
+## Responsibilities
 - Replace old parser path  
 - Remove adapters + transitional code  
 - Keep test harness + corpus for regression  
 
-### Acceptance
+## Acceptance
 - Gameplay sanity checks pass  
 - No dead parser code remains  
 
 ---
 
 # Lexicon Contract (Updated)
+
 A single object passed into the parser:
 
 - verbs: canonical name, synonyms, modifiers, uses_directions  
 - nouns: canonical name, synonyms, adjectives (future), category tag (optional)  
-- directions: canonical name, synonyms
+- directions: canonical name, synonyms  
 - prepositions: global list  
 - conjunctions  
 - particles (optional)  
@@ -208,31 +276,33 @@ Parser must not depend on world state or global registries.
 
 ---
 
-# ParsedSyntax Contract (Updated)
+# ParsedAction Contract (Updated)
+
 All fields exist from Stage 0 onward:
 
+### Core
 - raw_text  
 - normalized_text  
 - tokens[]  
 - token_spans[]  
 
-### Verb fields  
+### Verb fields
 - verb_candidates[]  
 - primary_verb  
 - primary_verb_token  
 - primary_verb_canonical  
 
-### Noun + phrase fields  
+### Noun + phrase fields
 - noun_candidates[]  
 - object_phrases[]  
 - prep_phrases[]  
 - conjunction_groups[]  
 
-### Direction + modifier fields  
+### Direction + modifier fields
 - direction_tokens[]  
 - modifier_tokens[]  
 
-### Other fields  
+### Other fields
 - unknown_tokens[]  
 - diagnostics[]  
 

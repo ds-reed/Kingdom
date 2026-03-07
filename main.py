@@ -6,6 +6,7 @@ See demo.py for gameplay examples.
 
 from pathlib import Path
 import argparse
+from pydoc import text
 import random
 import sys
 sys.path.append("./src")
@@ -28,6 +29,14 @@ from kingdom.model.verb_model import Verb
 from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names
 
 from kingdom.language.lexicon.lexicon import Lexicon, lex
+
+
+
+
+from kingdom.language.parser.parser import parse
+
+
+
 
 #------------------ Design Note: Main Refactor (v2) ------------------
 def init_game_state() -> World | None:
@@ -75,7 +84,7 @@ def init_game_state() -> World | None:
         print(f"Critical error during game initialization: {e}")
         return None
     
-    return world   # initialization successful
+    return world, lexicon   # initialization successful
 
 def handle_game_over(
     game_over: GameOver,
@@ -249,10 +258,14 @@ def main() -> None:
 
     try:
         
-        world = init_game_state()
+        world, lexicon = init_game_state()
    
         if not world:
             print(f"Failed to initialize world. Please check logfile for details.")
+            return
+        
+        if not lexicon:
+            print(f"Failed to initialize lexicon. Please check logfile for details.")
             return
         
         recovery_mode = False
@@ -262,6 +275,16 @@ def main() -> None:
             ui.print("\n")  # Add spacing before prompt
             command = ui.prompt("Enter command: ")
             ui.print("\n")  # Add spacing after command input
+
+            if command =="test new parser":
+                while True:
+                    command = ui.prompt("Enter command to parse: ") 
+                    if command != "stop":
+                        parsed_command = parse(command, lexicon)
+                        ui.print(f"Parsed command: {parsed_command}")
+                    else:
+                        break
+
 
             should_quit, recovery_mode, output = process_command(
                 command=command,

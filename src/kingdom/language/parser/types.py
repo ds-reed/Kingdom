@@ -15,7 +15,7 @@ class Diagnostic:
 
 
 @dataclass
-class ParsedSyntax:
+class ParsedAction:
     # Core text + tokens
     raw_text: str = ""
     normalized_text: str = ""
