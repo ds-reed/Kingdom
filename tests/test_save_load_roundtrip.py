@@ -3,17 +3,17 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.append("./src")
+sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.noun_model import World, Player, Room, Container, Item
-from kingdom.model.game_init import init_session, get_action_state, setup_world
-from kingdom.model.game_persistence import save_game, load_game
+from kingdom.model.game_init import get_action_state, init_session, reset_all_state, setup_world
+from kingdom.model.game_persistence import load_game, save_game
+from kingdom.model.noun_model import Container, Item, Player, Room, World
 
 
 ROOM_FIELDS = [
     "name",
     "description",
-    "visited",
+    "found",
     "is_dark",
     "has_water",
     "dark_description",
@@ -102,12 +102,14 @@ def _compare_fields(entity_name: str, before_obj, after_obj, fields: list[str]) 
     return mismatches
 
 
-def main() -> int:
+def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_path: Path) -> None:
+    reset_all_state()
+
     base_dir = Path(__file__).resolve().parents[1]
     data_path = base_dir / "data" / "initial_state.json"
-    save_path = base_dir / "data" / "roundtrip_validation.tmp.json"
+    save_path = tmp_path / "roundtrip_validation.tmp.json"
 
-    game = World.get_instance()
+    game = World()
     setup_world(game, data_path)
 
     player = Player("RoundtripHero")
@@ -127,7 +129,7 @@ def main() -> int:
     sentinel_room = Room(
         name="__roundtrip_room__",
         description="Roundtrip validation room",
-        visited=True,
+        found=True,
         is_dark=True,
         has_water=True,
         dark_description="Pitch black sentinel room",
@@ -205,22 +207,16 @@ def main() -> int:
     load_game(game, save_path)
 
     loaded_room = game.rooms.get("__roundtrip_room__")
-    if loaded_room is None:
-        print("FAIL: sentinel room missing after load")
-        return 1
+    assert loaded_room is not None, "sentinel room missing after load"
 
     loaded_container = next(
-        (container for container in loaded_room.containers if container.canonical_name() == "rt_box"),
+        (container for container in loaded_room.containers if container.obj_handle() == "rt_box"),
         None,
     )
-    if loaded_container is None:
-        print("FAIL: sentinel container missing after load")
-        return 1
+    assert loaded_container is not None, "sentinel container missing after load"
 
     loaded_item = next((item for item in loaded_room.items if item.obj_handle() == "rt_item"), None)
-    if loaded_item is None:
-        print("FAIL: sentinel item missing after load")
-        return 1
+    assert loaded_item is not None, "sentinel item missing after load"
 
     mismatches: list[str] = []
     mismatches.extend(_compare_fields("Room", sentinel_room, loaded_room, ROOM_FIELDS))
@@ -248,18 +244,6 @@ def main() -> int:
             f"after={sorted(loaded_room.hidden_directions)!r}"
         )
 
-    if save_path.exists():
-        save_path.unlink()
-
-    if mismatches:
-        print("FAIL: save/load roundtrip mismatches detected")
-        for mismatch in mismatches:
-            print(f" - {mismatch}")
-        return 1
-
-    print("PASS: save/load roundtrip preserves all tracked Room/Container/Item constructor fields")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    assert not mismatches, "save/load roundtrip mismatches detected:\n" + "\n".join(
+        f" - {mismatch}" for mismatch in mismatches
+    )

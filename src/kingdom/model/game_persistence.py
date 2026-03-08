@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from pathlib import Path 
 
 from . import game_init as model_api
 from .noun_model import Player, Item, DIRECTIONS
@@ -11,17 +11,17 @@ def _serialize_directions() -> dict[str, dict[str, object]]:
     payload: dict[str, dict[str, object]] = {}
 
     for canonical in sorted(DIRECTIONS.canonical):
-        aliases = sorted(
-            alias
-            for alias, target in DIRECTIONS.aliases.items()
+        synonyms = sorted(
+            synonym
+            for synonym, target in DIRECTIONS.synonyms.items()
             if target == canonical
         )
         entry: dict[str, object] = {}
         reverse = DIRECTIONS.reverse_of(canonical)
         if reverse is not None:
             entry["reverse"] = reverse
-        if aliases:
-            entry["aliases"] = aliases
+        if synonyms:
+            entry["synonyms"] = synonyms
         payload[canonical] = entry
 
     return payload

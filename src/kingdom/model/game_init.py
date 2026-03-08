@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
+from kingdom.model.direction_model import NewDirectionRegistry, NewDIRECTIONS
 from kingdom.model.noun_model import (
     Noun,
     DIRECTIONS,
@@ -108,6 +109,13 @@ def reset_all_state() -> None:
     _action_state = None
     _prefs = None
 
+    # Keep noun registries clean across hard session resets.
+    Container.all_containers.clear()
+    Noun.all_nouns.clear()
+    Noun._by_name = {}
+    DirectionNoun._direction_nouns_by_reference = {}
+    DirectionNoun._direction_nouns_by_canonical = {}
+
 
 class GameOver(Exception):
     pass
@@ -132,17 +140,12 @@ def setup_world(world: World, source):
         raise TypeError("setup_world expects a filepath or a dict")
 
     # Clear all registries before reconstructing world entities.
-    Room.all_rooms.clear()
     Container.all_containers.clear()
-    Item.all_items.clear()
-    Feature.all_features.clear()
     Noun.all_nouns.clear()
-
-    Room._by_name = {}
-    Container._by_name = {}
-    Item._by_name = {}
-    Feature._by_name = {}
     Noun._by_name = {}
+    DirectionNoun._direction_nouns_by_reference = {}
+    DirectionNoun._direction_nouns_by_canonical = {}
+
 
     _load_directions(data)
     DirectionNoun.ensure_direction_nouns()
@@ -190,8 +193,13 @@ def _load_directions(json_data):
     for canonical, info in directions.items():
         DIRECTIONS.register(
             canonical,
-            synonyms=info.get("aliases", []),
+            synonyms=info.get("synonyms", []),
             reverse=info.get("reverse"),
+        )
+        NewDIRECTIONS.register(         #only used for new parser right now, but will replace OLD DIRECTIONS later
+            canonical,
+            synonyms=info.get("synonyms", []),
+            reverse=info.get("reverse"),  
         )
 
 
@@ -201,7 +209,6 @@ def _construct_containers(data):
     Expects `data` to be a list of dicts with keys like 'name', 'description', 'items', etc.
     """
     Container.all_containers.clear()           # Clear for clean load
-    Container._by_name.clear()
 
     for entry in data:
         container = _construct_container_from_spec(entry)
@@ -262,8 +269,8 @@ def _construct_feature_from_spec(feature_spec) -> "Feature":
         normalized["description"] = normalized["name"]
 
     synonyms = normalized.get("synonyms")
-    if synonyms is not None and not isinstance(synonyms, set):
-        normalized["synonyms"] = set(synonyms)
+    if synonyms is not None and not isinstance(synonyms, list):
+        normalized["synonyms"] = list(synonyms)
 
     constructor_kwargs = {
         key: value
@@ -279,18 +286,20 @@ def _construct_rooms(data):
     Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
     Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
     """
-    Room.all_rooms.clear()  # Clear existing rooms for a clean load
+    rooms: list[Room] = []
     pending_connections = []
     for entry in data:
         room = Room(
             entry.get("name"),
             entry.get("description", ""),
-            visited=entry.get("visited", False),
+            found=entry.get("found", False),
             is_dark=entry.get("is_dark", False),
             has_water=entry.get("has_water", False),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
-        )        
+        )
+        rooms.append(room)
+
         # Add items to the room
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
@@ -314,7 +323,7 @@ def _construct_rooms(data):
         hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))
         pending_connections.append((room, entry.get("connections", {}), hidden_directions))
 
-    room_by_name = {room.name: room for room in Room.all_rooms}
+    room_by_name = {room.name: room for room in rooms}
     for room, raw_connections, hidden_exits in pending_connections:
         if isinstance(raw_connections, dict):
             iterable = raw_connections.items()
@@ -361,5 +370,5 @@ def _construct_rooms(data):
 
         room.swim_exits = resolved_swim_exits
 
-    return Room.all_rooms
+    return rooms
 

@@ -6,26 +6,34 @@ See demo.py for gameplay examples.
 
 from pathlib import Path
 import argparse
+from pydoc import text
 import random
 import sys
 sys.path.append("./src")
 
 from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.model.noun_model import World, Player, Room
-from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
-from kingdom.model.game_persistence import save_game, load_game
-from kingdom.renderer import render_current_room
-from kingdom.language.lexicon.verb_registry import build_verb_registry
-from kingdom.parser import resolve_command
 from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal_session
 
 from kingdom.UI import ui
 
+#  model modules
+from kingdom.model.noun_model import Noun, World, Player, Room
+from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
+from kingdom.model.game_persistence import save_game, load_game
 from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs, setup_world
 from kingdom.model.verb_model import Verb
 
-# new imports from main refactor - should all be temporary
-from kingdom.resolver import  _resolve_target_noun, iter_known_noun_names
+from kingdom.renderer import render_current_room
+
+from kingdom.verbs.verb_registration import register_verbs
+
+
+# language modules
+from kingdom.language.lexicon import Lexicon, lex
+from kingdom.language.parser import parse
+from kingdom.language.interpreter import interpret
+from kingdom.language.executor import execute  
+
 
 
 
@@ -63,7 +71,9 @@ def init_game_state() -> World | None:
         #------------------------------------------------------------
 
         # Build verbs for parser access
-        Verb.registry = build_verb_registry()
+        register_verbs()
+        
+        lexicon = lex()  # build lexicon for parser access
 
 
         lines = render_current_room(action_state, display=False)
@@ -73,7 +83,7 @@ def init_game_state() -> World | None:
         print(f"Critical error during game initialization: {e}")
         return None
     
-    return world   # initialization successful
+    return world, lexicon   # initialization successful
 
 def handle_game_over(
     game_over: GameOver,
@@ -121,9 +131,8 @@ def handle_game_over(
 
 def process_command(
     command: str,
-    verbs: dict,
     world: World,
-    action_state: GameActionState,
+    lexicon: Lexicon,
     recovery_mode: bool,
 ) -> tuple[bool, bool, str | None]:
     '''
@@ -133,35 +142,29 @@ def process_command(
 
     recovery_mode — the updated recovery mode flag.
     '''
-    
-    recovery_allowed_verbs = {"load", "restore", "quit", "q", "exit", "help", "commands"}
+    result = None
 
-    current_room = action_state.current_room
     if not command:
         return False, recovery_mode, None
 
-    resolved_command = resolve_command(
-        command,
-        known_verbs=verbs.keys(),
-        known_nouns=iter_known_noun_names(world),
-    )
+    current_room_before_command = world.state.current_room
 
-    if resolved_command is None:
+    parsed = parse(command, lexicon)
+
+    interpreted = interpret(parsed, world, lexicon)
+
+    if interpreted is None:
         return False, recovery_mode, "I don't understand that command."
 
-    verb_word = resolved_command.verb
-    args = resolved_command.args
-    target_noun = _resolve_target_noun(world, action_state, resolved_command)
-
-    if recovery_mode and verb_word not in recovery_allowed_verbs:
-        return False, recovery_mode, "You are dead. Load a saved game or quit."
-
-    verb = verbs.get(verb_word)
-    if verb is None:
-        return False, recovery_mode, "I don't understand that command."
+    if recovery_mode:
+        verb_word = interpreted[0].verb.canonical if interpreted[0].verb else None
+        if verb_word not in {"load", "quit", "help"}:
+            return False, recovery_mode, "You are dead. Load a saved game or quit."
 
     try:
-        result = verb.execute(target_noun, args)
+        for cmd in interpreted:
+            outcome = execute(cmd, world, lexicon)
+            ui.print(outcome.message if outcome else "Command executed.")
 
     except LoadGame:
         path=ui.request_load()
@@ -217,7 +220,7 @@ def process_command(
         recovery_mode = False
 
     if result:
-        current_room.visited = True
+        current_room_before_command.found = True    #fix: this should happen in the move verb
 
     return False, recovery_mode, result
 
@@ -247,10 +250,14 @@ def main() -> None:
 
     try:
         
-        world = init_game_state()
+        world, lexicon = init_game_state()
    
         if not world:
             print(f"Failed to initialize world. Please check logfile for details.")
+            return
+        
+        if not lexicon:
+            print(f"Failed to initialize lexicon. Please check logfile for details.")
             return
         
         recovery_mode = False
@@ -261,19 +268,18 @@ def main() -> None:
             command = ui.prompt("Enter command: ")
             ui.print("\n")  # Add spacing after command input
 
+
             should_quit, recovery_mode, output = process_command(
                 command=command,
-                verbs=Verb.registry,
                 world=world,
-                action_state=get_action_state(),
+                lexicon=lexicon,
                 recovery_mode=recovery_mode,
             )
 
             if should_quit:
                 break
 
-            if output:
-                ui.print(output)
+            ui.print(output) if output else None
 
     finally:
         logger.stop()

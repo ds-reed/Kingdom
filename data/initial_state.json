@@ -1,10 +1,10 @@
 {
-    "directions": { "north": { "reverse": "south", "aliases": ["n"] },
-                    "south": { "reverse": "north", "aliases": ["s"] },
-                    "east":  { "reverse": "west",  "aliases": ["e"] },
-                    "west":  { "reverse": "east",  "aliases": ["w"] },
-                    "up":    { "reverse": "down",  "aliases": ["u"] },
-                    "down":  { "reverse": "up",    "aliases": ["d"] }
+    "directions": { "north": { "reverse": "south", "synonyms": ["n"] },
+                    "south": { "reverse": "north", "synonyms": ["s"] },
+                    "east":  { "reverse": "west",  "synonyms": ["e"] },
+                    "west":  { "reverse": "east",  "synonyms": ["w"] },
+                    "up":    { "reverse": "down",  "synonyms": ["u"] },
+                    "down":  { "reverse": "up",    "synonyms": ["d"] }
     },
     "score": 0,
     "start_room": "Tower Cell",
@@ -17,6 +17,7 @@
                 {
                     "name": "djinni",
                     "description": "an imposing djinni",
+                    "adjectives": ["imposing", "tall"],
                     "is_gettable": false,
                     "is_verbally_interactive": true,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
@@ -34,6 +35,7 @@
                 {
                     "name": "torch",
                     "description": "an old wooden torch",
+                    "adjective": ["old", "wooden"],
                     "is_lightable": true,
                     "is_lit": false,
                     "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls."
@@ -41,6 +43,7 @@
                 {
                     "name": "bean",
                     "description": "a single shiny bean",
+                    "adjectives": ["single", "shiny"],
                     "is_gettable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
@@ -49,6 +52,7 @@
                 {
                     "name": "broach",
                     "description": "an ornate broach",
+                    "adjectives": ["ornate"],
                     "is_openable": true,
                     "is_open": false,
                     "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
@@ -58,12 +62,13 @@
                 {
                     "name": "trapdoor",
                     "description": "a rusty iron trapdoor",
+                    "adjectives": ["rusty", "iron"],
                     "is_gettable": false,
                     "is_openable": true,
                     "is_open": false,
                     "is_lockable": true,
                     "is_locked": true,
-                    "unlock_key": "key",
+                    "unlock_key": "small brass key",
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key.",
@@ -76,13 +81,15 @@
             "Features": [
                 {
                     "name": "ladder",
-                    "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass."
+                    "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+                    "adjectives": ["magic", "glittering", "soft blue"]
                 }
             ],
             "Containers": [
                 {
                     "name": "bag",
                     "description": "a greasy brown lunch bag",
+                    "adjectives": ["greasy", "brown"],
                     "is_openable": true,
                     "is_open": false,
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
@@ -94,6 +101,7 @@
                         {
                             "name": "carrot",
                             "description": "a cheery orange carrot",
+                            "adjectives": ["cheery", "orange"],
                             "is_edible": true,
                             "examine_string": "The carrot cheerfully waves hello!",
                             "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
@@ -101,16 +109,20 @@
                         {
                             "name": "fish",
                             "description": "a suspicious looking fish",
+                            "adjectives": ["suspicious-looking"],
                             "special_handlers": {"eat": "eat_fish"},
                             "is_edible": true
                         },
                         {
-                            "name": "a small brass key",
-                            "description": "a small brass key"
+                            "name": "key",
+                            "description": "a small brass key",
+                            "adjectives": ["small", "brass"],
+                            "unlock_key": "small brass key"
                         },
                         {
                             "name": "lamp",
                             "description": "a battered and dull brass lamp",
+                            "adjectives": ["battered", "dull", "brass"],
                             "is_rubbable": true,
                             "is_rubbed": false,
                             "rub_success_string": "The lamp grows shiny from rubbing.",
@@ -121,6 +133,7 @@
                         {
                             "name": "lighter",
                             "description": "a cheap plastic lighter",
+                            "adjectives": ["cheap", "plastic"],
                             "can_ignite": true,
                             "ignite_success_string": "You flick the lighter and a small flame appears."
                         }
@@ -143,7 +156,8 @@
             "features": [
                 {
                     "name": "mural",
-                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements."
+                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements.",
+                    "synonyms": ["djinni mural", "wall mural", "painting"]
                 }
             ],
             "Containers": [],
@@ -161,6 +175,8 @@
                 {
                     "name": "gold",
                     "description": "a heavy solid gold bar",
+                    "synonyms": ["gold bar", "bar of gold", "bar"],
+                    "adjectives": ["heavy", "solid"],
                     "too_heavy_to_swim": true
                 }
             ],
@@ -183,6 +199,7 @@
                 {
                     "name": "lantern",
                     "description": "a lit silver lantern",
+                    "adjectives": ["silver"],
                     "light_source": true,
                     "is_lit": true
                 }

@@ -30,8 +30,8 @@ lexicon: caller-supplied vocabulary object (no global registries)
 options: parser behavior flags/toggles (optional defaults allowed)
 Lexicon shape (single object, extensible)
 
-verbs (canonical + aliases)
-nouns (canonical + aliases, optional category tag)
+verbs (canonical + synonyms)
+nouns (canonical + synonyms, optional category tag)
 prepositions
 conjunctions
 particles (optional)

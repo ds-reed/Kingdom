@@ -18,7 +18,7 @@ class VerbHandler:
     It supports a standard pipeline for verb excution as follows:
     1. The parser identifies the verb and resolves a target noun.
     2. The verb dispatcher calls the corresponding method on the appropriate 
-    VerbHandler subclass, passing context token, target noun, and leftover words.
+    VerbHandler subclass, passing target noun, and leftover words.
     3. The verb handler method uses the following flow
          - First call self.resolve_noun_or_word() to parse the target noun and any keywords 
            of interest from the leftover words.
@@ -163,6 +163,38 @@ class VerbHandler:
 
         return result
 
+    def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None):
+
+        if capability_attr and not getattr(target, capability_attr, False):
+            return self.cannot(target, verb_phrase)
+
+        if current_state_attr is not None:
+            current = getattr(target, current_state_attr, None)
+            if current == desired_state:
+                return self.already(target, already_msg)
+
+        return None
+    
+    def require_item(self, *, required_type:str, required_name:str = None, noun:Noun = None, verb_phrase=None, object:str = None) -> Optional[str]:
+        player = self.player()
+        inventory = player.get_inventory_items()
+        for item in inventory:
+ #           if the item has an attribute matching the string required type and the value of that attribute matches the required name, then we consider the requirement met. This allows for flexible requirements like "a key that unlocks the chest" without hardcoding specific item names in the verb handler.
+            if hasattr(item, required_type):
+                if required_name is None or getattr(item, required_type) == required_name:
+                    return None  # requirement met
+        else:
+            return f"You don't have the right {object} to {verb_phrase} the {noun.canonical_name()}."
+
+    def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
+        required = Item.get_by_name(required_name)
+        if required is None:
+             print(f"Error: Required noun '{required_name}' not found in game data for {verb_phrase}.")
+             return None
+        return required   
+
+  
+
     # ------------------------------------------------------------
     # ALL-handling framework  - needs a re-write
     # ------------------------------------------------------------
@@ -214,7 +246,7 @@ class VerbHandler:
         if room.has_item(item):      # ← use your Room helper
             return self.ItemLocation(self.LocationType.ROOM_FLOOR)
 
-        # 3. The item is a containerand is present in the room itself
+        # 3. The item is a container and is present in the room itself
         if isinstance(item, Container) and room.has_container(item):   # ← use your Room helper
             return self.ItemLocation(self.LocationType.CONTAINER_IN_ROOM)
 
@@ -230,7 +262,7 @@ class VerbHandler:
     # ------------------------------------------------------------
     def is_direction(self, token: str) -> bool:
         """
-        True if the token is a known direction or alias.
+        True if the token is a known direction or synonym.
         """
         if not token:
             return False

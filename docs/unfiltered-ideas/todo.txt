@@ -36,7 +36,7 @@ Kingdom TODO (Outstanding Only)
 
 9) Real content wiring (wait for canonical data file)
     [ ] Replace temporary mechanics-test rooms/items with canonical world data
-    [ ] Re-map room/item IDs and noun aliases to final data-file naming
+    [ ] Re-map room/item IDs and noun synonyms to final data-file naming
     [ ] Re-validate trapdoor/lighting/Djinni/swim flows against canonical layout
 
 10) Gameplay guidance/scoring (deferred)

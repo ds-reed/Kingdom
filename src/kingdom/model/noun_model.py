@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from typing import Any, Optional, List, Dict, ClassVar
+from typing import Any, Optional, List, Dict, ClassVar, Iterator
+from kingdom.utilities import normalize_key
 
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
@@ -29,32 +30,88 @@ class Noun:
     def _register_noun(self) -> None:
         Noun.all_nouns.append(self)
 
-        key = " ".join(_normalize_tokens(self.obj_handle()))
-        if key:
+        for key in self._registry_keys():
             Noun._by_name[key] = self
 
-    def _normalized_identity_tokens(self) -> set[str]:
-        return {
+    def _registry_keys(self) -> list[str]:
+        canonical_key = normalize_key(self.canonical_name())
+        return [canonical_key] if canonical_key else []
+
+    def _normalized_identity_tokens(self) -> list[str]:
+        return [
             " ".join(_normalize_tokens(self.canonical_name())),
             " ".join(_normalize_tokens(self.display_name())),
             " ".join(_normalize_tokens(self.obj_handle())),
-        }
+        ]
+
+
+    # ───────────────────────────────────────────────
+    # Noun interface methods
+    # ───────────────────────────────────────────────
+
 
     def canonical_name(self) -> str:
         return self.name
 
     def display_name(self) -> str:
-        return self.description or self.name
+        return self.description
 
     def obj_handle(self) -> str:
-        """Stable parser / lookup key"""
-        handle = getattr(self, "handle", None)
-        if handle:
-            return str(handle)
-        return _derive_handle(self.name) or self.name.lower()
+        return self.handle
+    
+    def synonym_names(self) -> list[str]:
+        return self.synonyms  
 
-    def get_name(self):
-        return self.name
+    @classmethod
+    def get_by_name(cls, name: str) -> "Noun | None":
+        candidate = normalize_key(name)
+        if not candidate:
+            return None
+
+        noun = Noun._by_name.get(candidate)
+        if noun is None:
+            return None
+
+        if cls is Noun or isinstance(noun, cls):
+            return noun
+
+        return None
+
+    @classmethod
+    def get_all(cls):
+        for noun in cls._by_name.values():
+            yield noun
+
+    @classmethod
+    def iter_by_type(cls, class_name: str) -> Iterator["Noun"]:
+        target = str(class_name).strip().lower() if class_name else ""
+        if not target:
+            return
+        for noun in cls._by_name.values():
+            if noun.get_class_name().lower() == target:
+                yield noun
+
+    @classmethod
+    def get_typed_by_name(cls, name: str, class_name: str) -> "Noun | None":
+        candidate = normalize_key(name)
+        if not candidate:
+            return None
+
+        typed_match = None
+        for noun in cls.iter_by_type(class_name):
+            if normalize_key(noun.canonical_name()) == candidate:
+                typed_match = noun
+                break
+
+        if typed_match is not None:
+            return typed_match
+
+        return None
+
+    @classmethod
+    def get_class_name(cls) -> str :
+        return cls.__name__
+
 
     def matches_reference(self, reference: str) -> bool:
         candidate = " ".join(_normalize_tokens(reference))
@@ -62,12 +119,6 @@ class Noun:
             return False
 
         return candidate in self._normalized_identity_tokens()
-
-    def get_presence_text(self):
-        return f"There is {self.name} here."
-
-    def on_unlock(self, words):
-        return None
 
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
@@ -101,27 +152,27 @@ class Noun:
 
 class DirectionRegistry:
     def __init__(self):
-        self.canonical = set()
-        self.aliases = {}
+        self.canonical = []
+        self.synonyms = {}
         self.reverse = {}
 
     def register(self, canonical: str, *, synonyms=None, reverse=None):
         canonical = canonical.lower().strip()
-        self.canonical.add(canonical)
+        self.canonical.append(canonical)
 
         if synonyms:
             for synonym in synonyms:
-                self.aliases[synonym.lower().strip()] = canonical
+                self.synonyms[synonym.lower().strip()] = canonical
 
         if reverse:
             reverse = reverse.lower().strip()
             self.reverse[canonical] = reverse
             self.reverse[reverse] = canonical
-            self.canonical.add(reverse)
+            self.canonical.append(reverse)
 
     def to_canonical(self, token: str) -> str:
         token = token.lower().strip()
-        return self.aliases.get(token, token)
+        return self.synonyms.get(token, token)
 
     def reverse_of(self, canonical: str) -> str | None:
         canonical = canonical.lower().strip()
@@ -132,6 +183,13 @@ class DirectionRegistry:
 
     def all_directions(self):
         return sorted(self.canonical)
+    
+    def all_synonyms(self):
+        return sorted(self.synonyms.keys())
+    
+    def __repr__(self):
+        return f"DirectionRegistry(canonical={self.canonical}, synonyms={self.synonyms}, reverse={self.reverse})"
+    
 DIRECTIONS = DirectionRegistry()
 
 
@@ -149,7 +207,7 @@ class DirectionNoun(Noun):
     def __post_init__(self):
         self.name = str(self.name).strip().lower()
         self.canonical_direction = DIRECTIONS.to_canonical(str(self.canonical_direction).strip().lower())
-        self.handle = (self.handle or self.name).strip().lower()
+        self.handle = normalize_key(self.handle or self.name)
         self.description = self.description or self.name
 
         super().__init__()
@@ -171,9 +229,9 @@ class DirectionNoun(Noun):
             DirectionNoun._direction_nouns_by_reference[canonical] = direction_noun
             DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
 
-        for alias, canonical in DIRECTIONS.aliases.items():
-            direction_noun = DirectionNoun(alias, canonical)
-            DirectionNoun._direction_nouns_by_reference[alias] = direction_noun
+        for synonym, canonical in DIRECTIONS.synonyms.items():
+            direction_noun = DirectionNoun(synonym, canonical)
+            DirectionNoun._direction_nouns_by_reference[synonym] = direction_noun
             DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
 
     def get_direction_noun(token: str) -> "DirectionNoun | None":
@@ -196,12 +254,13 @@ class DirectionNoun(Noun):
 
 @dataclass
 class Item(Noun):
-    all_items: ClassVar[List["Item"]] = []
-    _by_name: ClassVar[Dict[str, "Item"]] = {}
-
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+
+    found: bool = False
     is_gettable: bool = True
     refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     presence_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -244,21 +303,12 @@ class Item(Noun):
     is_broken: bool = field(default=False, init=False)
 
     def __post_init__(self):
-        super().__init__()
-
         self.description = self.description or self.name
 
         # Set parser handle: explicit → derived → fallback
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
+        self.handle = normalize_key(self.handle or self.name)
 
-        searchkey = self.handle
-        if searchkey in Item._by_name:
-            print(f"Warning: duplicate item name '{searchkey}' - overwriting previous")
-        Item._by_name[searchkey] = self
+        super().__init__()
 
         self.is_gettable = bool(self.is_gettable)
         self.refuse_string = self.refuse_string
@@ -299,40 +349,6 @@ class Item(Noun):
         else:
             self.special_handlers = dict(self.special_handlers)
 
-        Item.all_items.append(self)
-
-    @classmethod
-    def get_by_name(cls, name: str) -> "Item | None":
-        if not name:
-            return None
-        key = str(name).strip().lower()
-        return cls._by_name.get(key)
-
-    def get_presence_text(self):
-        if self.is_lockable and self.is_locked and self.locked_state_description:
-            return self.locked_state_description
-        if self.is_openable:
-            if self.is_open and self.opened_state_description:
-                return self.opened_state_description
-            if not self.is_open and self.closed_state_description:
-                return self.closed_state_description
-        if self.is_lightable:
-            if self.is_lit and self.lit_state_description:
-                return self.lit_state_description
-            if not self.is_lit and self.unlit_state_description:
-                return self.unlit_state_description
-        if self.presence_string:
-            return self.presence_string
-        return f"There is {self.name} here."
-
-
-    def can_handle_verb(self, verb_name: str, *args, **kwargs) -> tuple[bool, str | None]:
-        if verb_name == "take" and not self.is_gettable:
-            return False, self.refuse_string
-        if verb_name == "eat":
-            return True, None
-        return super().can_handle_verb(verb_name, *args, **kwargs)
-
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
 
@@ -342,12 +358,6 @@ class Item(Noun):
                 return handled_result
 
         return super().handle_verb(verb_name, *args, **kwargs)
-
-    def canonical_name(self):
-        return self.name
-
-    def display_name(self):
-        return self.description or self.name
 
     def to_dict(self) -> dict:
         """
@@ -413,8 +423,6 @@ def serialize_non_default(obj: Any) -> dict:
         # Default: omit None / False / default value
         if value is None:
             continue
-        if isinstance(value, bool) and not value:
-            continue
         if value == f.default:
             continue
 
@@ -429,19 +437,15 @@ class Container(Noun):
     A container that can hold items, be opened/closed, locked, etc.
     """
     all_containers: ClassVar[List["Container"]] = []
-    _by_name: ClassVar[Dict[str, "Container"]] = {}
-
-    # Required: what the player sees / reads in text
+    # Required by noun class
     name: str = field(metadata={"persist": "always"})
-
-    # Optional override: parser/search key (stable, lowercase)
-    # Auto-derived from name if missing
-    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-
-    # Optional long text for examine/look
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
     # Normal optional fields
+    found: bool = False
     capacity: Optional[int] = None
     is_openable: bool = False
     is_open: bool = field(default=False, metadata={"persist_if_parent": "is_openable"})
@@ -461,36 +465,12 @@ class Container(Noun):
     contents: List["Item"] = field(default_factory=list, init=False)
 
     def __post_init__(self):
+        self.description = self.description or self.name
+        self.handle = normalize_key(self.handle or self.name)
+
         super().__init__()
-
-        # Set parser handle: explicit → derived → fallback
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
-
-        # Register using parser-friendly handle (lowercased)
-        searchkey = self.handle.lower()
-        if searchkey in Container._by_name:
-            print(f"Warning: duplicate handle '{searchkey}' — overwriting previous")
-        Container._by_name[searchkey] = self
         Container.all_containers.append(self)
 
-    # ───────────────────────────────────────────────
-    # Noun interface methods
-    # ───────────────────────────────────────────────
-
-    def canonical_name(self) -> str:
-        return self.name
-
-    def display_name(self) -> str:
-        return self.description or self.name
-
-    def obj_handle(self) -> str:
-        """Stable parser / lookup key"""
-        return self.handle
-    
     # ───────────────────────────────────────────────
     # Item interface methods
     # ───────────────────────────────────────────────
@@ -580,26 +560,22 @@ class Player:
     def get_inventory_items(self):
         return self.sack.contents
 
-    def canonical_name(self):
-        return self.name.lower()
-
-    def display_name(self):
-        return self.name
 
 
 @dataclass
 class Room(Noun):
-    all_rooms: ClassVar[List["Room"]] = []
     DIRECTIONS: ClassVar[list[str] | set[str]] = []
-    _by_name: ClassVar[Dict[str, "Room"]] = {}
 
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
-    visited: bool = False
-    is_dark: bool = False
-    has_water: bool = False
-    dark_description: Optional[str] = None
-    discover_points: int = 10
+    handle: str = field(default=None, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    found: bool = field(default=False, metadata={"persist": "if_set"})
+    is_dark: bool = field(default=False, metadata={"persist": "if_set"})
+    has_water: bool = field(default=False, metadata={"persist": "if_set"})
+    dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    discover_points: int = field(default=10, metadata={"persist": "if_set"})
 
     swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
     items: List["Item"] = field(default_factory=list, init=False)
@@ -609,21 +585,16 @@ class Room(Noun):
     hidden_directions: set[str] = field(default_factory=set, init=False)
 
     def __post_init__(self):
-        super().__init__()
-
         self.name = str(self.name)
         self.description = str(self.description)
-        self.visited = bool(self.visited)
+        self.found = bool(self.found)
         self.is_dark = bool(self.is_dark)
         self.has_water = bool(self.has_water)
         self.dark_description = self.dark_description or None
         self.discover_points = max(0, int(self.discover_points))
+        self.handle = normalize_key(self.handle or self.name)
 
-        searchkey = self.name.lower()
-        if searchkey in Room._by_name:
-            print(f"Warning: duplicate room name '{searchkey}' — overwriting previous")
-        Room._by_name[searchkey] = self
-        Room.all_rooms.append(self)
+        super().__init__()
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -631,7 +602,7 @@ class Room(Noun):
         features_str = [f.display_name() for f in self.features]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', visited={self.visited}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
@@ -753,7 +724,7 @@ class Room(Noun):
 
         payload.setdefault("name", self.name)
         payload.setdefault("description", self.description)
-        payload["visited"] = bool(self.visited)
+        payload["found"] = bool(self.found)
         payload["is_dark"] = bool(self.is_dark)
         payload["has_water"] = bool(self.has_water)
         payload["dark_description"] = self.dark_description
@@ -777,59 +748,45 @@ class Room(Noun):
     def _serialize_room(self) -> dict:
         return self.to_dict()
 
-    def canonical_name(self):
-        return self.name
-
-    def display_name(self):
-        return self.description or self.name
 
 @dataclass
 class Feature(Noun):
-
-    all_features: ClassVar[List["Feature"]] = []
-    _by_name: ClassVar[Dict[str, "Feature"]] = {}
-
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    synonyms: set[str] = field(default_factory=set, metadata={"persist": "if_set"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    found: bool = field(default=False, metadata={"persist": "if_set"})
 
     def __post_init__(self):
         self.name = str(self.name)
         self.description = self.description or self.name
-        self.handle = (
-            self.handle
-            or _derive_handle(self.name)
-            or self.name.lower()
-        )
-        self.synonyms = {
-            " ".join(_normalize_tokens(s))
-            for s in self.synonyms
-            if " ".join(_normalize_tokens(s))
-        }
+        self.handle = normalize_key(self.handle or self.name)
+
+        raw_synonyms = [self.synonyms] if isinstance(self.synonyms, str) else list(self.synonyms or [])
+        normalized_synonyms: list[str] = []
+        seen: set[str] = set()
+        for synonym in raw_synonyms:
+            normalized = " ".join(_normalize_tokens(synonym))
+            if normalized and normalized not in seen:
+                seen.add(normalized)
+                normalized_synonyms.append(normalized)
+        self.synonyms = normalized_synonyms
 
         super().__init__()
-
-        searchkey = self.handle.lower()
-        if searchkey in Feature._by_name:
-            print(f"Warning: duplicate feature name '{searchkey}' - overwriting previous")
-        Feature._by_name[searchkey] = self
-        Feature.all_features.append(self)
 
     def _normalized_identity_tokens(self) -> set[str]:
         return super()._normalized_identity_tokens() | set(self.synonyms)
 
     def to_dict(self) -> dict:
         payload = serialize_non_default(self)
-        if "synonyms" in payload and isinstance(payload["synonyms"], set):
-            payload["synonyms"] = sorted(payload["synonyms"])
         return payload
 
 
 
 @dataclass
-class World(Noun):
+class World:
     _instance: ClassVar["World | None"] = None
 
     name: str = field(default="World")
@@ -841,7 +798,6 @@ class World(Noun):
     state: object | None = None
 
     def __post_init__(self):
-        super().__init__()
         World._instance = self
 
     @property
@@ -886,9 +842,6 @@ class World(Noun):
             return missing_message
 
         raise RuntimeError(missing_message)
-
-    def get_all_nouns(self):
-        return Noun.all_nouns
 
     def find_item_in_game(self, name: str) -> tuple["Room | None", "Item | None"]:
         for room in self.rooms.values():

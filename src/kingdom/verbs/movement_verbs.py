@@ -38,7 +38,7 @@ class MovementVerbHandler(VerbHandler):
         state.current_room = next_room
 
         # Scoring
-        if not next_room.visited:
+        if not next_room.found:
             state.score += getattr(next_room, "discover_points", 0)
 
         # Render
@@ -167,7 +167,7 @@ class MovementVerbHandler(VerbHandler):
         old_room_name = room.canonical_name()
         state.current_room = desired_room
         new_room_name = desired_room.canonical_name()
-        desired_room.visited = True
+        desired_room.found = True
 
         lines = [f"You teleport from {old_room_name} to {new_room_name}."]
         lines.extend(render_current_room(state))
