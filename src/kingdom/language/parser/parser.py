@@ -31,6 +31,7 @@ class ParsedAction:
 
     # Noun + phrase fields
     noun_candidates: List[Any] = field(default_factory=list)  # nounEntries from lexicon
+    noun_candidates_tokens: List[str] = field(default_factory=list)  # tokens that matched noun candidates
     object_phrases: List[Any] = field(default_factory=list)   # Stage 2+
     prep_phrases: List[Any] = field(default_factory=list)     # Stage 3+
     conjunction_groups: List[Any] = field(default_factory=list)
@@ -76,6 +77,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
     # ------------------------------------------------------------
     verb_candidates = []
     noun_candidates = []
+    noun_candidates_tokens = []
     direction_tokens = []
     modifier_tokens = []
     unknown_tokens = []
@@ -101,6 +103,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
         n = lexicon.token_to_noun.get(tok)
         if n:
             noun_candidates.append(n)
+            noun_candidates_tokens.append(tok)
             continue
 
         # Direction?
@@ -123,6 +126,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
     # ------------------------------------------------------------
     ps.verb_candidates = verb_candidates
     ps.noun_candidates = noun_candidates
+    ps.noun_candidates_tokens = noun_candidates_tokens
     ps.direction_tokens = direction_tokens
     ps.modifier_tokens = modifier_tokens
     ps.unknown_tokens = unknown_tokens
