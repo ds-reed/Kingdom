@@ -45,7 +45,17 @@ def _run_interpreted(
         for cmd in interpreted:
             if cmd.verb is None:
                 # Direction-only input (for example "west") maps to GO.
-                if not cmd.direction_tokens:
+                inferred_direction_tokens = list(cmd.direction_tokens or [])
+                if cmd.direction:
+                    inferred_direction_tokens.append(str(cmd.direction))
+                if cmd.all_tokens:
+                    inferred_direction_tokens.extend(
+                        token
+                        for token in cmd.all_tokens
+                        if token in lexicon.token_to_direction
+                    )
+
+                if not inferred_direction_tokens:
                     return "UNKNOWN"
                 go_entry = lexicon.token_to_verb.get("go")
                 if go_entry is None:
