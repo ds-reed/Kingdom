@@ -1,6 +1,8 @@
 # dummy_lexicon.py
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict, Optional
+from kingdom.model.verb_model import Verb
+from kingdom.model.noun_model import Noun
 
 # ------------------------------------------------------------
 # Lexicon Entry Types
@@ -9,17 +11,19 @@ from typing import List, Dict, Optional
 @dataclass(frozen=True)
 class VerbEntry:
     canonical: str
-    synonyms: List[str]
-    modifiers: List[str]
+    synonyms: List[str] = field(default_factory=list)
+    modifiers: List[str] = field(default_factory=list)
     uses_directions: bool = False
+    expand_all: bool = False
+    verb_object: Verb = None
 
 @dataclass(frozen=True)
 class NounEntry:
     handle: str
     canonical: str
     display: str
-    synonyms: List[str]
-    adjectives: List[str]
+    synonyms: List[str] = field(default_factory=list)
+    adjectives: List[str] = field(default_factory=list)
     category: Optional[str] = None
 
 @dataclass(frozen=True)

@@ -10,21 +10,24 @@ from kingdom.model.verb_model import Verb
 @dataclass(frozen=True)
 class VerbEntry:
     canonical: str
-    synonyms: List[str]
+    synonyms: List[str] = field(default_factory=list)
     modifiers: List[str] = field(default_factory=list)
     uses_directions: bool = False
+    expand_all: bool = False
+    verb_object: Verb = None
 
     def __repr__(self):
-        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions})"
+        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}, expand_all={self.expand_all})"
 
 @dataclass(frozen=True)
 class NounEntry:
     handle: str
     canonical: str
     display: str
-    synonyms: List[str]
+    synonyms: List[str] = field(default_factory=list)
     adjectives: List[str] = field(default_factory=list)
     category: Optional[str] = None   # "item", "feature", "room", etc.
+    noun_object: Noun = None
 
     def __repr__(self):
         return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)})"
@@ -34,7 +37,7 @@ class DirectionEntry:
     handle: str
     canonical: str
     reverse: str | None
-    synonyms: List[str]
+    synonyms: List[str] = field(default_factory=list)
 
 
     def __repr__(self):
@@ -42,17 +45,17 @@ class DirectionEntry:
 
 @dataclass(frozen=True)
 class Lexicon:
-    verbs: List[VerbEntry]
-    nouns: List[NounEntry]
-    directions: List[DirectionEntry]
-    modifiers: List[str]
-    adjectives: List[str]
-    prepositions: List[str]
-    conjunctions: List[str]
-    particles: List[str]
-    token_to_verb: Dict[str, VerbEntry]
-    token_to_noun: Dict[str, NounEntry]
-    token_to_direction: Dict[str, DirectionEntry]
+    verbs: List[VerbEntry] = field(default_factory=list)
+    nouns: List[NounEntry] = field(default_factory=list)
+    directions: List[DirectionEntry] = field(default_factory=list)    
+    modifiers: List[str] = field(default_factory=list)
+    adjectives: List[str] = field(default_factory=list)
+    prepositions: List[str] = field(default_factory=list)
+    conjunctions: List[str] = field(default_factory=list)
+    particles: List[str] = field(default_factory=list)
+    token_to_verb: Dict[str, VerbEntry] = field(default_factory=dict)
+    token_to_noun: Dict[str, NounEntry] = field(default_factory=dict)
+    token_to_direction: Dict[str, DirectionEntry] = field(default_factory=dict)
 
     def __repr__(self):
         return f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, directions={self.directions}, modifiers = {self.modifiers}, prepositions={self.prepositions}, conjunctions={self.conjunctions}, particles={self.particles}, adjectives={self.adjectives})"
@@ -82,6 +85,7 @@ def lex() -> Lexicon:
             synonyms=list(verb.synonym_names()),
             modifiers=list(verb.modifiers),
             uses_directions=verb.uses_directions,
+            verb_object=verb
         ))
 
     token_to_verb = {}
@@ -115,6 +119,7 @@ def lex() -> Lexicon:
             synonyms=list(noun.synonym_names()),
             category=noun.get_class_name(),
             adjectives=list(noun.adjectives),
+            noun_object=noun
         ))
 
 
@@ -152,6 +157,8 @@ def lex() -> Lexicon:
         # synonyms
         for syn in entry.synonyms:
             token_to_direction[syn] = entry
+
+    print(f"DEBUG direction_entries = {token_to_direction}")
 
     return Lexicon(
             verbs=[ verb_entry for verb_entry in verb_entries ],
