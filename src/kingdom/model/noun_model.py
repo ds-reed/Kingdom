@@ -33,16 +33,16 @@ class Noun:
         for key in self._registry_keys():
             Noun._by_name[key] = self
 
-    def _registry_keys(self) -> set[str]:
+    def _registry_keys(self) -> list[str]:
         canonical_key = normalize_key(self.canonical_name())
-        return {canonical_key} if canonical_key else set()
+        return [canonical_key] if canonical_key else []
 
-    def _normalized_identity_tokens(self) -> set[str]:
-        return {
+    def _normalized_identity_tokens(self) -> list[str]:
+        return [
             " ".join(_normalize_tokens(self.canonical_name())),
             " ".join(_normalize_tokens(self.display_name())),
             " ".join(_normalize_tokens(self.obj_handle())),
-        }
+        ]
 
 
     # ───────────────────────────────────────────────
@@ -152,13 +152,13 @@ class Noun:
 
 class DirectionRegistry:
     def __init__(self):
-        self.canonical = set()
+        self.canonical = []
         self.synonyms = {}
         self.reverse = {}
 
     def register(self, canonical: str, *, synonyms=None, reverse=None):
         canonical = canonical.lower().strip()
-        self.canonical.add(canonical)
+        self.canonical.append(canonical)
 
         if synonyms:
             for synonym in synonyms:
@@ -168,7 +168,7 @@ class DirectionRegistry:
             reverse = reverse.lower().strip()
             self.reverse[canonical] = reverse
             self.reverse[reverse] = canonical
-            self.canonical.add(reverse)
+            self.canonical.append(reverse)
 
     def to_canonical(self, token: str) -> str:
         token = token.lower().strip()
@@ -764,11 +764,15 @@ class Feature(Noun):
         self.description = self.description or self.name
         self.handle = normalize_key(self.handle or self.name)
 
-        self.synonyms = {
-            " ".join(_normalize_tokens(s))
-            for s in self.synonyms
-            if " ".join(_normalize_tokens(s))
-        }
+        raw_synonyms = [self.synonyms] if isinstance(self.synonyms, str) else list(self.synonyms or [])
+        normalized_synonyms: list[str] = []
+        seen: set[str] = set()
+        for synonym in raw_synonyms:
+            normalized = " ".join(_normalize_tokens(synonym))
+            if normalized and normalized not in seen:
+                seen.add(normalized)
+                normalized_synonyms.append(normalized)
+        self.synonyms = normalized_synonyms
 
         super().__init__()
 

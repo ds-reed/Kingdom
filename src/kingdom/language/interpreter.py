@@ -145,7 +145,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
                 return True
             return False   
         
-        def _expand_all(base_cmd: InterpretedCommand) -> List[InterpretedCommand]:
+        def _expand_all(base_cmd: InterpretedCommand) -> List[Item]:
             if world is None or base_cmd.verb is None:
                 return []
 
@@ -193,7 +193,6 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             return _expand_all(base_cmd)
         
         base_cmd.all_tokens = [msg for msg in action.noun_candidates_tokens + action.direction_tokens + action.modifier_tokens + action.unknown_tokens if msg]
-        print(f"DEBUG all tokens for command: {base_cmd.all_tokens}")
 
         # Normal case: one command
         return [base_cmd]

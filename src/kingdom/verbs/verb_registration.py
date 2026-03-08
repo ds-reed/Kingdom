@@ -34,50 +34,50 @@ def register_verbs():
           # Movement verbs (all use directions)
           Verb("go", movement.go,
                synonyms=["walk", "move", "run", "slide", "head", "jog", "travel"],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=True),
 
           Verb("swim", movement.swim,
                synonyms=[],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=True),
 
           Verb("teleport", movement.teleport,
                synonyms=["goto"],
                hidden=True,
-               modifiers=set(),
+               modifiers=[],
                uses_directions=True),
 
           # Change state verbs
           Verb("light", change.light,
                synonyms=[],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
 
           Verb("extinguish", change.extinguish,
                synonyms=["douse", "put out"],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
 
           Verb("open", change.open,
                synonyms=[],
-               modifiers={"with","using", "all", "everything"},
+               modifiers=["with","using", "all", "everything"],
                uses_directions=False),
 
           Verb("close", change.close,
                synonyms=[],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
 
           Verb("unlock", change.unlock,
                synonyms=[],
-               modifiers={"with", "all", "everything"},
+               modifiers=["with", "all", "everything"],
                uses_directions=False),
 
           #singleton - most should be pairs (maybe tarnish is opposite of rub)
           Verb("rub", change.rub,
                synonyms=["polish", "clean"],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
 
 
@@ -85,78 +85,78 @@ def register_verbs():
 
           Verb("say", stateful.say,
                synonyms=["speak", "talk", "shout", "whisper"],
-               modifiers={"to djinni", "wish"},
+               modifiers=["to djinni", "wish"],
                uses_directions=False),
 
           Verb("make", stateful.make,
                synonyms=[],
                hidden=True,
-               modifiers={"wish"},
+               modifiers=["wish"],
                uses_directions=False),
 
           Verb("look", stateful.look,
                synonyms=["examine", "inspect"],
-               modifiers={"in", "inside", "at"},
+               modifiers=["in", "inside", "at"],
                uses_directions=False),
 
           Verb("eat", stateful.eat,
                synonyms=["consume"],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
 
 
           # Meta verbs
           Verb("help", meta.help,
                synonyms=["commands", "h", "?"],
-               modifiers=set(),
+               modifiers=["commands"],
                uses_directions=False),
 
           Verb("score", meta.score,
                synonyms=["points"],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("load", meta.load,
                synonyms=[],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("save", meta.save,
                synonyms=[],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("quit", meta.quit,
                synonyms=["q"],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("die", meta.die,
                synonyms=[],
                hidden=True,
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("DEBUG", meta.DEBUG,
                synonyms=[],
                hidden=True,
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           # Inventory verbs
           Verb("inventory", inventory.inventory,
                synonyms=["inven"],
-               modifiers=set(),
+               modifiers=[],
                uses_directions=False),
 
           Verb("take", inventory.take,
                synonyms=["get"],
-               modifiers={"all", "everything", "in", "from"},
+               modifiers=["all", "everything", "in", "from"],
                uses_directions=False),
 
           Verb("drop", inventory.drop,
                synonyms=[],
-               modifiers={"all", "everything"},
+               modifiers=["all", "everything"],
                uses_directions=False),
      ]
 

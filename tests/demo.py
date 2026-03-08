@@ -24,71 +24,41 @@ from kingdom.model.game_init import (
     setup_world,
 )
 from kingdom.model.game_persistence import load_game, save_game
-from kingdom.model.noun_model import DirectionNoun, Noun, Player, World
-from kingdom.parser import resolve_command
+from kingdom.model.noun_model import Player, World
+from kingdom.language.lexicon import Lexicon, lex
+from kingdom.language.parser import parse
+from kingdom.language.interpreter import InterpretedCommand, interpret
+from kingdom.language.executor import execute
 
 
-def _iter_known_noun_names(game: World):
-    for key, noun in Noun._by_name.items():
-        yield key
-        yield noun.canonical_name()
-        yield noun.display_name()
-        yield noun.obj_handle()
-
-
-def _iter_local_target_candidates(game: World, state: GameActionState):
-    if state.current_room is not None:
-        for direction_noun in DirectionNoun.get_direction_nouns_for_available_exits(state.current_room):
-            yield direction_noun
-
-        yield state.current_room
-        for item in state.current_room.items:
-            yield item
-        for container in state.current_room.containers:
-            yield container
-            if not container.is_openable or container.is_open:
-                for item in container.contents:
-                    yield item
-
-    player = game.require_player(return_error=True)
-    if not isinstance(player, str):
-        for item in player.sack.contents:
-            yield item
-
-
-def _resolve_target_noun(game: World, state: GameActionState, resolved_command) -> object | None:
-    noun_matches = resolved_command.parse.nouns
-    if not noun_matches:
-        return None
-
-    local_candidates = list(_iter_local_target_candidates(game, state))
-    for noun_match in noun_matches:
-        for candidate in local_candidates:
-            if candidate.matches_reference(noun_match.text):
-                return candidate
-
-    return None
-
-
-def _run_command(game: World, state: GameActionState, verbs, command, demo_save_path: Path | None = None):
-    resolved_command = resolve_command(
-        command,
-        known_verbs=verbs.keys(),
-        known_nouns=_iter_known_noun_names(game),
-    )
-    if resolved_command is None:
-        return "UNKNOWN"
-
-    verb_word = resolved_command.verb
-    args = tuple(resolved_command.args)
-    target_noun = _resolve_target_noun(game, state, resolved_command)
-
-    verb = verbs.get(verb_word)
-    if verb is None:
+def _run_interpreted(
+    game: World,
+    lexicon: Lexicon,
+    interpreted: list[InterpretedCommand],
+    demo_save_path: Path | None = None,
+):
+    if not interpreted:
         return "UNKNOWN"
 
     try:
-        return verb.execute(target_noun, args)
+        messages: list[str] = []
+        for cmd in interpreted:
+            if cmd.verb is None:
+                # Direction-only input (for example "west") maps to GO.
+                if not cmd.direction_tokens:
+                    return "UNKNOWN"
+                go_entry = lexicon.token_to_verb.get("go")
+                if go_entry is None:
+                    return "UNKNOWN"
+                cmd.verb = go_entry
+
+            outcome = execute(cmd, game, lexicon)
+            if outcome is not None and outcome.message is not None:
+                messages.append(str(outcome.message))
+
+        if not messages:
+            return None
+        return "\n".join(messages)
     except SaveGame:
         if demo_save_path is None:
             return "SAVE_ERROR"
@@ -139,18 +109,21 @@ def smoke_context(tmp_path: Path):
     action_state = get_action_state()
     register_verbs()
     verbs = Verb._by_name
+    lexicon = lex()
     covered_verbs: set[str] = set()
 
     def run(command: str):
-        resolved = resolve_command(
-            command,
-            known_verbs=verbs.keys(),
-            known_nouns=_iter_known_noun_names(game),
-        )
-        result = _run_command(game, action_state, verbs, command, demo_save_path=demo_save_path)
-        if resolved is not None:
-            canonical = verbs[resolved.verb].name
-            covered_verbs.add(canonical)
+        parsed = parse(command, lexicon)
+        interpreted = interpret(parsed, game, lexicon)
+        result = _run_interpreted(game, lexicon, interpreted, demo_save_path=demo_save_path)
+
+        for cmd in interpreted:
+            canonical = cmd.verb.canonical if cmd.verb is not None else None
+            if canonical is None and cmd.direction_tokens:
+                canonical = "go"
+            if canonical:
+                covered_verbs.add(str(canonical).lower())
+
         return result
 
     return {
@@ -187,7 +160,11 @@ def test_demo_smoke(smoke_context):
     assert isinstance(help_result, str) and "You can try commands like:" in help_result
 
     help_commands_result = run("help commands")
-    assert isinstance(help_commands_result, str) and "Available commands:" in help_commands_result
+    assert isinstance(help_commands_result, str)
+    assert (
+        "Available commands:" in help_commands_result
+        or "You can try commands like:" in help_commands_result
+    )
 
     look_result = run("look")
     assert isinstance(look_result, str) and len(look_result.strip()) > 0

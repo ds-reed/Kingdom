@@ -1,6 +1,5 @@
 from pathlib import Path
 import argparse
-from pydoc import text
 import random
 import sys
 
@@ -45,7 +44,6 @@ def run_full_loop_test():
 
             interpreted = interpret(parsed, world, lexicon)
 
-            outcomes = execute(interpreted, world, lexicon)
-
-            for outcome in outcomes:
+            for cmd in interpreted:
+                outcome = execute(cmd, world, lexicon)
                 print(outcome.message)

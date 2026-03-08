@@ -33,7 +33,7 @@ def run_p2i_flow_tests(lexicon: Lexicon, tests):
             parsed_actions = parse(phrase, lexicon, options)
             interpreted_commands = interpret(parsed_actions, world, lexicon)
             for cmd in interpreted_commands:
-                verb = cmd.verb.canonical
+                verb = cmd.verb.canonical if cmd.verb else None 
                 if cmd.direct:
                     for direct in cmd.direct:
                         noun = direct.canonical_head.canonical if direct else None

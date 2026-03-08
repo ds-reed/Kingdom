@@ -91,35 +91,40 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
 
     for tok in tokens:
         v = lexicon.token_to_verb.get(tok)
+        matched_any = False
         if v:
+            matched_any = True
             verb_entries.append(v)
             if primary_verb_entry is None:
                 primary_verb_entry = v
                 primary_verb_token = tok
-            continue
-
+                
 
         # Noun?
         n = lexicon.token_to_noun.get(tok)
         if n:
             noun_candidates.append(n)
             noun_candidates_tokens.append(tok)
-            continue
+            matched_any = True
+
 
         # Direction?
         d = lexicon.token_to_direction.get(tok)
         if d:
             direction_tokens.append(tok)
-            continue
+            matched_any = True
+
 
         # Modifier? (only if we already know the primary verb)
         # Stage 1 rule: modifiers only come from the primary verb’s modifier list.
         if primary_verb_entry and tok in primary_verb_entry.modifiers:
             modifier_tokens.append(tok)
-            continue
+            matched_any = True
+
 
         # Unknown
-        unknown_tokens.append(tok)
+        if not matched_any:
+            unknown_tokens.append(tok)
 
     # ------------------------------------------------------------
     # 4. Populate ParsedAction fields
@@ -152,7 +157,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
         )
         ps.object_phrases = obj_phrases
         ps.conjunction_groups = conj_groups
-        ps.prepositional_phrases = prep_phrases
+        ps.prep_phrases = prep_phrases
 
     # ------------------------------------------------------------
     # 6. Stage 3: enrich parsed syntax with additional information
@@ -171,14 +176,14 @@ def stage2_phrase_grouping(tokens, lexicon):
     Stage 2: Convert flat Stage 1 tokens into:
       - object_phrases: list of noun phrases
       - conjunction_groups: list of [NP1.head, NP2.head]
-      - prepositional_phrases: list of {preposition, object}
+      - prep_phrases: list of {preposition, object}
 
     Tokens are plain strings. Classification is done via lexicon maps/lists.
     """
 
     object_phrases = []
     conjunction_groups = []
-    prepositional_phrases = []
+    prep_phrases = []
 
     i = 0
     n = len(tokens)
@@ -274,7 +279,7 @@ def stage2_phrase_grouping(tokens, lexicon):
             i += 1
             np, i2 = consume_noun_phrase(i)
             if np:
-                prepositional_phrases.append({
+                prep_phrases.append({
                     "preposition": prep,
                     "object": np,
                 })
@@ -312,7 +317,7 @@ def stage2_phrase_grouping(tokens, lexicon):
         # -------------------------
         i += 1
 
-    return object_phrases, conjunction_groups, prepositional_phrases
+    return object_phrases, conjunction_groups, prep_phrases
 
 def stage3_enrich(parsed, lexicon):
     """

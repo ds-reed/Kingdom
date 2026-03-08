@@ -269,8 +269,8 @@ def _construct_feature_from_spec(feature_spec) -> "Feature":
         normalized["description"] = normalized["name"]
 
     synonyms = normalized.get("synonyms")
-    if synonyms is not None and not isinstance(synonyms, set):
-        normalized["synonyms"] = set(synonyms)
+    if synonyms is not None and not isinstance(synonyms, list):
+        normalized["synonyms"] = list(synonyms)
 
     constructor_kwargs = {
         key: value
