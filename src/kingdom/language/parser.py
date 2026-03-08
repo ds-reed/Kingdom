@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Any
 
-from kingdom.language.lexicon.lexicon import Lexicon
+from kingdom.language.lexicon import Lexicon
 from typing import Any, List, Optional, Tuple
 
 TokenSpan = Tuple[int, int]  # (start_index_in_text, end_index_exclusive)

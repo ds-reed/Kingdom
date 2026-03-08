@@ -1,7 +1,7 @@
 # Interpreter and Executor TODO  
 _Semantic Interpretation and Execution Pipeline_
 
-This document defines the responsibilities, structure, and implementation plan for the **Interpreter** and **Executor** layers. These layers convert syntactic `ParsedActions` into semantic `ResolvedCommands`, apply verb behavior to the world, and produce `CommandOutcome` objects for the renderer.
+This document defines the responsibilities, structure, and implementation plan for the **Interpreter** and **Executor** layers. These layers convert syntactic `ParsedActions` into semantic `InterpretedCommands`, apply verb behavior to the world, and produce `CommandOutcome` objects for the renderer.
 
 ---
 
@@ -22,7 +22,7 @@ This document defines the responsibilities, structure, and implementation plan f
 
 # 2. Interpreter (Semantic Layer)
 
-The Interpreter converts each `ParsedAction` into **zero, one, or many ResolvedCommands**.  
+The Interpreter converts each `ParsedAction` into **zero, one, or many InterpretedCommands**.  
 This step is **pure**, **deterministic**, and **side‑effect‑free**.
 
 ---
@@ -55,7 +55,7 @@ supports_all_expansion: bool
 
 Meaning:
 
-- **True** → Interpreter expands ALL into multiple ResolvedCommands  
+- **True** → Interpreter expands ALL into multiple InterpretedCommands  
 - **False** → Interpreter leaves ALL as a modifier; verb handler decides behavior  
 
 Examples:
@@ -69,7 +69,7 @@ Examples:
 
 ---
 
-## 2.3 Output: `ResolvedCommand`
+## 2.3 Output: `InterpretedCommand`
 
 ### Verb
 - `verb`: `VerbEntry`  
@@ -80,10 +80,10 @@ Examples:
 - `direction_token`: player‑typed  
 
 ### Targets (Direct, Indirect, Location)
-Each target is a `ResolvedTarget`:
+Each target is a `InterpretedTarget`:
 
 ```
-ResolvedTarget:
+InterpretedTarget:
     object: WorldObject
     surface_phrase: str
     surface_head: str
@@ -92,9 +92,9 @@ ResolvedTarget:
 ```
 
 Fields:
-- `direct: Optional[ResolvedTarget]`
-- `indirect: Optional[ResolvedTarget]`
-- `location: Optional[ResolvedTarget]`
+- `direct: Optional[InterpretedTarget]`
+- `indirect: Optional[InterpretedTarget]`
+- `location: Optional[InterpretedTarget]`
 
 ### Modifiers
 - `modifiers: List[str]`  
@@ -106,13 +106,13 @@ Fields:
 ### Raw Input
 - `raw_text: str`
 
-`ResolvedCommand` is **immutable**.
+`InterpretedCommand` is **immutable**.
 
 ---
 
 # 3. Executor (Action Layer)
 
-The Executor takes a single `ResolvedCommand` and applies the verb’s behavior to the world.
+The Executor takes a single `InterpretedCommand` and applies the verb’s behavior to the world.
 
 ---
 
@@ -130,7 +130,7 @@ The Executor takes a single `ResolvedCommand` and applies the verb’s behavior 
 
 ```
 CommandOutcome:
-    resolved: ResolvedCommand
+    Interpreted: InterpretedCommand
     messages: List[str]
     effects: WorldDelta
     diagnostics: List[str]
@@ -143,7 +143,7 @@ Renderer consumes only this object.
 
 # 4. Interpreter TODO (Implementation Plan)
 
-- Implement `ResolvedCommand` and `ResolvedTarget` dataclasses  
+- Implement `InterpretedCommand` and `InterpretedTarget` dataclasses  
 - Add `supports_all_expansion` to Verb class  
 - Implement verb resolution  
 - Implement direction resolution  
@@ -153,7 +153,7 @@ Renderer consumes only this object.
 - Implement modifier handling  
 - Implement ALL expansion logic  
 - Enforce verb argument rules  
-- Produce final `ResolvedCommand` objects  
+- Produce final `InterpretedCommand` objects  
 
 ---
 
@@ -181,6 +181,6 @@ Renderer consumes only this object.
 
 Implement full pipeline for one verb (recommended: **take** or **go**):
 
-- ParsedAction → ResolvedCommand → CommandOutcome → rendered output  
+- ParsedAction → InterpretedCommand → CommandOutcome → rendered output  
 
 This stabilizes the architecture before Stage 4 parser work.

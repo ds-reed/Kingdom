@@ -175,20 +175,25 @@ class VerbHandler:
 
         return None
     
-    def require_item(self, *, required_item_id:Noun = None, noun:Noun = None, verb_phrase=None):
+    def require_item(self, *, required_type:str, required_name:str = None, noun:Noun = None, verb_phrase=None, object:str = None) -> Optional[str]:
         player = self.player()
-        if not player.has_item(required_item_id):
-            return f"You don't have the {required_item_id.canonical_name()} to {verb_phrase} the {noun.canonical_name()}."
-        return None
+        inventory = player.get_inventory_items()
+        for item in inventory:
+ #           if the item has an attribute matching the string required type and the value of that attribute matches the required name, then we consider the requirement met. This allows for flexible requirements like "a key that unlocks the chest" without hardcoding specific item names in the verb handler.
+            if hasattr(item, required_type):
+                if required_name is None or getattr(item, required_type) == required_name:
+                    return None  # requirement met
+        else:
+            return f"You don't have the right {object} to {verb_phrase} the {noun.canonical_name()}."
 
-
-# --------------- this needs to be updated to look for required_item field to see if it matches instead of name. Not sure how to do this yet, so it is broken for now. ---------------
     def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
         required = Item.get_by_name(required_name)
         if required is None:
              print(f"Error: Required noun '{required_name}' not found in game data for {verb_phrase}.")
              return None
-        return required         
+        return required   
+
+  
 
     # ------------------------------------------------------------
     # ALL-handling framework  - needs a re-write

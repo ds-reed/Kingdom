@@ -5,13 +5,13 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from kingdom.language.parser.parser import ParsedAction
-from kingdom.language.lexicon.lexicon import Lexicon, VerbEntry, NounEntry
+from kingdom.language.parser import ParsedAction
+from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
 
 from dataclasses import dataclass, field
 from typing import Optional, List
 
-from kingdom.model.noun_model import Item, World
+from kingdom.model.noun_model import Item, World 
 
 @dataclass(frozen=False)
 class InterpretedTarget:
@@ -78,34 +78,38 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Object resolution
         # ----------------------------------------------------------------------
 
-        def _resolve_direct_object(action: ParsedAction) -> Optional[InterpretedTarget]:
+        def _resolve_direct_object(action: ParsedAction) -> List[InterpretedTarget]:
             if not action.noun_candidates:
-                return None
+                return []
             
             targets = []
             if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
                 candidates = _expand_all(base_cmd)  # list all possible candidates for the verb if "all" modifier is present and verb allows expansion
                 for candidate in candidates:
+                    token = action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None
+                    noun = lexicon.token_to_noun.get(candidate)
                     targets.append(InterpretedTarget(
-                        token_phrase=action.token_phrase,                       
-                        token_head=action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None,  # placeholder until we resolve to canonical noun      
-                        token_adjectives=action.token_adjectives,                   
-                        canonical_head=lexicon.token_to_noun(candidate)                     
+                        token_phrase=token,                    
+                        token_head=token,    
+                        token_adjectives=[],           # we have no adjective handling in parser yet
+                        canonical_head=noun,                  
                     ))
 
             else:
+                noun = action.noun_candidates[0]  # For now, just take the first candidate (TODO: disambiguation)
+                token = action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None
                 targets.append(InterpretedTarget(
-                token_phrase=None,                      # until we wire real phrases
-                token_head=action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None,   # placeholder until we resolve to canonical noun 
-                token_adjectives=[],                    # no adjectives yet
-                canonical_head=action.noun_candidates[0],                    
+                token_phrase=token,                 
+                token_head=token,
+                token_adjectives=[],                   # no adjectives yet
+                canonical_head=noun,              
             ))
 
             return targets
             
             
 
-        def _resolve_indirect_object(action: ParsedAction) -> Optional[InterpretedTarget]:
+        def _resolve_indirect_object(action: ParsedAction) -> List[InterpretedTarget]:
             """Resolve the indirect object phrase."""
             # TODO
             return []
@@ -172,8 +176,6 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         )      
 
         base_cmd.verb = _resolve_verb(action)
-        if base_cmd.verb is None:
-            return []  # Unrecognized verb → no commands
 
         # Resolve objects, directions, modifiers, etc.
         base_cmd.direct = _resolve_direct_object(action)
@@ -189,6 +191,9 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # ALL expansion (may return multiple commands)
         if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
             return _expand_all(base_cmd)
+        
+        base_cmd.all_tokens = [msg for msg in action.noun_candidates_tokens + action.direction_tokens + action.modifier_tokens + action.unknown_tokens if msg]
+        print(f"DEBUG all tokens for command: {base_cmd.all_tokens}")
 
         # Normal case: one command
         return [base_cmd]

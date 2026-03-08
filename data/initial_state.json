@@ -117,7 +117,7 @@
                             "name": "key",
                             "description": "a small brass key",
                             "adjectives": ["small", "brass"],
-                            "required_item": ["small brass key"]
+                            "unlock_key": "small brass key"
                         },
                         {
                             "name": "lamp",

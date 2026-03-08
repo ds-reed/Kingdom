@@ -8,7 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from kingdom.language.parser.parser import ParserOptions
+from kingdom.language.parser import ParserOptions
+from kingdom.language.parser import parse
 
 
 # ----------------------------------------------------------------------
@@ -113,7 +114,7 @@ def diff(action_index, failures):
 # ----------------------------------------------------------------------
 # Test Runner
 # ----------------------------------------------------------------------
-def run_parser_tests(parser, lexicon, tests):
+def run_parser_tests(lexicon, tests):
     print("\n==============================")
     print(" RUNNING PARSER TEST SUITE")
     print("==============================\n")
@@ -127,7 +128,7 @@ def run_parser_tests(parser, lexicon, tests):
             expected_actions = test["expected"]  # now a list of expected dicts
 
             options = ParserOptions(stage=stage_num)
-            parsed_actions = parser.parse(phrase, lexicon, options)
+            parsed_actions = parse(phrase, lexicon, options)
 
             # Length mismatch check
             if len(parsed_actions) != len(expected_actions):

@@ -17,7 +17,7 @@ class VerbEntry:
     verb_object: Verb = None
 
     def __repr__(self):
-        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}, expand_all={self.expand_all})"
+        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}, expand_all={self.expand_all}, verb_object={self.verb_object})"
 
 @dataclass(frozen=True)
 class NounEntry:
@@ -30,7 +30,7 @@ class NounEntry:
     noun_object: Noun = None
 
     def __repr__(self):
-        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)})"
+        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)}, noun_object={self.noun_object})"
 
 @dataclass(frozen=True)
 class DirectionEntry:
@@ -157,8 +157,6 @@ def lex() -> Lexicon:
         # synonyms
         for syn in entry.synonyms:
             token_to_direction[syn] = entry
-
-    print(f"DEBUG direction_entries = {token_to_direction}")
 
     return Lexicon(
             verbs=[ verb_entry for verb_entry in verb_entries ],

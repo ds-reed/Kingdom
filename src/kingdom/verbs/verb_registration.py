@@ -85,11 +85,11 @@ def register_verbs():
 
           Verb("say", stateful.say,
                synonyms=["speak", "talk", "shout", "whisper"],
-               modifiers=set(),
+               modifiers={"to djinni", "wish"},
                uses_directions=False),
 
           Verb("make", stateful.make,
-               synonyms=["wish"],
+               synonyms=[],
                hidden=True,
                modifiers={"wish"},
                uses_directions=False),

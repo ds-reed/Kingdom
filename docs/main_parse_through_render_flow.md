@@ -16,8 +16,8 @@ The engine processes a player command through five sequential layers:
 5. **Renderer** — narrative output
 
 The parser may return **multiple ParsedActions** (e.g., “unlock and open trapdoor”).  
-The Interpreter converts each ParsedAction into **zero, one, or many ResolvedCommands**.  
-The Executor executes each ResolvedCommand **one at a time**.
+The Interpreter converts each ParsedAction into **zero, one, or many InterpretedCommands**.  
+The Executor executes each InterpretedCommand **one at a time**.
 
 ---
 
@@ -42,11 +42,11 @@ raw = ui.get_input()
 
 parsed_actions = parser.parse(raw)
 
-resolved_commands = interpreter.interpret(parsed_actions, world)
+Interpreted_commands = interpreter.interpret(parsed_actions, world)
 
 outcomes = []
-for resolved in resolved_commands:
-    outcomes.append(executor.execute(resolved, world))
+for Interpreted in Interpreted_commands:
+    outcomes.append(executor.execute(Interpreted, world))
 
 renderer.render(outcomes, ui)
 ```
@@ -86,7 +86,7 @@ Each `ParsedAction` contains:
 
 ## 4. Interpreter (Semantic Layer)
 
-The Interpreter converts each `ParsedAction` into **zero, one, or many ResolvedCommands**.  
+The Interpreter converts each `ParsedAction` into **zero, one, or many InterpretedCommands**.  
 This step is **pure**, **deterministic**, and **side‑effect‑free**.
 
 ### Responsibilities
@@ -103,7 +103,7 @@ This step is **pure**, **deterministic**, and **side‑effect‑free**.
 - expand “all” **only if** the verb’s signature allows it  
   (`verb.supports_all_expansion == True`)  
 
-### Output: `List[ResolvedCommand]`
+### Output: `List[InterpretedCommand]`
 
 - **0** → invalid or unresolvable  
 - **1** → normal case  
@@ -113,7 +113,7 @@ This step is **pure**, **deterministic**, and **side‑effect‑free**.
 
 ## 5. Executor (Action Layer)
 
-The Executor takes a single `ResolvedCommand` and applies the verb’s behavior to the world.
+The Executor takes a single `InterpretedCommand` and applies the verb’s behavior to the world.
 
 ### Responsibilities
 
@@ -127,7 +127,7 @@ The Executor takes a single `ResolvedCommand` and applies the verb’s behavior 
 
 Contains:
 
-- `resolved: ResolvedCommand`  
+- `Interpreted: InterpretedCommand`  
 - `messages: List[str]`  
 - `effects` (world state delta)  
 - `diagnostics`  
@@ -143,7 +143,7 @@ The renderer receives a list of **CommandOutcome** objects and produces narrativ
 
 It uses:
 
-- the semantic interpretation (`ResolvedCommand`)  
+- the semantic interpretation (`InterpretedCommand`)  
 - the execution results  
 - the exact player‑typed phrases  
 
@@ -160,7 +160,7 @@ Main
    ↓
 Parser → ParsedActions (syntax only)
    ↓
-Interpreter → ResolvedCommands (meaning only)
+Interpreter → InterpretedCommands (meaning only)
    ↓
 Executor → CommandOutcome (execution + messages)
    ↓

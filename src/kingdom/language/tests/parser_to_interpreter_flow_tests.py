@@ -9,10 +9,10 @@ from kingdom.model.noun_model import World
 ROOT = Path(__file__).resolve().parents[3]   
 sys.path.insert(0, str(ROOT))
 
-from kingdom.language.parser import parser   
-from kingdom.language.lexicon.lexicon import Lexicon, VerbEntry, NounEntry
-from kingdom.language.interpreter.interpreter import interpret, InterpretedCommand, InterpretedTarget
-from kingdom.language.parser.parser import ParserOptions
+from kingdom.language.parser import parse   
+from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
+from kingdom.language.interpreter import interpret, InterpretedCommand, InterpretedTarget
+from kingdom.language.parser import ParserOptions, parse
 
 
 def run_p2i_flow_tests(lexicon: Lexicon, tests):
@@ -30,7 +30,7 @@ def run_p2i_flow_tests(lexicon: Lexicon, tests):
             phrase = test["input"]
 
             options = ParserOptions(stage=stage_num)
-            parsed_actions = parser.parse(phrase, lexicon, options)
+            parsed_actions = parse(phrase, lexicon, options)
             interpreted_commands = interpret(parsed_actions, world, lexicon)
             for cmd in interpreted_commands:
                 verb = cmd.verb.canonical
