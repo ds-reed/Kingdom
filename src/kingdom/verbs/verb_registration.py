@@ -33,11 +33,16 @@ def register_verbs():
 
           # Movement verbs (all use directions)
           Verb("go", movement.go,
-               synonyms=["walk", "move", "run", "slide", "head", "jog", "travel"],
+               synonyms=["walk", "move", "run", "head", "travel"],
                modifiers=[],
                uses_directions=True),
 
           Verb("swim", movement.swim,
+               synonyms=[],
+               modifiers=[],
+               uses_directions=True),
+
+          Verb("climb", movement.climb,
                synonyms=[],
                modifiers=[],
                uses_directions=True),

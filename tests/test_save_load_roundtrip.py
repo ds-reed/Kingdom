@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -14,10 +15,8 @@ ROOM_FIELDS = [
     "name",
     "description",
     "found",
-    "is_dark",
-    "has_water",
-    "dark_description",
     "discover_points",
+    "is_climbable",
 ]
 
 CONTAINER_FIELDS = [
@@ -130,14 +129,13 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         name="__roundtrip_room__",
         description="Roundtrip validation room",
         found=True,
-        is_dark=True,
-        has_water=True,
-        dark_description="Pitch black sentinel room",
         discover_points=77,
     )
     sentinel_room.connections["west"] = anchor
     sentinel_room.hidden_directions.add("west")
     sentinel_room.swim_exits["east"] = anchor
+    sentinel_room.climb_exits["down"] = anchor
+    sentinel_room.is_climbable = True
     game.rooms[sentinel_room.name] = sentinel_room
 
     sentinel_container = Container(
@@ -203,8 +201,34 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     )
     sentinel_room.add_item(sentinel_item)
 
+    # These room flags are world-data invariants; validate they survive save/load for existing rooms.
+    invariant_snapshot_before = {
+        room_name: (room.is_dark, room.has_water, room.dark_description)
+        for room_name, room in game.rooms.items()
+    }
+
     save_game(game, save_path)
+
+    # Loader currently expects lowercase room collection keys.
+    with save_path.open("r", encoding="utf-8") as saved_file:
+        saved_data = json.load(saved_file)
+    saved_sentinel_room = next(
+        room for room in saved_data["rooms"] if room.get("name") == "__roundtrip_room__"
+    )
+    assert "containers" in saved_sentinel_room, "saved room payload must use lowercase 'containers'"
+    assert "features" in saved_sentinel_room, "saved room payload must use lowercase 'features'"
+
     load_game(game, save_path)
+
+    invariant_snapshot_after = {
+        room_name: (room.is_dark, room.has_water, room.dark_description)
+        for room_name, room in game.rooms.items()
+    }
+    for room_name, before_values in invariant_snapshot_before.items():
+        assert invariant_snapshot_after.get(room_name) == before_values, (
+            f"Invariant mismatch for {room_name}: "
+            f"before={before_values!r} after={invariant_snapshot_after.get(room_name)!r}"
+        )
 
     loaded_room = game.rooms.get("__roundtrip_room__")
     assert loaded_room is not None, "sentinel room missing after load"
@@ -235,6 +259,13 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     if before_swim != after_swim:
         mismatches.append(
             f"Room.swim_exits: before={before_swim!r} after={after_swim!r}"
+        )
+
+    before_climb = {k: v.name for k, v in sentinel_room.climb_exits.items()}
+    after_climb = {k: v.name for k, v in loaded_room.climb_exits.items()}
+    if before_climb != after_climb:
+        mismatches.append(
+            f"Room.climb_exits: before={before_climb!r} after={after_climb!r}"
         )
 
     if sorted(sentinel_room.hidden_directions) != sorted(loaded_room.hidden_directions):

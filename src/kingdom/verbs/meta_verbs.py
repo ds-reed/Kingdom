@@ -1,6 +1,6 @@
 # meta verbs include things like HELP and DEBUG that don't interact in any way with the world state. I may consolidate this later  
 
-from kingdom.model.noun_model import Noun
+from kingdom.model.noun_model import Noun, Item, Room, Container, Feature
 from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.verbs.verb_handler import VerbHandler
 from kingdom.model.verb_model import Verb
@@ -28,21 +28,85 @@ class MetaVerbHandler(VerbHandler):
         # Resolve either a noun or keywords of interest
         parse = self.resolve_noun_or_word(
             words,
-            interest=["room", "player", "Verbs", "commands", "all"]
+            interest=["room", "player", "Verbs", "commands", "all", "set"]
         )
         noun = parse["noun"]
         keywords = parse["keywords"]
-        
-        def debug_noun(noun: Noun | None) -> str:
-            lines = []
-            lines.append(f"id: {id(noun)}\n")
-            lines.append(f"class: {noun.__class__.__name__}\n")
 
-            # Dump attributes
+        def debug_set(noun, field):
+            if noun is None:
+                return f"No noun found to set {field}."
+
+            if not hasattr(noun, field):
+                return f"Noun '{noun.display_name()}' does not have a field named '{field}'."
+
+            current_value = getattr(noun, field)
+            new_value = not current_value
+
+            setattr(noun, field, new_value)
+
+            return f"Set {field} of '{noun.display_name()}' to {new_value}."
+        
+        def debug_noun(noun: Noun | None) -> list[str]:
+            if noun is None:
+                return ["No target noun was passed."]
+
+            lines = []
+            lines.append(f"id: {id(noun)}")
+            lines.append(f"class: {noun.__class__.__name__}")
+
+            # Special handling for Room objects
+            if isinstance(noun, Room):
+                # Scalar fields
+                scalar_fields = [
+                    "name", "description", "handle", "found", "is_dark",
+                    "dark_description", "discover_points", "has_water",
+                    "is_climbable"
+                ]
+                for field in scalar_fields:
+                    if hasattr(noun, field):
+                        lines.append(f"{field}: {getattr(noun, field)!r}\n")
+
+                # Summaries of collections
+                if noun.items:
+                    item_names = [item.display_name() for item in noun.items]
+                    lines.append(f"items: {item_names}\n")
+
+                if noun.containers:
+                    container_names = [c.display_name() for c in noun.containers]
+                    lines.append(f"containers: {container_names}\n")
+
+                if noun.features:
+                    feature_names = [f.display_name() for f in noun.features]
+                    lines.append(f"features: {feature_names}\n")
+
+                # Movement edges
+                if noun.connections:
+                    lines.append(
+                        f"connections: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.connections.items())} }}"
+                    )
+
+                if noun.swim_exits:
+                    lines.append(
+                        f"swim_exits: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.swim_exits.items())} }}"
+                    )
+
+                if noun.climb_exits:
+                    lines.append(
+                        f"climb_exits: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.climb_exits.items())} }}"
+                    )
+
+                if noun.hidden_directions:
+                    lines.append(f"hidden_directions: {sorted(noun.hidden_directions)}\n")
+
+                return lines
+
+            # Default behavior for non-Room nouns
             for k, v in vars(noun).items():
-                lines.append(f"{k}: {v!r}\n")
+                lines.append(f"{k}: {v!r}")
 
             return lines
+
 
         def debug_words(words: tuple[str, ...]) -> str:
 
@@ -78,6 +142,12 @@ class MetaVerbHandler(VerbHandler):
             if "verbs" in keywords or "commands" in keywords or "all" in keywords:
                 print("debugging all verbs...")
                 print(Verb.all_verbs)
+
+            if "set" in keywords:
+                field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
+                target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
+                result = debug_set(target_noun, field_name)
+                print(result)
             return 
 
         # Case 2: use target noun if present; try parser-resolved noun if not

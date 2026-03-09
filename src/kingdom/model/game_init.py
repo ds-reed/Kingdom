@@ -152,7 +152,7 @@ def setup_world(world: World, source):
     Room.DIRECTIONS = DIRECTIONS.canonical
 
     if isinstance(data, dict):
-        containers = _construct_containers(data.get("Containers", []))
+        containers = _construct_containers(data.get("containers", []))
         rooms = _construct_rooms(data.get("rooms", []))
     else:
         containers = []
@@ -295,6 +295,7 @@ def _construct_rooms(data):
             found=entry.get("found", False),
             is_dark=entry.get("is_dark", False),
             has_water=entry.get("has_water", False),
+            has_cliff=entry.get("has_cliff", False),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
         )
@@ -304,7 +305,7 @@ def _construct_rooms(data):
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
         # Add Containers to the room
-        for container_data in entry.get("Containers", []):
+        for container_data in entry.get("containers", []):
             container = _construct_container_from_spec(container_data)
 
             for item_spec in container_data.get("items", []):
@@ -314,14 +315,19 @@ def _construct_rooms(data):
             room.add_container(container) 
 
         # Add Features to the room
-        for feature_data in entry.get("Features", entry.get("features", [])):
+        for feature_data in entry.get("features", entry.get("", [])):
             feature = _construct_feature_from_spec(feature_data)
             room.add_feature(feature)
 
         room.swim_exits = entry.get("swim_exits", {})
+        room.climb_exits = entry.get("climb_exits", {})
 
         hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))
         pending_connections.append((room, entry.get("connections", {}), hidden_directions))
+
+    # ------------------------------------------------------------
+    # Connect rooms
+    # ------------------------------------------------------------
 
     room_by_name = {room.name: room for room in rooms}
     for room, raw_connections, hidden_exits in pending_connections:
@@ -356,7 +362,7 @@ def _construct_rooms(data):
                 if isinstance(direction, str):
                     room.set_exit_visibility(direction, visible=False)
         # ------------------------------------------------------------
-        # Resolve swim_exits into Room objects
+        # Resolve swim_exits 
         # ------------------------------------------------------------
         raw_swim_exits = getattr(room, "swim_exits", {})
         resolved_swim_exits = {}
@@ -369,6 +375,21 @@ def _construct_rooms(data):
                 print(f"DEBUG: Swim exit destination '{dest_name}' not found for room '{room.name}'.")
 
         room.swim_exits = resolved_swim_exits
+
+        # ------------------------------------------------------------
+        # Resolve climb_exits 
+        # ------------------------------------------------------------
+        raw_climb_exits = getattr(room, "climb_exits", {})
+        resolved_climb_exits = {}
+
+        for direction, dest_name in raw_climb_exits.items():
+            dest_room = room_by_name.get(dest_name)
+            if dest_room:
+                resolved_climb_exits[direction] = dest_room
+            else:
+                print(f"DEBUG: Climb exit destination '{dest_name}' not found for room '{room.name}'.")
+
+        room.climb_exits = resolved_climb_exits
 
     return rooms
 

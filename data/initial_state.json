@@ -24,7 +24,7 @@
                     "special_handlers": {"say": "speak_djinni", "make": "make_djinni"}
                 }
             ],
-            "Containers": [],
+            "containers": [],
             "connections": {}
         },
         {
@@ -78,14 +78,14 @@
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open."
                 }
             ],
-            "Features": [
+            "features": [
                 {
                     "name": "ladder",
                     "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
                     "adjectives": ["magic", "glittering", "soft blue"]
                 }
             ],
-            "Containers": [
+            "containers": [
                 {
                     "name": "bag",
                     "description": "a greasy brown lunch bag",
@@ -160,7 +160,7 @@
                     "synonyms": ["djinni mural", "wall mural", "painting"]
                 }
             ],
-            "Containers": [],
+            "containers": [],
             "connections": {}
         },
         {
@@ -180,7 +180,7 @@
                     "too_heavy_to_swim": true
                 }
             ],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "east": "Blank Chamber"
             }
@@ -204,7 +204,7 @@
                     "is_lit": true
                 }
             ],
-            "Containers": [
+            "containers": [
                 {
                     "name": "wardrobe",
                     "description": "a large wooden wardrobe",
@@ -227,7 +227,7 @@
             "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
             "discover_points": 10,
             "items": [],
-            "Containers": [],
+            "containers": [],
             "connections": {}
         },
         {
@@ -241,20 +241,97 @@
                     "is_edible": true
                 }
             ],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "down": "Tower Cell",
                 "north": "Clockwork Court",
                 "east": "Whispering Grove",
-                "west": "Mirror Hall"
+                "west": "Mirror Hall",
+                "south": "Ravine Edge"
             }
+        },
+        {
+            "name": "Ravine Edge",
+            "description": "at the edge of a steep ravine. A narrow stream glitters faintly at the bottom.",
+            "discover_points": 10,
+            "climb_exits": {
+                    "down": "Clover Rest"
+                },
+            "has_cliff": true,
+            "is_climbable": false,
+            "items": [
+                {
+                    "name": "rope",
+                    "description": "a sturdy length of rope",
+                    "adjectives": ["sturdy", "coiled"],
+                    "is_gettable": true,
+                    "is_tieable": true
+                },
+                {
+                    "name": "hook",
+                    "description": "an iron hook firmly anchored into the rock at the ravine's edge",
+                    "adjectives": ["iron", "anchored"],
+                    "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
+                    "is_gettable": false,
+                    "is_anchor_point": true
+                }
+            ],
+            "": [
+                {
+                    "name": "ravine",
+                    "description": "a sheer drop into a rocky gorge with a fast rushing stream running along its bottom.",
+                    "adjectives": ["steep", "sheer"],
+                    "synonyms": ["gorge", "chasm"]
+                },
+                {
+                    "name": "stream",
+                    "description": "a narrow ribbon of water glinting far below",
+                    "adjectives": ["narrow", "glinting"]
+                }
+            ],
+            "containers": [],
+            "connections": {
+                "north": "Demo Landing"
+            }
+            
+        },
+        {
+            "name": "Clover Rest",
+            "description": "beside a pleasant stream that winds gently through a bed of soft clover. Sunlight filters down the ravine walls in shifting ribbons, and the air is cool and peaceful.",
+            "discover_points": 10,
+            "has_water": true,
+            "climb_exits": {
+                "up": "Ravine Edge"
+                },
+            "has_cliff": true,
+            "is_climbable": false,
+            "items": [],
+            "": [
+                {
+                    "name": "stream",
+                    "description": "a clear, gentle stream flowing over smooth stones",
+                    "adjectives": ["clear", "gentle", "flowing"]
+                },
+                {
+                    "name": "clover",
+                    "description": "a thick bed of soft green clover that looks surprisingly comfortable",
+                    "adjectives": ["soft", "green"]
+                },
+                {
+                    "name": "ravine walls",
+                    "description": "tall stone walls rising steeply above you, too narrow to climb without help",
+                    "adjectives": ["tall", "steep", "narrow"]
+                }
+            ],
+            "containers": [],
+            "connections": {}
         },
         {
             "name": "Whispering Grove",
             "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
             "discover_points": 10,
             "items": [],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -265,7 +342,7 @@
             "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
             "discover_points": 10,
             "items": [],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -276,7 +353,7 @@
             "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
             "discover_points": 10,
             "items": [],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
@@ -287,7 +364,7 @@
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
             "discover_points": 10,
             "items": [],
-            "Containers": [],
+            "containers": [],
             "connections": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"

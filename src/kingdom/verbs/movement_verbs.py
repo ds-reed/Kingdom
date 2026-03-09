@@ -82,6 +82,8 @@ class MovementVerbHandler(VerbHandler):
                 )
 
             return None
+        
+        
 
         # 1. Room must allow swimming
         if not getattr(room, "has_water", False):
@@ -108,8 +110,36 @@ class MovementVerbHandler(VerbHandler):
         )
 
         return self.build_message(result_msg)
+    
 
+    def climb(self, target: Noun, words: list[str]):
+        room = self.room()
+        
+        # 1. Room must allow climbing - using has_cliff for climable areas generally -even if not literal cliffs
+        if not getattr(room, "has_cliff", False):
+            return self.build_message("There is nowhere to climb here.")
+        
+        # 2. Parse direction
+        parsed = self.resolve_noun_or_word(words, interest=[])
+        direction = parsed["direction"]
 
+        if direction is None:
+            return self.build_message("Climb where?")
+
+        # 3. Climbing constraint logic
+
+        if direction in room.climb_exits and not getattr(room, "is_climbable", False):
+            return self.build_message("You try to climb, but it's too difficult from here.")
+
+        # 4. Perform climb movement using climb_exits
+        result_msg = self.perform_movement(
+            direction,
+            room.climb_exits,
+            verb_phrase="climb",
+            success_verb_phrase="climb"
+        )
+
+        return self.build_message(result_msg)
 
     def teleport(self, target: Noun, words: list[str]):
         """Teleport to any room by name or number. No target → list rooms."""

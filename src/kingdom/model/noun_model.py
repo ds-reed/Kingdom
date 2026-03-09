@@ -296,6 +296,7 @@ class Item(Noun):
     eat_refuse_string: Optional[str] = None
     eaten_success_string: Optional[str] = None
     get_refuse_string: Optional[str] = None
+    is_anchor_point: bool = False
     special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "if_set"})
 
     # Runtime fields
@@ -343,6 +344,7 @@ class Item(Noun):
         self.is_rubbed = bool(self.is_rubbed)
         self.trigger_room = str(self.trigger_room).strip() if self.trigger_room is not None and str(self.trigger_room).strip() else None
         self.too_heavy_to_swim = bool(self.too_heavy_to_swim)
+        self.is_anchor_point = bool(self.is_anchor_point)
 
         if self.special_handlers is None:
             self.special_handlers = {}
@@ -561,11 +563,11 @@ class Player:
         return self.sack.contents
 
 
-
 @dataclass
 class Room(Noun):
     DIRECTIONS: ClassVar[list[str] | set[str]] = []
 
+    # --- Persistent fields (from JSON) ---
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
     handle: str = field(default=None, metadata={"persist": "if_set"})
@@ -573,28 +575,27 @@ class Room(Noun):
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
     found: bool = field(default=False, metadata={"persist": "if_set"})
     is_dark: bool = field(default=False, metadata={"persist": "if_set"})
-    has_water: bool = field(default=False, metadata={"persist": "if_set"})
     dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     discover_points: int = field(default=10, metadata={"persist": "if_set"})
+    has_water: bool = field(default=False, metadata={"persist": "if_set"})
+    has_cliff: bool = field(default=False, metadata={"persist": "if_set"})
 
+    # --- Runtime-constructed fields (not in JSON) ---
     swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
+    climb_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
     items: List["Item"] = field(default_factory=list, init=False)
     containers: List["Container"] = field(default_factory=list, init=False)
     features: List["Feature"] = field(default_factory=list, init=False)
     connections: Dict[str, "Room"] = field(default_factory=dict, init=False)
     hidden_directions: set[str] = field(default_factory=set, init=False)
+    is_climbable: bool = field(default=False, init=False)
+
+ 
 
     def __post_init__(self):
-        self.name = str(self.name)
-        self.description = str(self.description)
-        self.found = bool(self.found)
-        self.is_dark = bool(self.is_dark)
-        self.has_water = bool(self.has_water)
-        self.dark_description = self.dark_description or None
-        self.discover_points = max(0, int(self.discover_points))
         self.handle = normalize_key(self.handle or self.name)
-
         super().__init__()
+
 
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
@@ -602,7 +603,7 @@ class Room(Noun):
         features_str = [f.display_name() for f in self.features]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, has_cliff={self.has_cliff}, is_climbable={self.is_climbable}, items={items_str}, "
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
@@ -722,28 +723,38 @@ class Room(Noun):
     def to_dict(self) -> dict:
         payload = serialize_non_default(self)
 
+        # --- Persistent scalar fields ---
         payload.setdefault("name", self.name)
         payload.setdefault("description", self.description)
         payload["found"] = bool(self.found)
-        payload["is_dark"] = bool(self.is_dark)
-        payload["has_water"] = bool(self.has_water)
-        payload["dark_description"] = self.dark_description
         payload["discover_points"] = int(self.discover_points)
+        payload["is_climbable"] = bool(self.is_climbable)
 
+
+        # --- Persistent collections ---
         payload["items"] = [Item._serialize_item(item) for item in self.items]
-        payload["Containers"] = [container._serialize_container() for container in self.containers]
-        payload["Features"] = [feature.to_dict() for feature in self.features]
+        payload["containers"] = [container._serialize_container() for container in self.containers]
+        payload["features"] = [feature.to_dict() for feature in self.features]
+
+        # --- Movement edges ---
         payload["connections"] = {
             direction: destination.name
             for direction, destination in self.connections.items()
         }
         payload["swim_exits"] = {
-            direction: destination.name if hasattr(destination, "name") else str(destination)
+            direction: destination.name
             for direction, destination in self.swim_exits.items()
         }
+        payload["climb_exits"] = {
+            direction: destination.name
+            for direction, destination in self.climb_exits.items()
+        }
+
+        # --- Runtime flags ---
         payload["hidden_directions"] = list(self.hidden_directions)
 
         return payload
+
 
     def _serialize_room(self) -> dict:
         return self.to_dict()

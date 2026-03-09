@@ -38,7 +38,7 @@
         }
     },
     "player": {
-        "name": "ralf",
+        "name": "x",
         "inventory": []
     },
     "current_room": "Tower Cell",
@@ -94,7 +94,7 @@
             "discover_points": 0,
             "has_water": false,
             "has_cliff": false,
-            "is_climbable": true,
+            "is_climbable": false,
             "items": [
                 {
                     "name": "torch",
@@ -665,6 +665,29 @@
             "connections": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"
+            },
+            "swim_exits": {},
+            "climb_exits": {},
+            "hidden_directions": []
+        },
+        {
+            "name": "__roundtrip_room__",
+            "description": "d",
+            "handle": "__roundtrip_room__",
+            "synonyms": [],
+            "adjectives": [],
+            "found": true,
+            "is_dark": true,
+            "dark_description": "Pitch black sentinel room",
+            "discover_points": 77,
+            "has_water": true,
+            "has_cliff": false,
+            "is_climbable": false,
+            "items": [],
+            "containers": [],
+            "features": [],
+            "connections": {
+                "west": "Djinni Lair"
             },
             "swim_exits": {},
             "climb_exits": {},
