@@ -68,7 +68,7 @@
                         "tall"
                     ],
                     "is_gettable": false,
-                    "is_verbally_interactive": true,
+                    "can_be_spoken_to": true,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {
                         "say": "speak_djinni",
@@ -480,7 +480,7 @@
                     ],
                     "is_gettable": false,
                     "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
-                    "is_anchor_point": true
+                    "can_be_tied_to": true
                 }
             ],
             "containers": [],

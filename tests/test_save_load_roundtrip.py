@@ -42,8 +42,6 @@ CONTAINER_FIELDS = [
 ITEM_FIELDS = [
     "name",
     "is_gettable",
-    "refuse_string",
-    "presence_string",
     "handle",
     "is_openable",
     "is_open",
@@ -63,7 +61,7 @@ ITEM_FIELDS = [
     "unlocked_state_description",
     "unlockable_description",
     "is_edible",
-    "is_verbally_interactive",
+    "can_be_spoken_to",
     "is_lightable",
     "is_lit",
     "can_ignite",
@@ -162,8 +160,6 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     sentinel_item = Item(
         name="Roundtrip Item",
         is_gettable=False,
-        refuse_string="You may not take the sentinel item.",
-        presence_string="A sentinel item glows here.",
         handle="rt_item",
         is_openable=True,
         is_open=True,
@@ -183,7 +179,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         unlocked_state_description="Unlocked item.",
         unlockable_description="Needs a specific key.",
         is_edible=True,
-        is_verbally_interactive=True,
+        can_be_spoken_to=True,
         is_lightable=True,
         is_lit=True,
         can_ignite=True,
@@ -215,8 +211,12 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     saved_sentinel_room = next(
         room for room in saved_data["rooms"] if room.get("name") == "__roundtrip_room__"
     )
-    assert "containers" in saved_sentinel_room, "saved room payload must use lowercase 'containers'"
-    assert "features" in saved_sentinel_room, "saved room payload must use lowercase 'features'"
+    assert "containers" in saved_sentinel_room, (
+        "saved room payload must use lowercase 'containers' when containers are present"
+    )
+    assert "features" not in saved_sentinel_room, (
+        "saved room payload should omit empty 'features' lists"
+    )
 
     load_game(game, save_path)
 

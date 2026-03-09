@@ -296,6 +296,7 @@ def _construct_rooms(data):
             is_dark=entry.get("is_dark", False),
             has_water=entry.get("has_water", False),
             has_cliff=entry.get("has_cliff", False),
+            is_climbable=entry.get("is_climbable", False),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
         )

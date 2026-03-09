@@ -103,7 +103,7 @@ class StatefulVerbHandler(VerbHandler):
 
         cant_msg = self.basic_checks(
             target,
-            capability_attr="is_verbally_interactive",
+            capability_attr="can_be_spoken_to",
             verb_phrase="speak to",
         )
         if cant_msg:
