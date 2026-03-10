@@ -118,10 +118,8 @@ def build_dummy_lexicon() -> Lexicon:
         for s in v.synonyms:
             token_to_verb[s] = v
 
-    # ============================================================
-    # NOUNS
-    # ============================================================
     noun_specs = [
+        # Existing nouns
         ("lamp", [], []),
         ("sword", [], []),
         ("shield", [], []),
@@ -193,8 +191,47 @@ def build_dummy_lexicon() -> Lexicon:
         ("prisoner", [], []),
         ("goblin", [], []),
         ("dragon", [], []),
-        ("bed", [], [])
+        ("bed", [], []),
+
+        # ------------------------------------------------------------
+        # NEW nouns required for Stage 3 test suite
+        # ------------------------------------------------------------
+
+        ("map", [], []),
+        ("ring", [], []),
+        ("lever", [], []),
+        ("bolt", [], []),
+        ("handle", [], []),
+
+        ("sip", [], []),
+        ("handful", [], []),
+        ("piece", [], []),
+        ("stack", [], []),
+        ("clump", [], []),
+        ("drop", [], []),
+        ("length", [], []),
+
+        ("look", [], []),  # noun sense of "take a look"
+
+        ("donkey", [], []),
+        ("torch", [], []),
+        ("idol", [], []),
+        ("button", [], []),
+        ("post", [], []),
+        ("steak", [], []),
+        ("grave", [], []),
+        ("candle", [], []),
+        ("crate", [], []),
+        ("pot", [], []),
+        ("link", [], []),
+        ("shirt", [], []),
+
+        ("pile", [], []),
+        ("altar", [], []),
+        ("bracket", [], []),
+        ("shelf", [], []),
     ]
+
 
     nouns = []
     token_to_noun = {}

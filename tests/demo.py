@@ -36,6 +36,7 @@ def _run_interpreted(
     lexicon: Lexicon,
     interpreted: list[InterpretedCommand],
     demo_save_path: Path | None = None,
+    original_command: str = "",
 ):
     if not interpreted:
         return "UNKNOWN"
@@ -61,8 +62,11 @@ def _run_interpreted(
                 if go_entry is None:
                     return "UNKNOWN"
                 cmd.verb = go_entry
+                # Ensure direction is set so the go handler knows where to travel.
+                if not cmd.direction:
+                    cmd.direction = inferred_direction_tokens[0]
 
-            outcome = execute(cmd, game, lexicon)
+            outcome = execute(cmd, game, lexicon, original_command)
             if outcome is not None and outcome.message is not None:
                 messages.append(str(outcome.message))
 
@@ -125,7 +129,7 @@ def smoke_context(tmp_path: Path):
     def run(command: str):
         parsed = parse(command, lexicon)
         interpreted = interpret(parsed, game, lexicon)
-        result = _run_interpreted(game, lexicon, interpreted, demo_save_path=demo_save_path)
+        result = _run_interpreted(game, lexicon, interpreted, demo_save_path=demo_save_path, original_command=command)
 
         for cmd in interpreted:
             canonical = cmd.verb.canonical if cmd.verb is not None else None
@@ -217,6 +221,8 @@ def test_demo_smoke(smoke_context):
     _expect_contains(run("take lamp"), "you take")
     _expect_contains(run("take lighter"), "you take")
     _expect_contains(run("take torch"), "you take")
+    _expect_contains(run("put lighter into bag"), "you put")
+    _expect_contains(run("take lighter"), "you take")
     _expect_contains(run("close lunch bag"), "close")
     _expect_contains(run("drop torch"), "you drop")
     _expect_contains(run("take torch"), "you take")
@@ -266,7 +272,7 @@ def test_demo_smoke(smoke_context):
         "go", "swim", "teleport",
         "light", "extinguish", "open", "close", "unlock", "eat", "rub", "say", "make", "look",
         "help", "score", "load", "save", "quit", "die", "debug",
-        "inventory", "take", "drop",
+        "inventory", "take", "drop", "put",
     }
     missing = sorted(expected_canonical_verbs - smoke_context["covered_verbs"])
     assert not missing, f"All canonical verbs were exercised (missing: {missing})"

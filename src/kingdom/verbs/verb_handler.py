@@ -14,7 +14,7 @@ from kingdom.item_behaviors import VerbOutcome, VerbControl
 class ExecuteCommand:
     direct_objects: list[Any] = field(default_factory=list)
     indirect_objects: list[Any] = field(default_factory=list)
-    prep_roles: dict[str, Any] = field(default_factory=dict)
+    prep_phrases: list[dict] = field(default_factory=list)
     direction: Optional[str] = None
     modifiers: list[str] = field(default_factory=list)
     all_tokens: list[str] = field(default_factory=list)

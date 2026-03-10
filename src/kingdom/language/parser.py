@@ -276,11 +276,12 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                         "preposition": prep,
                         "object": np,
                     })
-                    object_phrases.append(np)  # required by harness
+                    object_phrases.append(np)
                     i = i2
                     continue
                 else:
                     continue
+
 
             # -------------------------
             # Noun phrase (possibly NP1 AND NP2)
@@ -310,7 +311,10 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
             # -------------------------
             i += 1
 
-        return object_phrases, conjunction_groups, prep_phrases
+        ps.object_phrases = object_phrases
+        ps.conjunction_groups = conjunction_groups 
+
+        return  
 
     def stage3_enrich():
         """

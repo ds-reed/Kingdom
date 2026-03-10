@@ -86,22 +86,27 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
         # for Stage 1 parser output: direct is a list, but verbs expect a single target
         target = command.direct[0] if command.direct else None
 
+
         # Resolve world object
         if target:
-            target = _resolve_target_noun(world, target.canonical_head.canonical)
+            target = _resolve_target_noun(world, target.noun_object.handle) if target.noun_object else None
 
 
-        # Stage 1: words = all_tokens
-        words = list(command.all_tokens[1:]) if command.all_tokens else []                # strip off verb token
+        # Stage 1: words = all_tokens minus verb token.
+        # For implicit verbs (e.g. bare direction "west"), the verb is not in
+        # all_tokens, so pass all tokens unchanged.
+        if command.verb_source == "implicit":
+            words = list(command.all_tokens) if command.all_tokens else []
+        else:
+            words = list(command.all_tokens[1:]) if command.all_tokens else []  # strip off verb token
 
         # Stage 1: ALL disables target
         if "all" in command.modifier_tokens:
             target = None
 
         execute_command =  ExecuteCommand(
-            direct_objects = command.direct if command.direct else [],
-            indirect_objects = command.indirect if command.indirect else [],
- #           prep_roles = command.prep_phrases, 
+            direct_objects = command.direct[0].noun_object if command.direct else [],
+            prep_phrases = command.prep_phrases if command.prep_phrases else {},
             direction = command.direction if command.direction else None,
             modifiers = command.modifier_tokens if command.modifier_tokens else [],
             all_tokens = command.all_tokens

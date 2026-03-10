@@ -180,7 +180,10 @@ class InventoryVerbHandler(VerbHandler):
         room = self.room()
 
         # 1. Destination
-        dest = cmd.prep_roles.get("into")
+
+        dest_target = next((pp["object"] for pp in cmd.prep_phrases if pp["prep"] == "into"), None)
+        dest = dest_target.noun_object if dest_target else None
+
         if dest is None:
             return self.build_message("Put where?")
 
@@ -196,7 +199,7 @@ class InventoryVerbHandler(VerbHandler):
 
         msgs = []
 
-        for obj in cmd.direct_objects:
+        for obj in [cmd.direct_objects]:                                            # furture preparation for multiple direct objects, currently cmd.direct_objects is a single noun_object due to stage 3 parser limitations
             if obj not in player.get_inventory_items():
                 msgs.append(f"You're not carrying {obj.display_name()}.")
                 continue

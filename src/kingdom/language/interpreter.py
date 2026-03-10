@@ -18,7 +18,7 @@ class InterpretedTarget:
     token_phrase: str
     token_head: str
     token_adjectives: List[str]
-    canonical_head: NounEntry
+    noun_object: Item
 
 
 @dataclass(frozen=False)
@@ -34,7 +34,6 @@ class InterpretedCommand:
     verb_source: Optional[str] = "explicit"                             # how the verb was determined (e.g., "explicit", "implicit", "unknown")
 
     direct: List[InterpretedTarget] = field(default_factory=list)       # the direct object(s) of the verb, if any
-    indirect: List[InterpretedTarget] = field(default_factory=list)     # the indirect object(s) of the verb, if any
     prep_phrases: List[dict] = field(default_factory=list)              # list of {"prep": preposition, "object": InterpretedTarget} for any prepositional phrases
 
     direction: Optional[str] = None                                     # canonical direction (e.g., "north", "up", etc.) if verb uses directions and a direction token was present
@@ -44,7 +43,7 @@ class InterpretedCommand:
 
     def __repr__(self):
         return f"InterpretedCommand(verb={self.verb.canonical if self.verb else None}, verb_source={self.verb_source}, \n \
-        direct={[t.canonical_head.canonical for t in self.direct]}, indirect={[self.indirect]}, \n \
+        direct={[t.canonical_head.canonical for t in self.direct]},  \n \
         prep_phrases={self.prep_phrases}, \n \
         direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
 
@@ -88,59 +87,74 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # ----------------------------------------------------------------------
         # Object resolution
         # ----------------------------------------------------------------------
-
         def _resolve_direct_object(action: ParsedAction) -> List[InterpretedTarget]:
-            if not action.noun_candidates:
+            # No direct object at all
+
+            if not action.object_phrases:
                 return []
-            
-            targets = []
+
+            # The direct object NP is always the first object phrase
+            np = action.object_phrases[0]
+            head = np["head"]
+
+            # ALL expansion?
             if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
-                candidates = _expand_all(base_cmd)  # list all possible candidates for the verb if "all" modifier is present and verb allows expansion
+                results = []
+                candidates = _expand_all(base_cmd)   # world objects or handles
+
                 for candidate in candidates:
-                    token = action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None
-                    noun = lexicon.token_to_noun.get(candidate)
-                    targets.append(InterpretedTarget(
-                        token_phrase=token,                    
-                        token_head=token,    
-                        token_adjectives=[],           # we have no adjective handling in parser yet
-                        canonical_head=noun,                  
-                    ))
+                    noun_entry = lexicon.token_to_noun.get(candidate)
+                    if noun_entry:
+                        results.append(
+                            InterpretedTarget(
+                                token_phrase=candidate,
+                                token_head=candidate,
+                                token_adjectives=[],
+                                noun_object=noun_entry.noun_object,
+                            )
+                        )
+                return results
 
-            else:
-                noun = action.noun_candidates[0]  # For now, just take the first candidate (TODO: disambiguation)
-                token = action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None
-                targets.append(InterpretedTarget(
-                    token_phrase=token,                 
-                    token_head=token,
-                    token_adjectives=[],                   # no adjectives yet
-                    canonical_head=noun,              
-                    ))
+            # Normal (non-ALL) case
+            noun_entry = lexicon.token_to_noun.get(head)
+            if not noun_entry:
+                return []
 
-            return targets
+            return [
+                InterpretedTarget(
+                    token_phrase=head,
+                    token_head=head,
+                    token_adjectives=np.get("adjectives", []),
+                    noun_object=noun_entry.noun_object,
+                )
+            ]
+
             
-        
-        def _resolve_indirect_object(action: ParsedAction) -> List[InterpretedTarget]:
+        def _resolve_prep_phrases(action: ParsedAction) -> list[dict]:
+            resolved = []
 
-            results = []
             for pp in action.prep_phrases:
-                prep = pp["prep"]          # canonical preposition, e.g. "into"
-                head = pp["object"]        # surface noun token, e.g. "drawer"
+                prep = pp["prep"]          # canonical preposition
+                head = pp["object"]        # surface noun token
 
-                # Resolve the noun token to a NounEntry
+                # Resolve surface noun → NounEntry
                 noun_entry = lexicon.token_to_noun.get(head)
 
-                # Build an InterpretedTarget
                 if noun_entry:
-                    results.append(
-                        InterpretedTarget(
-                            token_phrase=head,
-                            token_head=head,
-                            token_adjectives=[],
-                            canonical_head=noun_entry.canonical,
-                        )
+                    target = InterpretedTarget(
+                        token_phrase=prep,
+                        token_head=head,
+                        token_adjectives=[],
+                        noun_object=noun_entry.noun_object,
                     )
 
-            return results
+                    resolved.append({
+                        "prep": prep,
+                        "object": target
+                    })
+
+            return resolved
+
 
 
         # ----------------------------------------------------------------------
@@ -161,11 +175,11 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             """Interpret modifiers (including 'all')."""
             return action.modifier_tokens if action.modifier_tokens else []
 
-        def _is_ambiguous(direct, indirect) -> bool:
+        def _is_ambiguous(direct, prep_phrases) -> bool:
             """Determine if the command is ambiguous based on unresolved targets."""
             return False  # Placeholder
         
-        def _handle_ambiguity(action: ParsedAction, direct, indirect, location) -> List[InterpretedCommand]:
+        def _handle_ambiguity(action: ParsedAction, direct, prep_phrases, location) -> List[InterpretedCommand]:
             """Handle ambiguity by generating multiple InterpretedCommands or adding diagnostics."""    
             return []  # Placeholder    
         
@@ -199,30 +213,25 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
     # ----------------------------------------------------------------------
         base_cmd = InterpretedCommand(    #empty template to fill in during interpretation
         verb=None,   
-        all_tokens=[],
-        direct=None,
-        indirect=None,
+        all_tokens=action.tokens,
         )      
 
         base_cmd.verb, base_cmd.verb_source = _resolve_verb(action)
 
         # Resolve objects, directions, modifiers, etc.
         base_cmd.direct = _resolve_direct_object(action)
-        base_cmd.indirect = _resolve_indirect_object(action)
-        base_cmd.prep_phrases = action.prep_phrases
+        base_cmd.prep_phrases = _resolve_prep_phrases(action)
         base_cmd.direction = _resolve_direction(action, base_cmd.verb.uses_directions if base_cmd.verb else False)
         base_cmd.modifier_tokens = _resolve_modifiers(action)
 
         # Handle ambiguity (may return zero commands)
-        if _is_ambiguous(base_cmd.direct, base_cmd.indirect):
-            return _handle_ambiguity(action, base_cmd.direct, base_cmd.indirect)
-
+        if _is_ambiguous(base_cmd.direct, base_cmd.prep_phrases):
+            return _handle_ambiguity(action, base_cmd.direct, base_cmd.prep_phrases, location=None)
 
         # ALL expansion (may return multiple commands)
         if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
             return _expand_all(base_cmd)
-        
-        base_cmd.all_tokens = action.tokens
+
 
         # Normal case: one command
         return [base_cmd]
