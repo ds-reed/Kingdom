@@ -55,7 +55,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -93,7 +93,7 @@
             "is_dark": false,
             "discover_points": 0,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -278,7 +278,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -311,7 +311,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -351,7 +351,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -401,7 +401,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -421,7 +421,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -456,7 +456,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [
                 {
@@ -530,7 +530,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -588,7 +588,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -611,7 +611,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -634,7 +634,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -657,7 +657,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],
@@ -681,7 +681,7 @@
             "dark_description": "Pitch black sentinel room",
             "discover_points": 77,
             "has_water": true,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "is_climbable": false,
             "items": [],
             "containers": [],

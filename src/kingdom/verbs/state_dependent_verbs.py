@@ -14,6 +14,7 @@ class StatefulVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         
         player = self.player()
@@ -82,6 +83,7 @@ class StatefulVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         
         parse = self.resolve_noun_or_word(words, interest=['wish'])
@@ -138,7 +140,7 @@ class StatefulVerbHandler(VerbHandler):
         return self.build_message(parts)
                 
 
-    def make(self, target=None, words=()):
+    def make(self, target=None, words=(), **kwargs):
 
         room = self.room()
         parse = self.resolve_noun_or_word(words, interest=['wish', 'all', 'everything'])
@@ -188,7 +190,7 @@ class StatefulVerbHandler(VerbHandler):
 
     # moved from UI - not following the usual pattern yet.    
 
-    def look(self, target: Noun | None, words: tuple[str, ...] = ()):
+    def look(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
 
         room = self.room()
 

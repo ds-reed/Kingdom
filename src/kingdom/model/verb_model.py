@@ -52,19 +52,8 @@ class Verb:
     def all_names(self):
         return (self.name, *self.synonyms)
 
-    def execute(self, target, words):
-        """Execute this verb with noun override + handler fallback."""
-
-        # 1. Noun override: on_<verb>
-        if target is not None:
-            override = getattr(target, f"on_{self.name}", None)
-            if callable(override):
-                result = override(words)
-                if result is not None:
-                    return result
-
-        # 2. Handler fallback
-        return self.action(target, words)
+    def execute(self, target, words, **kwargs):
+        return self.action(target, words, **kwargs)
     
     def canonical_name(self) -> str:
         return self.name

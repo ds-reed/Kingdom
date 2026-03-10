@@ -63,7 +63,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, target, words):
+    def go(self, target, words, **kwargs):
 
         parsed = self.resolve_noun_or_word(words, interest=[])
 
@@ -77,7 +77,7 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(result_msg)
 
 
-    def swim(self, target: Noun, words: list[str]):
+    def swim(self, target: Noun, words: list[str], **kwargs):
         room = self.room()
 
         def check_swim_constraints():
@@ -124,11 +124,11 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(result_msg)
     
 
-    def climb(self, target: Noun, words: list[str]):
+    def climb(self, target: Noun, words: list[str], **kwargs):
         room = self.room()
         
-        # 1. Room must allow climbing - using has_cliff for climable areas generally -even if not literal cliffs
-        if not getattr(room, "has_cliff", False):
+        # 1. Room must allow climbing - using has_climbable_direction for climable areas generally -even if not literal cliffs
+        if not getattr(room, "has_climbable_direction", False):
             return self.build_message("There is nowhere to climb here.")
         
         # 2. Parse direction
@@ -162,7 +162,7 @@ class MovementVerbHandler(VerbHandler):
 
         return self.build_message(result_msg)
 
-    def teleport(self, target: Noun, words: list[str]):
+    def teleport(self, target: Noun, words: list[str], **kwargs):
         """Teleport to any room by name or number. No target → list rooms."""
         state = self.state()
         game = self.game()

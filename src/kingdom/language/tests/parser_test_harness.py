@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from kingdom.language.parser import ParserOptions
 from kingdom.language.parser import parse
 
 
@@ -22,7 +21,6 @@ def pretty_print(parsed, index=None):
     print(f"normalized_text: {parsed.normalized_text}")
     print(f"tokens: {parsed.tokens}")
     print(f"token_spans: {parsed.token_spans}")
-    print(f"verb_candidates: {parsed.verb_candidates}")
     print(f"primary_verb_token: {parsed.primary_verb_token}")
     print(f"primary_verb_canonical: {parsed.primary_verb_canonical}")
     print(f"noun_candidates: {parsed.noun_candidates}")
@@ -32,7 +30,6 @@ def pretty_print(parsed, index=None):
     print(f"direction_tokens: {parsed.direction_tokens}")
     print(f"modifier_tokens: {parsed.modifier_tokens}")
     print(f"unknown_tokens: {parsed.unknown_tokens}")
-    print(f"diagnostics: {parsed.diagnostics}")
     print("====================\n")
 
 
@@ -44,7 +41,6 @@ STAGE_FIELDS = {
         "normalized_text",
         "tokens",
         "token_spans",
-        "verb_candidates",
         "primary_verb_token",
         "primary_verb_canonical",
         "noun_candidates",
@@ -127,8 +123,7 @@ def run_parser_tests(lexicon, tests):
             phrase = test["input"]
             expected_actions = test["expected"]  # now a list of expected dicts
 
-            options = ParserOptions(stage=stage_num)
-            parsed_actions = parse(phrase, lexicon, options)
+            parsed_actions = parse(phrase, lexicon)
 
             # Length mismatch check
             if len(parsed_actions) != len(expected_actions):

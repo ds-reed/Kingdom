@@ -582,7 +582,7 @@ class Room(Noun):
     dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     discover_points: int = field(default=10, metadata={"persist": "if_set"})
     has_water: bool = field(default=False, metadata={"persist": "if_set"})
-    has_cliff: bool = field(default=False, metadata={"persist": "if_set"})
+    has_climbable_direction: bool = field(default=False, metadata={"persist": "if_set"})
     is_climbable: bool = field(default=False, metadata={"persist": "if_set"})
 
         # Refuse strings for blocked exits
@@ -615,7 +615,7 @@ class Room(Noun):
         features_str = [f.display_name() for f in self.features]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, has_cliff={self.has_cliff}, is_climbable={self.is_climbable}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, has_climbable_direction={self.has_climbable_direction}, is_climbable={self.is_climbable}, items={items_str}, "
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 

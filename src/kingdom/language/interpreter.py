@@ -35,11 +35,18 @@ class InterpretedCommand:
 
     direct: List[InterpretedTarget] = field(default_factory=list)       # the direct object(s) of the verb, if any
     indirect: List[InterpretedTarget] = field(default_factory=list)     # the indirect object(s) of the verb, if any
+    prep_phrases: List[dict] = field(default_factory=list)              # list of {"prep": preposition, "object": InterpretedTarget} for any prepositional phrases
 
     direction: Optional[str] = None                                     # canonical direction (e.g., "north", "up", etc.) if verb uses directions and a direction token was present
     direction_tokens: List[str] = field(default_factory=list)           # all direction tokens from the input (unclear purpose)
 
     modifier_tokens: List[str] = field(default_factory=list)            # e.g., ["all"], ["quickly"], etc.
+
+    def __repr__(self):
+        return f"InterpretedCommand(verb={self.verb.canonical if self.verb else None}, verb_source={self.verb_source}, \n \
+        direct={[t.canonical_head.canonical for t in self.direct]}, indirect={[self.indirect]}, \n \
+        prep_phrases={self.prep_phrases}, \n \
+        direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
 
 
 
@@ -103,20 +110,38 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
                 noun = action.noun_candidates[0]  # For now, just take the first candidate (TODO: disambiguation)
                 token = action.noun_candidates_tokens[0] if action.noun_candidates_tokens else None
                 targets.append(InterpretedTarget(
-                token_phrase=token,                 
-                token_head=token,
-                token_adjectives=[],                   # no adjectives yet
-                canonical_head=noun,              
-            ))
+                    token_phrase=token,                 
+                    token_head=token,
+                    token_adjectives=[],                   # no adjectives yet
+                    canonical_head=noun,              
+                    ))
 
             return targets
             
-            
-
+        
         def _resolve_indirect_object(action: ParsedAction) -> List[InterpretedTarget]:
-            """Resolve the indirect object phrase."""
-            # TODO
-            return []
+
+            results = []
+            for pp in action.prep_phrases:
+                prep = pp["prep"]          # canonical preposition, e.g. "into"
+                head = pp["object"]        # surface noun token, e.g. "drawer"
+
+                # Resolve the noun token to a NounEntry
+                noun_entry = lexicon.token_to_noun.get(head)
+
+                # Build an InterpretedTarget
+                if noun_entry:
+                    results.append(
+                        InterpretedTarget(
+                            token_phrase=head,
+                            token_head=head,
+                            token_adjectives=[],
+                            canonical_head=noun_entry.canonical,
+                        )
+                    )
+
+            return results
+
 
         # ----------------------------------------------------------------------
         # Direction resolution
@@ -184,6 +209,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Resolve objects, directions, modifiers, etc.
         base_cmd.direct = _resolve_direct_object(action)
         base_cmd.indirect = _resolve_indirect_object(action)
+        base_cmd.prep_phrases = action.prep_phrases
         base_cmd.direction = _resolve_direction(action, base_cmd.verb.uses_directions if base_cmd.verb else False)
         base_cmd.modifier_tokens = _resolve_modifiers(action)
 
@@ -196,7 +222,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
             return _expand_all(base_cmd)
         
-        base_cmd.all_tokens = [msg for msg in action.noun_candidates_tokens + action.direction_tokens + action.modifier_tokens + action.unknown_tokens if msg]
+        base_cmd.all_tokens = action.tokens
 
         # Normal case: one command
         return [base_cmd]

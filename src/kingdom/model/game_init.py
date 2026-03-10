@@ -295,7 +295,7 @@ def _construct_rooms(data):
             found=entry.get("found", False),
             is_dark=entry.get("is_dark", False),
             has_water=entry.get("has_water", False),
-            has_cliff=entry.get("has_cliff", False),
+            has_climbable_direction=entry.get("has_climbable_direction", False),
             is_climbable=entry.get("is_climbable", False),
             climb_refuse_string=entry.get("climb_refuse_string"),
             up_refuse_string=entry.get("up_refuse_string"),

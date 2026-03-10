@@ -1,9 +1,14 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field    
+import token
+from typing import List, Any, Optional
 
 from kingdom.language.interpreter import InterpretedCommand
 from kingdom.model.noun_model import DirectionNoun, World
 from kingdom.language.lexicon import Lexicon
+from kingdom.verbs.verb_handler import ExecuteCommand
+
+
+
 
 @dataclass 
 class CommandOutcome:
@@ -87,13 +92,23 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
 
 
         # Stage 1: words = all_tokens
-        words = list(command.all_tokens) if command.all_tokens else []
+        words = list(command.all_tokens[1:]) if command.all_tokens else []                # strip off verb token
 
         # Stage 1: ALL disables target
         if "all" in command.modifier_tokens:
             target = None
 
-        result = verb.execute(target, words)
+        execute_command =  ExecuteCommand(
+            direct_objects = command.direct if command.direct else [],
+            indirect_objects = command.indirect if command.indirect else [],
+ #           prep_roles = command.prep_phrases, 
+            direction = command.direction if command.direction else None,
+            modifiers = command.modifier_tokens if command.modifier_tokens else [],
+            all_tokens = command.all_tokens
+            )
+
+        result = verb.execute(target, words, cmd=execute_command)
+ #       result = verb.execute(target, words)
 
         outcome = CommandOutcome(
             verb=verb.canonical_name() if verb else 'None',

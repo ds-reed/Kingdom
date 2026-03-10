@@ -1,13 +1,24 @@
 # kingdom/verbs/verb_handler.py
 
 from __future__ import annotations
-from typing import Optional, Iterable, Callable
+from typing import Any, Optional, Iterable, Callable
 from enum import Enum, auto
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, World, DirectionNoun, DIRECTIONS
 from kingdom.model.game_init import get_action_state
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
+
+
+@dataclass
+class ExecuteCommand:
+    direct_objects: list[Any] = field(default_factory=list)
+    indirect_objects: list[Any] = field(default_factory=list)
+    prep_roles: dict[str, Any] = field(default_factory=dict)
+    direction: Optional[str] = None
+    modifiers: list[str] = field(default_factory=list)
+    all_tokens: list[str] = field(default_factory=list)
+
 
 class VerbHandler:
     """

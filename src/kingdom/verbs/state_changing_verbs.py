@@ -46,6 +46,7 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
 
         room = self.room()
@@ -148,6 +149,7 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
 
         room = self.room()
@@ -240,6 +242,7 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun],
         words: tuple[str, ...],
+        **kwargs
     ) -> str:
 
         room = self.room()
@@ -325,7 +328,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
         return self.build_message(parts)
     
-    def light(self, target: Optional[Noun], words: tuple[str, ...]) -> str:
+    def light(self, target: Optional[Noun], words: tuple[str, ...], **kwargs) -> str:
 
         room = self.room()
         game = self.game()
@@ -411,6 +414,7 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun],
         words: tuple[str, ...],
+        **kwargs
     ) -> str:
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything', 'hands', 'hand'])
@@ -483,6 +487,7 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
@@ -537,4 +542,21 @@ class ChangeStateVerbHandler(VerbHandler):
             parts.append(result_msg)
 
         return self.build_message(parts)
+    
+
+    def tie(
+        self,
+        target: Optional[Noun] = None,
+        words: tuple[str, ...] = (),
+        **kwargs
+    ) -> str:
+        return self.build_message("Not implemented yet")
+
+    def untie(
+        self,
+        target: Optional[Noun] = None,
+        words: tuple[str, ...] = (),
+    ) -> str:
+        return self.build_message("Not implemented yet")    
+    
  

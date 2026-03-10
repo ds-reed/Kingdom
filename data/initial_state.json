@@ -31,12 +31,15 @@
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
             "discover_points": 0,
+            "is_climbable": true,
+            "has_climbable_direction": true,
             "climb_exits": {"up": "Demo Landing"},
+            "up_refuse_string": "You can't walk that way - did you mean to climb the ladder?",
             "items": [
                 {
                     "name": "torch",
                     "description": "an old wooden torch",
-                    "adjective": ["old", "wooden"],
+                    "adjectives": ["old", "wooden"],
                     "is_lightable": true,
                     "is_lit": false,
                     "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls."
@@ -258,7 +261,7 @@
             "climb_exits": {
                     "down": "Clover Rest"
                 },
-            "has_cliff": true,
+            "has_climbable_direction": true,
             "is_climbable": false,
             "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
             "down_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
@@ -306,7 +309,7 @@
             "climb_exits": {
                 "up": "Ravine Edge"
                 },
-            "has_cliff": true,
+            "has_climbable_direction": true,
             "is_climbable": false,
             "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
             "up_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",

@@ -79,6 +79,16 @@ def register_verbs():
                modifiers=["with", "all", "everything"],
                uses_directions=False),
 
+          Verb("tie", change.tie,
+               synonyms=["affix", "connect"],
+               modifiers=[],
+               uses_directions=False),
+
+          Verb("untie", change.untie,
+               synonyms=["disconnect"],
+               modifiers=[],
+               uses_directions=False),
+
           #singleton - most should be pairs (maybe tarnish is opposite of rub)
           Verb("rub", change.rub,
                synonyms=["polish", "clean"],
@@ -163,6 +173,11 @@ def register_verbs():
                synonyms=[],
                modifiers=["all", "everything"],
                uses_directions=False),
+
+          Verb("put", inventory.put,
+               synonyms=[],
+               modifiers=["in", "on", "into", "onto", "all", "everything"],
+               uses_directions=False)
      ]
 
      return 

@@ -42,23 +42,43 @@ class DirectionEntry:
 
     def __repr__(self):
         return f"DirectionEntry(handle={self.handle}, canonical={self.canonical}, reverse={self.reverse}, synonyms={self.synonyms})"
+    
+@dataclass(frozen=True)
+class PrepositionEntry:
+    canonical: str
+    synonyms: List[str]
+
+    def __repr__(self):
+        return f"PrepositionEntry(canonical={self.canonical}, synonyms={self.synonyms})"
 
 @dataclass(frozen=True)
 class Lexicon:
     verbs: List[VerbEntry] = field(default_factory=list)
     nouns: List[NounEntry] = field(default_factory=list)
-    directions: List[DirectionEntry] = field(default_factory=list)    
+    directions: List[DirectionEntry] = field(default_factory=list)
     modifiers: List[str] = field(default_factory=list)
     adjectives: List[str] = field(default_factory=list)
-    prepositions: List[str] = field(default_factory=list)
+
+    # UPDATED: prepositions is now a dict of canonical → PrepositionEntry
+    prepositions: Dict[str, PrepositionEntry] = field(default_factory=dict)
+
     conjunctions: List[str] = field(default_factory=list)
     particles: List[str] = field(default_factory=list)
+
     token_to_verb: Dict[str, VerbEntry] = field(default_factory=dict)
     token_to_noun: Dict[str, NounEntry] = field(default_factory=dict)
     token_to_direction: Dict[str, DirectionEntry] = field(default_factory=dict)
 
+    # NEW: token → list of canonical prepositions
+    token_to_preposition: Dict[str, List[str]] = field(default_factory=dict)
+
     def __repr__(self):
-        return f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, directions={self.directions}, modifiers = {self.modifiers}, prepositions={self.prepositions}, conjunctions={self.conjunctions}, particles={self.particles}, adjectives={self.adjectives})"
+        return (
+            f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, \n"
+            f"directions={self.directions}, modifiers={self.modifiers}, \n"
+            f"prepositions={self.prepositions}, conjunctions={self.conjunctions}, \n"
+            f"particles={self.particles}, adjectives={self.adjectives}) \n"
+        )
 
 
 
@@ -158,17 +178,98 @@ def lex() -> Lexicon:
         for syn in entry.synonyms:
             token_to_direction[syn] = entry
 
+
+    # -----------------------------
+    # Build Prepositions
+    # -----------------------------
+
+    preposition_entries = {
+        "into": PrepositionEntry(
+            canonical="into",
+            synonyms=["in", "inside", "within", "in to"],
+        ),
+        "onto": PrepositionEntry(
+            canonical="onto",
+            synonyms=["on", "upon", "on to"],
+        ),
+        "from": PrepositionEntry(
+            canonical="from",
+            synonyms=["out of", "off of", "off", "out"],
+        ),
+        "with": PrepositionEntry(
+            canonical="with",
+            synonyms=["using", "by", "via"],
+        ),
+        "at": PrepositionEntry(
+            canonical="at",
+            synonyms=[],
+        ),
+        "in": PrepositionEntry(
+            canonical="in",
+            synonyms=[],
+        ),
+        "on": PrepositionEntry(
+            canonical="on",
+            synonyms=[],
+        ),
+        "to": PrepositionEntry(
+            canonical="to",
+            synonyms=[],
+        ),
+        "toward": PrepositionEntry(
+            canonical="toward",
+            synonyms=["towards"],
+        ),
+        "through": PrepositionEntry(
+            canonical="through",
+            synonyms=["thru"],
+        ),
+        "across": PrepositionEntry(
+            canonical="across",
+            synonyms=[],
+        ),
+        "past": PrepositionEntry(
+            canonical="past",
+            synonyms=[],
+        ),
+        "under": PrepositionEntry(
+            canonical="under",
+            synonyms=["beneath", "underneath"],
+        ),
+    }
+
+    # Build token_to_preposition
+    token_to_preposition = {}
+
+    for canonical, entry in preposition_entries.items():
+        # canonical maps to itself
+        token_to_preposition.setdefault(canonical, []).append(canonical)
+
+        # synonyms may map to multiple canonicals (e.g., "in" → ["into", "in"])
+        for syn in entry.synonyms:
+            token_to_preposition.setdefault(syn, []).append(canonical)
+
     return Lexicon(
-            verbs=[ verb_entry for verb_entry in verb_entries ],
-            nouns=[ noun_entry for noun_entry in noun_entries ],
-            directions=[ direction_entry for direction_entry in direction_entries ],
-            modifiers=[ mod for verb_entry in verb_entries for mod in verb_entry.modifiers ], 
-            adjectives=[ adj for noun_entry in noun_entries for adj in noun_entry.adjectives ],
-            prepositions=["in", "on", "under", "with", "at", "to", "from", "into", "onto", "off"],
-            conjunctions=["and", "or", "but"],
-            particles=["the", "a", "an"],
-            token_to_verb=token_to_verb,  
-            token_to_noun=token_to_noun,  
-            token_to_direction=token_to_direction, 
+        verbs=verb_entries,
+        nouns=noun_entries,
+        directions=direction_entries,
+        prepositions=preposition_entries,
+
+        modifiers=[mod 
+                for verb_entry in verb_entries 
+                for mod in verb_entry.modifiers],
+
+        adjectives=[adj 
+                    for noun_entry in noun_entries 
+                    for adj in noun_entry.adjectives],
+
+        conjunctions=["and", "or", "but"],
+        particles=["the", "a", "an"],
+
+        token_to_verb=token_to_verb,
+        token_to_noun=token_to_noun,
+        token_to_direction=token_to_direction,
+        token_to_preposition=token_to_preposition,
     )
+
 

@@ -1,6 +1,8 @@
 # dummy_lexicon.py
+
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
+
 from kingdom.model.verb_model import Verb
 from kingdom.model.noun_model import Noun
 
@@ -34,18 +36,29 @@ class DirectionEntry:
     synonyms: List[str]
 
 @dataclass(frozen=True)
+class PrepositionEntry:
+    canonical: str
+    synonyms: List[str]
+
+@dataclass(frozen=True)
 class Lexicon:
     verbs: List[VerbEntry]
     nouns: List[NounEntry]
     directions: List[DirectionEntry]
     modifiers: List[str]
     adjectives: List[str]
-    prepositions: List[str]
+
+    # UPDATED
+    prepositions: Dict[str, PrepositionEntry]
     conjunctions: List[str]
     particles: List[str]
+
     token_to_verb: Dict[str, VerbEntry]
     token_to_noun: Dict[str, NounEntry]
     token_to_direction: Dict[str, DirectionEntry]
+
+    # NEW
+    token_to_preposition: Dict[str, List[str]]
 
 
 # ------------------------------------------------------------
@@ -55,7 +68,7 @@ class Lexicon:
 def build_dummy_lexicon() -> Lexicon:
 
     # ============================================================
-    # VERBS (≈80% coverage of challenge corpus)
+    # VERBS
     # ============================================================
     verbs = [
         VerbEntry("go", ["walk", "move"], [], True),
@@ -106,7 +119,7 @@ def build_dummy_lexicon() -> Lexicon:
             token_to_verb[s] = v
 
     # ============================================================
-    # NOUNS (≈80% coverage of challenge corpus)
+    # NOUNS
     # ============================================================
     noun_specs = [
         ("lamp", [], []),
@@ -222,19 +235,44 @@ def build_dummy_lexicon() -> Lexicon:
             token_to_direction[s] = d
 
     # ============================================================
-    # PREPOSITIONS
+    # PREPOSITIONS (canonical + synonyms)
     # ============================================================
-    prepositions = [
-        "in", "on", "of", "under", "over", "above", "below",
-        "behind", "beneath", "between", "beyond",
-        "across", "past", "toward", "into", "onto",
-        "with", "without", "from", "to", "at", "by",
-        "inside", "outside", "underneath", "atop",
-        "through", "off", "about"
-    ]
+    preposition_entries = {
+        "into": PrepositionEntry("into", ["in", "inside", "within", "in to"]),
+        "onto": PrepositionEntry("onto", ["on", "upon", "on to"]),
+        "from": PrepositionEntry("from", ["out of", "off of", "off", "out"]),
+        "with": PrepositionEntry("with", ["by", "via"]), 
+        "at": PrepositionEntry("at", []),
+        "in": PrepositionEntry("in", []),
+        "on": PrepositionEntry("on", []),
+        "to": PrepositionEntry("to", []),
+        "toward": PrepositionEntry("toward", ["towards"]),
+        "through": PrepositionEntry("through", ["thru"]),
+        "across": PrepositionEntry("across", []),
+        "past": PrepositionEntry("past", []),
+        "under": PrepositionEntry("under", ["beneath", "underneath"]),
+        "behind": PrepositionEntry("behind", []),
+        "beyond": PrepositionEntry("beyond", []),
+        "above": PrepositionEntry("above", []),
+        "below": PrepositionEntry("below", []),
+        "outside": PrepositionEntry("outside", []),
+        "of": PrepositionEntry("of", []),
+        "atop": PrepositionEntry("atop", []),
+        "over": PrepositionEntry("over", []),
+        "between": PrepositionEntry("between", []),
+    }
+
+
+
+    # Build token_to_preposition (supports ambiguity)
+    token_to_preposition = {}
+    for canonical, entry in preposition_entries.items():
+        token_to_preposition.setdefault(canonical, []).append(canonical)
+        for syn in entry.synonyms:
+            token_to_preposition.setdefault(syn, []).append(canonical)
 
     # ============================================================
-    # MODIFIERS
+    # MODIFIERS, ADJECTIVES, CONJUNCTIONS, PARTICLES
     # ============================================================
     modifiers = [
         "all", "everything",
@@ -243,9 +281,6 @@ def build_dummy_lexicon() -> Lexicon:
         "immediately", "then"
     ]
 
-    # ============================================================
-    # ADJECTIVES
-    # ============================================================
     adjectives = [
         "shimmering", "translucent", "blue",
         "badly", "charred", "half-burnt",
@@ -260,9 +295,6 @@ def build_dummy_lexicon() -> Lexicon:
         "pearly-white"
     ]
 
-    # ============================================================
-    # CONJUNCTIONS & PARTICLES
-    # ============================================================
     conjunctions = ["and", "or"]
     particles = ["the", "a", "an"]
 
@@ -275,10 +307,11 @@ def build_dummy_lexicon() -> Lexicon:
         directions=directions,
         modifiers=modifiers,
         adjectives=adjectives,
-        prepositions=prepositions,
+        prepositions=preposition_entries,
         conjunctions=conjunctions,
         particles=particles,
         token_to_verb=token_to_verb,
         token_to_noun=token_to_noun,
         token_to_direction=token_to_direction,
+        token_to_preposition=token_to_preposition,
     )

@@ -53,7 +53,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "djinni",
@@ -91,7 +91,7 @@
             "is_dark": false,
             "discover_points": 0,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "torch",
@@ -354,7 +354,7 @@
             "dark_description": "It is pitch dark. You can't see anything.",
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "features": [
                 {
                     "name": "mural",
@@ -378,7 +378,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": true,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "gold",
@@ -422,7 +422,7 @@
             "dark_description": "It is pitch dark. You can't see anything.",
             "discover_points": 10,
             "has_water": true,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "lantern",
@@ -475,7 +475,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false
+            "has_climbable_direction": false
         },
         {
             "name": "Demo Landing",
@@ -485,7 +485,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "apple",
@@ -522,7 +522,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": true,
+            "has_climbable_direction": true,
             "items": [
                 {
                     "name": "rope",
@@ -609,7 +609,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": true,
-            "has_cliff": true,
+            "has_climbable_direction": true,
             "features": [
                 {
                     "name": "stream",
@@ -659,7 +659,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "connections": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -673,7 +673,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "connections": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
@@ -687,7 +687,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "connections": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
@@ -701,7 +701,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_cliff": false,
+            "has_climbable_direction": false,
             "connections": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"

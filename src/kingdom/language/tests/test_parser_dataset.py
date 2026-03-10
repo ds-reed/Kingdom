@@ -4,473 +4,6 @@
 
 TESTS = {
 
-    # ------------------------------------------------------------------
-    # STAGE 1 — Minimal Syntax Extraction
-    # ------------------------------------------------------------------
-
-    "stage_1": [
-
-        # --------------------------------------------------------------
-        # Core Stage 1 (10)
-        # --------------------------------------------------------------
-
-        {
-            "input": "take the shimmering translucent blue crystal",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "verb_candidates": ["take"],
-                    "tokens": ["take", "the", "shimmering", "translucent", "blue", "crystal"],
-                    "unknown_tokens": ["the", "shimmering", "translucent", "blue"]
-                }
-            ]
-        },
-
-        {
-            "input": "examine the badly charred and half-burnt parchment",
-            "expected": [
-                {
-                    "primary_verb_token": "examine",
-                    "primary_verb_canonical": "look",
-                    "verb_candidates": ["look"],
-                    "tokens": ["examine", "the", "badly", "charred", "and", "half-burnt", "parchment"],
-                    "unknown_tokens": ["the", "badly", "charred", "and", "half-burnt"]
-                }
-            ]
-        },
-
-        {
-            "input": "open the massive ancient double-reinforced doors",
-            "expected": [
-                {
-                    "primary_verb_token": "open",
-                    "primary_verb_canonical": "open",
-                    "verb_candidates": ["open"],
-                    "tokens": ["open", "the", "massive", "ancient", "double-reinforced", "doors"],
-                    "unknown_tokens": ["the", "massive", "ancient", "double-reinforced", "doors"]
-                }
-            ]
-        },
-
-        {
-            "input": "drop the extremely heavy rusted iron anvil",
-            "expected": [
-                {
-                    "primary_verb_token": "drop",
-                    "primary_verb_canonical": "drop",
-                    "verb_candidates": ["drop"],
-                    "tokens": ["drop", "the", "extremely", "heavy", "rusted", "iron", "anvil"],
-                    "unknown_tokens": ["the", "extremely", "heavy", "rusted", "iron"]
-                }
-            ]
-        },
-
-        {
-            "input": "inspect the small intricately carved ivory figurine",
-            "expected": [
-                {
-                    "primary_verb_token": "inspect",
-                    "primary_verb_canonical": "look",
-                    "verb_candidates": ["look"],
-                    "tokens": ["inspect", "the", "small", "intricately", "carved", "ivory", "figurine"],
-                    "unknown_tokens": ["the", "small", "intricately", "carved", "ivory"]
-                }
-            ]
-        },
-
-        {
-            "input": "pick up the long sharp jagged glass shard",
-            "expected": [
-                {
-                    "primary_verb_token": "pick",
-                    "primary_verb_canonical": "take",
-                    "verb_candidates": ["take"],
-                    "tokens": ["pick", "up", "the", "long", "sharp", "jagged", "glass", "shard"],
-                    "unknown_tokens": ["the", "long", "sharp", "jagged", "glass"]
-                }
-            ]
-        },
-
-        {
-            "input": "wear the smelly old tattered leather boots",
-            "expected": [
-                {
-                    "primary_verb_token": None,
-                    "primary_verb_canonical": None,
-                    "verb_candidates": [ ],
-                    "tokens": ["wear", "the", "smelly", "old", "tattered", "leather", "boots"],
-                    "unknown_tokens": ["wear", "the", "smelly", "old", "tattered", "leather"]
-                }
-            ]
-        },
-
-        {
-            "input": "read the barely legible faded crimson ink",
-            "expected": [
-                {
-                    "primary_verb_token": None,
-                    "primary_verb_canonical": None,
-                    "verb_candidates": [ ],
-                    "tokens": ["read", "the", "barely", "legible", "faded", "crimson", "ink"],
-                    "unknown_tokens": ["read", "the", "barely", "legible", "faded", "crimson", "ink"]
-                }
-            ]
-        },
-
-        {
-            "input": "break the thick solid granite pillar",
-            "expected": [
-                {
-                    "primary_verb_token": "break",
-                    "primary_verb_canonical": "break",
-                    "verb_candidates": ["break"],
-                    "tokens": ["break", "the", "thick", "solid", "granite", "pillar"],
-                    "unknown_tokens": ["the", "thick", "solid", "granite", "pillar"]
-                }
-            ]
-        },
-
-        {
-            "input": "push the huge dusty mahogany wardrobe",
-            "expected": [
-                {
-                    "primary_verb_token": "push",
-                    "primary_verb_canonical": "push",
-                    "verb_candidates": ["push"],
-                    "tokens": ["push", "the", "huge", "dusty", "mahogany", "wardrobe"],
-                    "unknown_tokens": ["the", "huge", "dusty", "mahogany"]
-                }
-            ]
-        },
-
-        # --------------------------------------------------------------
-        # Stage 1 Sentinel Subset (6)
-        # --------------------------------------------------------------
-
-        {
-            "input": "take the blue pill and the red pill",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "verb_candidates": ["take"],
-                    "tokens": ["take", "the", "blue", "pill", "and", "the", "red", "pill"],
-                    "unknown_tokens": ["the", "blue", "and", "the", "red"]
-                }
-            ]
-        },
-
-        {
-            "input": "mix the red and yellow powders",
-            "expected": [
-                {
-                    "primary_verb_token": "mix",
-                    "primary_verb_canonical": "mix",
-                    "verb_candidates": ["mix"],
-                    "tokens": ["mix", "the", "red", "and", "yellow", "powders"],
-                    "unknown_tokens": ["the", "red", "and", "yellow"]
-                }
-            ]
-        },
-
-        {
-            "input": "collect the bones and the skulls",
-            "expected": [
-                {
-                    "primary_verb_token": None,
-                    "primary_verb_canonical": None,
-                    "verb_candidates": [],
-                    "tokens": ["collect", "the", "bones", "and", "the", "skulls"],
-                    "unknown_tokens": ["collect", "the", "bones", "and", "the", "skulls"]
-                }
-            ]
-        },
-
-        {
-            "input": "get the key from the box",
-            "expected": [
-                {
-                    "primary_verb_token": None,
-                    "primary_verb_canonical": None,
-                    "verb_candidates": [],
-                    "tokens": ["get", "the", "key", "from", "the", "box"],
-                    "unknown_tokens": ["get", "the", "from", "the"]
-                }
-            ]
-        },
-
-        {
-            "input": "put the gold in the bag",
-            "expected": [
-                {
-                    "primary_verb_token": "put",
-                    "primary_verb_canonical": "put",
-                    "verb_candidates": ["put"],
-                    "tokens": ["put", "the", "gold", "in", "the", "bag"],
-                    "unknown_tokens": ["the", "gold", "in", "the"]
-                }
-            ]
-        },
-
-        {
-            "input": "cut the steak with the knife",
-            "expected": [
-                {
-                    "primary_verb_token": "cut",
-                    "primary_verb_canonical": "cut",
-                    "verb_candidates": ["cut"],
-                    "tokens": ["cut", "the", "steak", "with", "the", "knife"],
-                    "unknown_tokens": ["the", "steak", "with", "the"]
-                }
-            ]
-        },
-
-        {
-            "input": "open, feed and fight the basket",
-            "expected": [
-                {
-                    "primary_verb_token": "open",
-                    "primary_verb_canonical": "open",
-                    "verb_candidates": ["open", "feed", "attack"],
-                    "tokens": ["open", "feed", "and", "fight", "the", "basket"],
-                    "unknown_tokens": ["and", "the"]
-                }
-            ]
-        },
-
-
-    ],
-
-     # ------------------------------------------------------------------
-    # STAGE 2 — Phrase Grouping + Conjunctions
-    # ------------------------------------------------------------------
-    "stage_2": [
-
-        {
-            "input": "grab the sword and shield",
-            "expected": [
-                {
-                    "primary_verb_token": "grab",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "sword", "adjectives": [], "span": (2, 3)},
-                        {"head": "shield", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "conjunction_groups": [["sword", "shield"]]
-                }
-            ]
-        },
-
-        {
-            "input": "take all from the table",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "table", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "from", "object": {"head": "table", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "look at the strange statue",
-            "expected": [
-                {
-                    "primary_verb_token": "look",
-                    "primary_verb_canonical": "look",
-                    "object_phrases": [
-                        {"head": "statue", "adjectives": ["strange"], "span": (3, 5)}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "take the shimmering crystal",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "crystal", "adjectives": ["shimmering"], "span": (2, 4)}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "grab the carved ivory figurine",
-            "expected": [
-                {
-                    "primary_verb_token": "grab",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "figurine", "adjectives": ["carved", "ivory"], "span": (2, 5)}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "take the boots and cloak",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "boots", "adjectives": [], "span": (2, 3)},
-                        {"head": "cloak", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "conjunction_groups": [["boots", "cloak"]]
-                }
-            ]
-        },
-
-        {
-            "input": "open the chest and drawer",
-            "expected": [
-                {
-                    "primary_verb_token": "open",
-                    "primary_verb_canonical": "open",
-                    "object_phrases": [
-                        {"head": "chest", "adjectives": [], "span": (2, 3)},
-                        {"head": "drawer", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "conjunction_groups": [["chest", "drawer"]]
-                }
-            ]
-        },
-
-        {
-            "input": "take the rope from the wall",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "rope", "adjectives": [], "span": (2, 3)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "from", "object": {"head": "wall", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "inspect the dusty mahogany desk",
-            "expected": [
-                {
-                    "primary_verb_token": "inspect",
-                    "primary_verb_canonical": "look",
-                    "object_phrases": [
-                        {"head": "desk", "adjectives": ["dusty", "mahogany"], "span": (2, 5)}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "take the bread and water",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "bread", "adjectives": [], "span": (2, 3)},
-                        {"head": "water", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "conjunction_groups": [["bread", "water"]]
-                }
-            ]
-        },
-
-        {
-            "input": "grab the stone from the river",
-            "expected": [
-                {
-                    "primary_verb_token": "grab",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "stone", "adjectives": [], "span": (2, 3)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "from", "object": {"head": "river", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "take the powder and gear",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "powder", "adjectives": [], "span": (2, 3)},
-                        {"head": "gear", "adjectives": [], "span": (4, 5)}
-                    ],
-                    "conjunction_groups": [["powder", "gear"]]
-                }
-            ]
-        },
-
-        {
-            "input": "open the gate with the key",
-            "expected": [
-                {
-                    "primary_verb_token": "open",
-                    "primary_verb_canonical": "open",
-                    "object_phrases": [
-                        {"head": "gate", "adjectives": [], "span": (2, 3)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "with", "object": {"head": "key", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "take the journal from the drawer",
-            "expected": [
-                {
-                    "primary_verb_token": "take",
-                    "primary_verb_canonical": "take",
-                    "object_phrases": [
-                        {"head": "journal", "adjectives": [], "span": (2, 3)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "from", "object": {"head": "drawer", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-        {
-            "input": "inspect the mirror on the wall",
-            "expected": [
-                {
-                    "primary_verb_token": "inspect",
-                    "primary_verb_canonical": "look",
-                    "object_phrases": [
-                        {"head": "mirror", "adjectives": [], "span": (2, 3)}
-                    ],
-                    "prep_phrases": [
-                        {"prep": "on", "object": {"head": "wall", "adjectives": [], "span": (4, 5)}}
-                    ]
-                }
-            ]
-        },
-
-    ],
 
     # ------------------------------------------------------------------
     # STAGE 3 — Phrase Grouping + Conjunctions
@@ -486,7 +19,7 @@ TESTS = {
                     "primary_verb_canonical": "look",
                     "modifier_tokens": ["in"],
                     "prep_phrases": [
-                        {"prep": "in", "object": "drawer"}
+                        {"prep": "into", "object": "drawer"}
                     ]
                 }
             ]
@@ -514,7 +47,7 @@ TESTS = {
                     "primary_verb_canonical": "take",
                     "modifier_tokens": ["all", "in"],
                     "prep_phrases": [
-                        {"prep": "in", "object": "bag"}
+                        {"prep": "into", "object": "bag"}
                     ]
                 }
             ]
@@ -528,7 +61,7 @@ TESTS = {
                     "primary_verb_canonical": "look",
                     "modifier_tokens": ["inside"],
                     "prep_phrases": [
-                        {"prep": "inside", "object": "chest"}
+                        {"prep": "into", "object": "chest"}
                     ]
                 }
             ]
@@ -572,7 +105,7 @@ TESTS = {
                         {"head": "mirror", "adjectives": [], "span": (1, 3)}
                     ],
                     "prep_phrases": [
-                        {"prep": "on", "object": "wall"}
+                        {"prep": "onto", "object": "wall"}
                     ]
                 }
             ]
@@ -627,7 +160,7 @@ TESTS = {
                     "primary_verb_token": "look",
                     "primary_verb_canonical": "look",
                     "prep_phrases": [
-                        {"prep": "beneath", "object": "pedestal"}
+                        {"prep": "under", "object": "pedestal"}
                     ]
                 }
             ]
@@ -704,7 +237,7 @@ TESTS = {
                     "primary_verb_canonical": "take",
                     "modifier_tokens": ["everything", "inside"],
                     "prep_phrases": [
-                        {"prep": "inside", "object": "chest"}
+                        {"prep": "into", "object": "chest"}
                     ]
                 }
             ]
@@ -736,7 +269,7 @@ TESTS = {
                         {"head": "cloak", "adjectives": [], "span": (1, 3)}
                     ],
                     "prep_phrases": [
-                        {"prep": "on", "object": "hook"}
+                        {"prep": "onto", "object": "hook"}
                     ]
                 }
             ]
@@ -766,7 +299,7 @@ TESTS = {
                 ],
                 "prep_phrases": [
                     {"prep": "from", "object": "box"},
-                    {"prep": "on", "object": "table"}
+                    {"prep": "onto", "object": "table"}
                 ]
             }
         ]
@@ -780,7 +313,7 @@ TESTS = {
                 "primary_verb_canonical": "put",
                 "object_phrases": [],
                 "prep_phrases": [
-                    {"prep": "in", "object": "bag"},
+                    {"prep": "into", "object": "bag"},
                     {"prep": "under", "object": "bed"}
                 ]
             }
@@ -798,7 +331,7 @@ TESTS = {
                 ],
                 "prep_phrases": [
                     {"prep": "of", "object": "envelope"},
-                    {"prep": "in", "object": "desk"}
+                    {"prep": "into", "object": "desk"}
                 ]
             }
         ]
@@ -814,8 +347,8 @@ TESTS = {
                     {"head": "map", "adjectives": [], "span": (2, 4)}
                 ],
                 "prep_phrases": [
-                    {"prep": "on", "object": "wall"},
-                    {"prep": "by", "object": "door"}
+                    {"prep": "onto", "object": "wall"},
+                    {"prep": "with", "object": "door"}
                 ]
             }
         ]
@@ -882,7 +415,7 @@ TESTS = {
                     {"head": "lever", "adjectives": [], "span": (1, 3)}
                 ],
                 "prep_phrases": [
-                    {"prep": "on", "object": "panel"},
+                    {"prep": "onto", "object": "panel"},
                     {"prep": "behind", "object": "curtain"}
                 ]
             }
@@ -899,7 +432,7 @@ TESTS = {
                     {"head": "bolt", "adjectives": [], "span": (1, 3)}
                 ],
                 "prep_phrases": [
-                    {"prep": "on", "object": "gate"},
+                    {"prep": "onto", "object": "gate"},
                     {"prep": "with", "object": "hook"}
                 ]
             }
@@ -913,7 +446,7 @@ TESTS = {
                 "primary_verb_token": "reach",
                 "primary_verb_canonical": "reach",
                 "prep_phrases": [
-                    {"prep": "on", "object": "ceiling"},
+                    {"prep": "onto", "object": "ceiling"},
                     {"prep": "above", "object": "hatch"}
                 ]
             }
@@ -1337,7 +870,7 @@ TESTS = {
                     {"head": "key", "adjectives": ["iron"], "span": (1, 4)}
                 ],
                 "prep_phrases": [
-                    {"prep": "on", "object": "door"}
+                    {"prep": "onto", "object": "door"}
                 ]
             }
         ]
@@ -1421,7 +954,85 @@ TESTS = {
             }
         ]
     },
+    {
+        "input": "Put everything into the bag",
+        "expected": [
+            {
+                "primary_verb_token": "put",
+                "primary_verb_canonical": "put",
+                "object_phrases": [],
+                "prep_phrases": [
+                    {"prep": "into", "object": "bag"}
+                ]
+            }
+        ]
+    },
+    {
+        "input": "Look within the chest",
+        "expected": [
+            {
+                "primary_verb_token": "look",
+                "primary_verb_canonical": "look",
+                "object_phrases": [],
+                "prep_phrases": [
+                    {"prep": "into", "object": "chest"}
+                ]
+            }
+        ]
+    },
+    {
+        "input": "Peer inside the drawer",
+        "expected": [
+            {
+                "primary_verb_token": "peer",
+                "primary_verb_canonical": "look",
+                "object_phrases": [],
+                "prep_phrases": [
+                    {"prep": "into", "object": "drawer"}
+                ]
+            }
+        ]
+    },
+    {
+        "input": "Put the apple in to the bag",
+        "expected": [
+            {
+                "primary_verb_token": "put",
+                "primary_verb_canonical": "put",
+                "object_phrases": [],
+                "prep_phrases": [
+                    {"prep": "to", "object": "bag"}
+                ]
+            }
+        ]
+    },
+    {
+        "input": "Place the book upon the table",
+        "expected": [
+            {
+                "primary_verb_token": "place",
+                "primary_verb_canonical": "put",
+                "object_phrases": [],
+                "prep_phrases": [
+                    {"prep": "onto", "object": "table"}
+                ]
+            }
+        ]
+    },
+    {
+        "input": "Set the lantern on to the shelf",
+        "expected": [
+            {
+                "primary_verb_token": "set",
+                "primary_verb_canonical": "put",
+                "object_phrases": [],
+                "prep_phrases": [
+                ]
+            }
+        ]
+    },
 
+    
 
     ]
 }

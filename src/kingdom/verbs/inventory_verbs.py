@@ -1,13 +1,14 @@
 # inventory Verbs
 
 from kingdom.model.noun_model import Noun, Item, Container, Room, World, Player
-from kingdom.verbs.verb_handler import VerbHandler, VerbControl
+from kingdom.verbs.verb_handler import VerbHandler, VerbControl, ExecuteCommand
 
 class InventoryVerbHandler(VerbHandler):
     def inventory(
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         player = self.player()
         inventory = player.get_inventory_items()
@@ -30,6 +31,7 @@ class InventoryVerbHandler(VerbHandler):
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         
 
@@ -121,6 +123,7 @@ class InventoryVerbHandler(VerbHandler):
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
+        **kwargs
     ) -> str:
         state = self.state()
         game = self.game()
@@ -170,3 +173,40 @@ class InventoryVerbHandler(VerbHandler):
         player.remove_from_sack(target)
         room.add_item(target)
         return self.build_message(f"You drop {target.display_name()}.")
+
+
+    def put(self, target, words, cmd: ExecuteCommand = None):
+        player = self.player()
+        room = self.room()
+
+        # 1. Destination
+        dest = cmd.prep_roles.get("into")
+        if dest is None:
+            return self.build_message("Put where?")
+
+        if not isinstance(dest, Container):
+            return self.build_message(f"You can't put things into {dest.display_name()}.")
+
+        if dest.is_openable and not dest.is_open:
+            return self.build_message(f"{dest.display_name().capitalize()} is closed.")
+
+        # 2. Direct objects
+        if not cmd.direct_objects:
+            return self.build_message("Put what?")
+
+        msgs = []
+
+        for obj in cmd.direct_objects:
+            if obj not in player.get_inventory_items():
+                msgs.append(f"You're not carrying {obj.display_name()}.")
+                continue
+
+            if not getattr(obj, "is_gettable", True):
+                msgs.append(f"You can't move {obj.display_name()}.")
+                continue
+
+            player.remove_from_sack(obj)
+            dest.add_item(obj)
+            msgs.append(f"You put {obj.display_name()} into {dest.display_name()}.")
+
+        return self.build_message(" ".join(msgs))

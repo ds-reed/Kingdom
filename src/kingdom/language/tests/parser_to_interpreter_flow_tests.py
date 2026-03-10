@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 from kingdom.language.parser import parse   
 from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
 from kingdom.language.interpreter import interpret, InterpretedCommand, InterpretedTarget
-from kingdom.language.parser import ParserOptions, parse
+from kingdom.language.parser import parse
 
 
 def run_p2i_flow_tests(lexicon: Lexicon, tests):
@@ -29,8 +29,11 @@ def run_p2i_flow_tests(lexicon: Lexicon, tests):
         for test in stage_tests:
             phrase = test["input"]
 
-            options = ParserOptions(stage=stage_num)
-            parsed_actions = parse(phrase, lexicon, options)
+            parsed_actions = parse(phrase, lexicon)
+            print(f"\nInput: '{phrase}'")
+            print(f"Parsed Actions: {parsed_actions}\n")  
+
+
             interpreted_commands = interpret(parsed_actions, world, lexicon)
             for cmd in interpreted_commands:
                 verb = cmd.verb.canonical if cmd.verb else None 
@@ -38,4 +41,4 @@ def run_p2i_flow_tests(lexicon: Lexicon, tests):
                     for direct in cmd.direct:
                         noun = direct.canonical_head.canonical if direct else None
                         directions = cmd.direction
-                        print(f"verb = {verb}, noun = {noun}, direction = {directions}")
+                        print(f"Interpreted Command: {interpreted_commands}")

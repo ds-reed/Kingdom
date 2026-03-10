@@ -9,22 +9,22 @@ class MetaVerbHandler(VerbHandler):
 
 
 
-    def load(self, target: Noun | None, words: tuple[str, ...] = ()):
+    def load(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
         raise LoadGame() 
 
-    def save(self, target: Noun | None, words: tuple[str, ...] = ()):
+    def save(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
         raise SaveGame()
 
-    def quit(self, target: Noun | None, words: tuple[str, ...] = ()):
+    def quit(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
         raise QuitGame()
 
-    def die(self, target: Noun | None, words: tuple[str, ...] = ()):
+    def die(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
         raise GameOver("You have met an untimely demise.")
 
     # ------------------------------------------------------------
     # DEBUG
     # ------------------------------------------------------------
-    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = ()) -> str:
+    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
         # Resolve either a noun or keywords of interest
         parse = self.resolve_noun_or_word(
             words,
@@ -140,7 +140,7 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # HELP
     # ------------------------------------------------------------
-    def help(self, target: Noun | None, words: tuple[str, ...] = ()) -> str:
+    def help(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
         # Resolve either a noun or keywords of interest
         result = self.resolve_noun_or_word(
             words,
@@ -201,7 +201,8 @@ class MetaVerbHandler(VerbHandler):
     def score(
         self,
         target: Noun | None,
-        words: tuple[str, ...] = ()
+        words: tuple[str, ...] = (),
+        **kwargs    
     ) -> str:
         state = self.state()
         return self.build_message(f"Your current score is: {state.score}")
