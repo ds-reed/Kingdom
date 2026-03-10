@@ -297,6 +297,13 @@ def _construct_rooms(data):
             has_water=entry.get("has_water", False),
             has_cliff=entry.get("has_cliff", False),
             is_climbable=entry.get("is_climbable", False),
+            climb_refuse_string=entry.get("climb_refuse_string"),
+            up_refuse_string=entry.get("up_refuse_string"),
+            down_refuse_string=entry.get("down_refuse_string"),
+            east_refuse_string=entry.get("east_refuse_string"),
+            west_refuse_string=entry.get("west_refuse_string"),
+            north_refuse_string=entry.get("north_refuse_string"),
+            south_refuse_string=entry.get("south_refuse_string"),
             dark_description=entry.get("dark_description"),
             discover_points=entry.get("discover_points", 10),
         )

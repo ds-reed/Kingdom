@@ -31,6 +31,7 @@
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
             "discover_points": 0,
+            "climb_exits": {"up": "Demo Landing"},
             "items": [
                 {
                     "name": "torch",
@@ -140,9 +141,7 @@
                     ]
                 }
             ],
-            "connections": {
-                "up": "Demo Landing"
-            }
+            "connections": {}
         },
         {
             "name": "Blank Chamber",
@@ -168,6 +167,7 @@
             "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
             "discover_points": 10,
             "has_water": true,
+            "west_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side.",
             "swim_exits": {
                 "west": "Pool Ledge"
             },
@@ -192,6 +192,7 @@
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
             "has_water": true,
+            "east_refuse_string": "There is a large pool of water blocking your way east, although you do see solid ground on the other side.",
             "swim_exits": {
                 "east": "Colossal Cave"
             },
@@ -259,6 +260,8 @@
                 },
             "has_cliff": true,
             "is_climbable": false,
+            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "down_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "items": [
                 {
                     "name": "rope",
@@ -276,7 +279,7 @@
                     "can_be_tied_to": true
                 }
             ],
-            "": [
+            "features": [
                 {
                     "name": "ravine",
                     "description": "a sheer drop into a rocky gorge with a fast rushing stream running along its bottom.",
@@ -305,8 +308,10 @@
                 },
             "has_cliff": true,
             "is_climbable": false,
+            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "up_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "items": [],
-            "": [
+            "features": [
                 {
                     "name": "stream",
                     "description": "a clear, gentle stream flowing over smooth stones",

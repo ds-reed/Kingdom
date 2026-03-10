@@ -585,6 +585,15 @@ class Room(Noun):
     has_cliff: bool = field(default=False, metadata={"persist": "if_set"})
     is_climbable: bool = field(default=False, metadata={"persist": "if_set"})
 
+        # Refuse strings for blocked exits
+    climb_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    up_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    down_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    east_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    west_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    north_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    south_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})    
+
     # --- Runtime-constructed fields (not in JSON) ---
     swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
     climb_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)

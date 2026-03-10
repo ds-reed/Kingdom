@@ -18,7 +18,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, canonical, exit_dict, verb_phrase, success_verb_phrase):
+    def perform_movement(self, canonical_direction, exit_dict, verb_phrase, success_verb_phrase):
         """
         Shared movement engine.
 
@@ -28,11 +28,23 @@ class MovementVerbHandler(VerbHandler):
         """
         state = self.state()
         game = self.game()
+        room = self.room()
     
 
-        next_room = exit_dict.get(canonical)
+        next_room = exit_dict.get(canonical_direction)
         if next_room is None:
-            return f"You can't {verb_phrase} {canonical} from here."
+
+            refuse_string = None
+            other_exits = list(room.swim_exits.keys()) + list(room.climb_exits.keys())
+
+            if canonical_direction in other_exits:
+                # Player is trying to use the wrong movement verb for an existing exit
+                field_name = f"{canonical_direction}_refuse_string"
+                refuse_string = getattr(room, field_name, None)
+
+            if refuse_string:
+                return refuse_string
+            return f"You can't {verb_phrase} {canonical_direction} from here."
 
         # Move
         state.current_room = next_room
@@ -42,7 +54,7 @@ class MovementVerbHandler(VerbHandler):
             state.score += getattr(next_room, "discover_points", 0)
 
         # Render
-        lines = [f"You {success_verb_phrase} {canonical}."]
+        lines = [f"You {success_verb_phrase} {canonical_direction}."]
         lines.extend(render_current_room(state))
 
         return lines
@@ -129,7 +141,16 @@ class MovementVerbHandler(VerbHandler):
         # 3. Climbing constraint logic
 
         if direction in room.climb_exits and not getattr(room, "is_climbable", False):
-            return self.build_message("You try to climb, but it's too difficult from here.")
+
+            # Climb refusal
+            climb_refusal = getattr(room, "climb_refuse_string", None)
+
+            # Default fallback
+            default = "You try to climb, but it's too difficult from here."
+
+            return self.build_message(climb_refusal or default)
+    
+        
 
         # 4. Perform climb movement using climb_exits
         result_msg = self.perform_movement(

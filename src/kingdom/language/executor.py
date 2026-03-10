@@ -12,7 +12,7 @@ class CommandOutcome:
     message: str
     effects: List[str]
 
-def execute(command: InterpretedCommand, world: World, lexicon: Lexicon ) -> CommandOutcome:
+def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, original_command: str ) -> CommandOutcome:
     
     def execute_with_old_contract():             #compatability layer - remove when all verbs are ported!
 
@@ -45,17 +45,40 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon ) -> Com
                     return candidate
             return None
 
+#--------- start of old contract verb execution logic, to be removed when all verbs use new structure --------
 
         outcome = None
 
-        # old verb contract
-        if command.verb:
+        # Determine verb 
+        if command.verb is not None:
+            # Explicit verb
             verb = command.verb.verb_object
-        else:
+
+        elif command.verb_source == "implicit":
+            # Implicit verb (direction or noun continuation)
+            # For now, default to GO; later you can add last-explicit-verb continuation
             go_entry = lexicon.token_to_verb.get("go")
             verb = go_entry.verb_object
 
-        # Stage 1: direct is a list, but verbs expect a single target
+        elif command.verb_source == "unknown":
+            # User typed something in the verb slot that is not a verb
+            return CommandOutcome(
+                verb="None",
+                command=command,
+                message=f"I don't know how to '{original_command}'.",
+                effects=[]
+            )
+
+        else:
+            # Empty input or something structurally odd may not be reachable
+            return CommandOutcome(
+                verb="None",
+                command=command,
+                message="What would you like to do? (type help for assistance)",
+                effects=[]
+            )
+
+        # for Stage 1 parser output: direct is a list, but verbs expect a single target
         target = command.direct[0] if command.direct else None
 
         # Resolve world object

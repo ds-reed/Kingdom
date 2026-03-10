@@ -28,6 +28,7 @@ class ParsedAction:
     primary_verb: Optional[Any] = None
     primary_verb_token: Optional[str] = None
     primary_verb_canonical: Optional[str] = None
+    verb_source: Optional[str] = None
 
     # Noun + phrase fields
     noun_candidates: List[Any] = field(default_factory=list)  # nounEntries from lexicon
@@ -73,7 +74,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
 
 
     # ------------------------------------------------------------
-    # 3. Stage 1: classify each token
+    #  Stage 1: classify each token
     # ------------------------------------------------------------
     verb_candidates = []
     noun_candidates = []
@@ -127,7 +128,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
             unknown_tokens.append(tok)
 
     # ------------------------------------------------------------
-    # 4. Populate ParsedAction fields
+    # Populate ParsedAction fields
     # ------------------------------------------------------------
     ps.verb_candidates = verb_candidates
     ps.noun_candidates = noun_candidates
@@ -135,6 +136,41 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
     ps.direction_tokens = direction_tokens
     ps.modifier_tokens = modifier_tokens
     ps.unknown_tokens = unknown_tokens
+
+
+    # ------------------------------------------------------------
+    # Determine verb source
+    # ------------------------------------------------------------
+    verb_source = None
+    raw_verb_token = None
+
+    if primary_verb_entry is not None:
+        verb_source = "explicit"
+        raw_verb_token = primary_verb_token
+
+    elif ps.tokens:
+        first = ps.tokens[0]
+
+        if first in ps.direction_tokens:
+            verb_source = "implicit"
+            raw_verb_token = None
+
+        elif len(ps.tokens) == 1 and first in ps.noun_candidates_tokens:
+            verb_source = "implicit"
+            raw_verb_token = None
+
+        elif first in ps.unknown_tokens:
+            verb_source = "unknown"
+            raw_verb_token = first
+
+        else:
+            verb_source = "unknown"
+            raw_verb_token = first
+    else:
+        verb_source = None
+        raw_verb_token = None
+
+    ps.verb_source = verb_source
 
     # Stage 1 output format
     ps.verb_candidates = [v.canonical for v in verb_entries]
@@ -144,7 +180,6 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
     ps.primary_verb_canonical = (
         primary_verb_entry.canonical if primary_verb_entry else None
         )
-
 
 
     # ------------------------------------------------------------
@@ -166,9 +201,7 @@ def parse(text: str, lexicon: Lexicon, options: Optional[ParserOptions] = None) 
     if options.stage >= 3:
         stage3_enrich(ps, lexicon)
 
-
     return ps_return
-
 
 
 def stage2_phrase_grouping(tokens, lexicon):

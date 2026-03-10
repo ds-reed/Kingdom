@@ -24,13 +24,17 @@ class InterpretedTarget:
 @dataclass(frozen=False)
 class InterpretedCommand:
     # Required fields (no defaults)
-    verb: VerbEntry                                                     # verb to be used in command
-    all_tokens: List[str] 
+    verb: VerbEntry                                                     
+    all_tokens: List[str]                                               # all tokens from the input
+
+
 
     # Optional semantic fields
 
-    direct: List[InterpretedTarget] = field(default_factory=list)         # the direct object(s) of the verb, if any
-    indirect: List[InterpretedTarget] = field(default_factory=list)       # the indirect object(s) of the verb, if any
+    verb_source: Optional[str] = "explicit"                             # how the verb was determined (e.g., "explicit", "implicit", "unknown")
+
+    direct: List[InterpretedTarget] = field(default_factory=list)       # the direct object(s) of the verb, if any
+    indirect: List[InterpretedTarget] = field(default_factory=list)     # the indirect object(s) of the verb, if any
 
     direction: Optional[str] = None                                     # canonical direction (e.g., "north", "up", etc.) if verb uses directions and a direction token was present
     direction_tokens: List[str] = field(default_factory=list)           # all direction tokens from the input (unclear purpose)
@@ -70,9 +74,9 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Verb resolution
         # ----------------------------------------------------------------------
 
-        def _resolve_verb(action: ParsedAction) -> Optional[VerbEntry]:
+        def _resolve_verb(action: ParsedAction) -> tuple[Optional[VerbEntry], Optional[str]]:
             """Return the canonical VerbEntry or None if unknown."""
-            return action.primary_verb
+            return action.primary_verb, action.verb_source 
 
         # ----------------------------------------------------------------------
         # Object resolution
@@ -175,7 +179,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         indirect=None,
         )      
 
-        base_cmd.verb = _resolve_verb(action)
+        base_cmd.verb, base_cmd.verb_source = _resolve_verb(action)
 
         # Resolve objects, directions, modifiers, etc.
         base_cmd.direct = _resolve_direct_object(action)

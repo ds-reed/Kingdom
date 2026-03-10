@@ -57,49 +57,26 @@ class MetaVerbHandler(VerbHandler):
 
             # Special handling for Room objects
             if isinstance(noun, Room):
-                # Scalar fields
-                scalar_fields = [
-                    "name", "description", "handle", "found", "is_dark",
-                    "dark_description", "discover_points", "has_water",
-                    "is_climbable"
-                ]
-                for field in scalar_fields:
-                    if hasattr(noun, field):
-                        lines.append(f"{field}: {getattr(noun, field)!r}\n")
+                for field, value in vars(noun).items():
 
-                # Summaries of collections
-                if noun.items:
-                    item_names = [item.display_name() for item in noun.items]
-                    lines.append(f"items: {item_names}\n")
+                    # Summaries for collections of nouns
+                    if field in ("items", "containers", "features"):
+                        names = [obj.display_name() for obj in value]
+                        for name in names:
+                            lines.append(f"{field}: {name}\n")
+                        continue
 
-                if noun.containers:
-                    container_names = [c.display_name() for c in noun.containers]
-                    lines.append(f"containers: {container_names}\n")
+                    # Summaries for exit dictionaries
+                    if field in ("connections", "swim_exits", "climb_exits"):
+                        exits = {d: r.name for d, r in value.items()}
+                        lines.append(f"{field}: {exits}")
+                        continue
 
-                if noun.features:
-                    feature_names = [f.display_name() for f in noun.features]
-                    lines.append(f"features: {feature_names}\n")
-
-                # Movement edges
-                if noun.connections:
-                    lines.append(
-                        f"connections: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.connections.items())} }}"
-                    )
-
-                if noun.swim_exits:
-                    lines.append(
-                        f"swim_exits: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.swim_exits.items())} }}"
-                    )
-
-                if noun.climb_exits:
-                    lines.append(
-                        f"climb_exits: {{ {', '.join(f'{d}:{r.name}\n' for d,r in noun.climb_exits.items())} }}"
-                    )
-
-                if noun.hidden_directions:
-                    lines.append(f"hidden_directions: {sorted(noun.hidden_directions)}\n")
+                    # Everything else: print raw
+                    lines.append(f"{field}: {value!r}")
 
                 return lines
+
 
             # Default behavior for non-Room nouns
             for k, v in vars(noun).items():

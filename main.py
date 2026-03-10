@@ -145,7 +145,7 @@ def process_command(
     result = None
 
     if not command:
-        return False, recovery_mode, None
+        return False, recovery_mode, "What would you like to do? (type help for assistance)"
 
     current_room_before_command = world.state.current_room
 
@@ -163,7 +163,7 @@ def process_command(
 
     try:
         for cmd in interpreted:
-            outcome = execute(cmd, world, lexicon)
+            outcome = execute(cmd, world, lexicon, command)                     #pass orignal command for better error message
             ui.print(outcome.message if outcome else "Command executed.")
 
     except LoadGame:
