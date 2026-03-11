@@ -280,7 +280,8 @@
                     "description": "a sturdy length of rope",
                     "adjectives": ["sturdy", "coiled"],
                     "is_gettable": true,
-                    "is_tieable": true
+                    "is_tieable": true,
+                    "is_tied": false
                 },
                 {
                     "name": "hook",
@@ -288,7 +289,9 @@
                     "adjectives": ["iron", "anchored"],
                     "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
                     "is_gettable": false,
-                    "can_be_tied_to": true
+                    "is_tied_to": false,
+                    "is_tied_to_string": "a long sturdy rope is tied securly to the hook and dangles down over the edge of the ravine",
+                    "can_be_tied_to": true               
                 }
             ],
             "features": [

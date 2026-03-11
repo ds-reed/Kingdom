@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Callable, Optional, Iterable
 
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
-from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.verbs.verb_handler import ExecuteCommand, VerbHandler
 
 from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature
 from kingdom.renderer import RoomRenderer, render_current_room
@@ -28,6 +28,8 @@ class ChangeStateVerbHandler(VerbHandler):
         state_attr=None,
         desired_state=None,
         used_item=None,
+        indirect=None,
+        preposition=None,
     ):
 
         # 1. Apply the state change
@@ -37,6 +39,8 @@ class ChangeStateVerbHandler(VerbHandler):
         # 2. Build the message
         if used_item:
             return f"You {verb_phrase} {target.display_name()} with {used_item}."
+        elif indirect:
+            return f"You {verb_phrase} {target.display_name()} {preposition} {indirect.display_name()}."
         else:
             return f"You {verb_phrase} {target.display_name()}."
 
@@ -200,6 +204,7 @@ class ChangeStateVerbHandler(VerbHandler):
             desired_state=False,
         )
 
+        # Post-change side effect: hide exit if configured
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
         destination = getattr(target, "open_exit_destination", None)
@@ -296,7 +301,7 @@ class ChangeStateVerbHandler(VerbHandler):
                 required_name=key_name,
                 noun=target,
                 verb_phrase="unlock",
-                object="key",
+                indirect="key",
             )
         if no_key_msg:                
             return self.build_message(no_key_msg)
@@ -548,9 +553,85 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
-        return self.build_message("Not implemented yet")
+        
+        keywords = cmd.modifiers
+        target = cmd.direct_objects if cmd.direct_objects else None   #tie only takes one direct object, later when it is a list we need to get just the first one
+
+        preposition = "to"
+        indirect = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
+      
+        # ------------------------------------------------------------
+        # 1. Verb modifier checks
+        # ------------------------------------------------------------
+
+        if "all" in keywords or "everything" in keywords:
+            return self.build_message("you run around frantically waving the rope than calm down to reassess what you really want to do")
+
+        # ------------------------------------------------------------
+        # 2. Missing target and indirect checks
+        # ------------------------------------------------------------
+        if target is None:
+            return self.build_message(self.missing_target("tie"))
+
+        if indirect is None:
+            return self.build_message(f"Tie {target.canonical_name()} to what?")
+
+        # ------------------------------------------------------------
+        # 3. Special handler pipeline
+        # ------------------------------------------------------------
+        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", words, None)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------   
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_tieable",
+            current_state_attr="is_tied",
+            desired_state=True,
+            verb_phrase="tie",
+            indirect = indirect,
+            ind_capability_attr = "can_be_tied_to",
+            ind_phrase = f"tie the {target.canonical_name()} to" 
+        )
+        if cant_msg:
+            return self.build_message(cant_msg)
+
+        # state-change pipeline
+        result_msg = self.apply_state_change(
+            target=target,
+            verb_phrase="tie",
+            state_attr="is_tied",
+            desired_state=True,
+            indirect=indirect,
+            preposition=preposition
+        )
+
+        # Post-change side effect: enable climbing if configured
+        room = self.room()
+        room.is_climbable = True
+
+        side_effect_msg =  f"The {indirect.canonical_name()} is now tied to the {target.canonical_name()}, providing a secure anchor point for climbing."
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        # Revealed exit text
+        if side_effect_msg:
+            parts.append(side_effect_msg)
+
+        return self.build_message(parts)
+
 
     def untie(
         self,

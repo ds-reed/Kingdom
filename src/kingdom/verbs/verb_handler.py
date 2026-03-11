@@ -1,6 +1,7 @@
 # kingdom/verbs/verb_handler.py
 
 from __future__ import annotations
+import cmd
 from typing import Any, Optional, Iterable, Callable
 from enum import Enum, auto
 from dataclasses import dataclass, field
@@ -121,6 +122,15 @@ class VerbHandler:
     
 
     # ------------------------------------------------------------
+    # preposition/noun resolution helpers
+    # ------------------------------------------------------------
+
+    def extract_indirect_from_prep_phrases(self, prep_phrases:list[dict], prep: str) -> Optional[Noun]:
+        prep= next((pp["object"] for pp in prep_phrases if pp["prep"] == prep), None)
+        return prep.noun_object if prep else None
+
+
+    # ------------------------------------------------------------
     # Noun / word resolution
     # ------------------------------------------------------------
     def resolve_noun_or_word(
@@ -173,10 +183,13 @@ class VerbHandler:
 
         return result
 
-    def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None):
+    def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None, indirect=None, ind_capability_attr=None, ind_phrase=None) -> Optional[str]:
 
         if capability_attr and not getattr(target, capability_attr, False):
             return self.cannot(target, verb_phrase)
+
+        if ind_capability_attr and indirect is not None and not getattr(indirect, ind_capability_attr, False):
+            return self.cannot(indirect, ind_phrase)
 
         if current_state_attr is not None:
             current = getattr(target, current_state_attr, None)
@@ -185,7 +198,7 @@ class VerbHandler:
 
         return None
     
-    def require_item(self, *, required_type:str, required_name:str = None, noun:Noun = None, verb_phrase=None, object:str = None) -> Optional[str]:
+    def require_item(self, *, required_type:str, required_name:str = None, noun:Noun = None, verb_phrase=None, indirect:str = None) -> Optional[str]:
         player = self.player()
         inventory = player.get_inventory_items()
         for item in inventory:
@@ -194,7 +207,7 @@ class VerbHandler:
                 if required_name is None or getattr(item, required_type) == required_name:
                     return None  # requirement met
         else:
-            return f"You don't have the right {object} to {verb_phrase} the {noun.canonical_name()}."
+            return f"You don't have the right {indirect} to {verb_phrase} the {noun.canonical_name()}."
 
     def lookup_required_item_id(self, required_name, verb_phrase) -> Noun | None:
         required = Item.get_by_name(required_name)

@@ -27,7 +27,7 @@ class MovementVerbHandler(VerbHandler):
         success_verb_phrase: str ("go", "swim") for success messages
         """
         state = self.state()
-        game = self.game()
+        game = self.world()
         room = self.room()
     
 
@@ -165,12 +165,12 @@ class MovementVerbHandler(VerbHandler):
     def teleport(self, target: Noun, words: list[str], **kwargs):
         """Teleport to any room by name or number. No target → list rooms."""
         state = self.state()
-        game = self.game()
+        world = self.world()
         room = self.room()
 
         # No argument → show list
         if not words and target is None:
-            room_list = sorted(game.rooms.values(), key=lambda r: r.name)
+            room_list = sorted(world.rooms.values(), key=lambda r: r.name)
 
             lines = ["Teleport — available rooms:"]
             for i, room in enumerate(room_list, 1):
@@ -190,7 +190,7 @@ class MovementVerbHandler(VerbHandler):
             # Number?
             try:
                 idx = int(query) - 1
-                rooms_sorted = sorted(game.rooms.values(), key=lambda r: r.canonical_name())
+                rooms_sorted = sorted(world.rooms.values(), key=lambda r: r.canonical_name())
                 if 0 <= idx < len(rooms_sorted):
                     desired_room = rooms_sorted[idx]
             except ValueError:
@@ -199,7 +199,7 @@ class MovementVerbHandler(VerbHandler):
             # Name prefix/partial match
             if desired_room is None:
                 matches = [
-                    r for r in game.rooms.values()
+                    r for r in world.rooms.values()
                     if query in r.display_name().lower() or query in r.canonical_name().lower()
                 ]
                 if len(matches) == 1:

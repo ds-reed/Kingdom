@@ -304,6 +304,7 @@ class Item(Noun):
     # Tieing
     is_tieable: bool = field(default=False, metadata={"persist": "if_set"})
     can_be_tied_to: bool = field(default=False, metadata={"persist": "if_set"})
+    is_tied: bool = field(default=False, metadata={"persist": "if_set"})
 
     # Swimming
     too_heavy_to_swim: bool = field(default=False, metadata={"persist": "if_set"})

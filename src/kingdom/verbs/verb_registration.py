@@ -86,7 +86,7 @@ def register_verbs():
 
           Verb("untie", change.untie,
                synonyms=["disconnect"],
-               modifiers=[],
+               modifiers=["to"],
                uses_directions=False),
 
           #singleton - most should be pairs (maybe tarnish is opposite of rub)
