@@ -313,7 +313,7 @@ def _djinni_scripted_action(item, verb, words):
 
 #---------------------------burning torch!------------------------------
 
-@register_item_behavior("put_torch")
+@register_item_behavior("drop_torch")
 def put_torch(item, verb_name, indirect_obj):
     active_state = _active_state()
     room = getattr(active_state, "current_room", None)

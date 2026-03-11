@@ -640,51 +640,43 @@ class Room(Noun):
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 
-    def add_item(self, item) -> bool:
+    def add_item(self, item):
         if isinstance(item, Item):
             self.items.append(item)
         elif isinstance(item, str):
             self.items.append(Item(item))
         else:
             raise TypeError("Room.add_item expects an Item or str")
-        return True
 
-    def add_container(self, container) -> bool:
+    def add_container(self, container):
         if not isinstance(container, Container):
             raise TypeError("Room.add_container expects a Container instance")
         self.containers.append(container)
-        return True
 
-    def add_feature(self, feature) -> bool:
+    def add_feature(self, feature):
         if not isinstance(feature, Feature):
             raise TypeError("Room.add_feature expects a Feature instance")
         self.features.append(feature)
-        return True
 
-    def remove_item(self, item) -> bool:
+    def remove_item(self, item):
         if item in self.items:
             self.items.remove(item)
-            return True
-        return False
 
-    def remove_container(self, container) -> bool:
+    def remove_container(self, container):
         if container in self.containers:
             self.containers.remove(container)
             return True
-        return False
 
-    def remove_feature(self, feature) -> bool:
+    def remove_feature(self, feature):
         if feature in self.features:
             self.features.remove(feature)
-            return True
-        return False
 
     def has_item(self, item) -> bool:
         return item in self.items
     
     def all_items(self) -> list["Item"]:
         all_items = list(self.items)
-        return all_items
+        return list(all_items)
     
     def has_container(self, container) -> bool:
         return container in self.containers
@@ -729,13 +721,12 @@ class Room(Noun):
     def set_exit_visibility(self, direction, visible=True):
         canonical_direction = self.add_direction(direction)
         if canonical_direction not in self.connections:
-            return False
+            return 
 
         if visible:
             self.hidden_directions.discard(canonical_direction)
         else:
             self.hidden_directions.add(canonical_direction)
-        return True
 
     def available_directions(self, visible_only=False):
         directions = sorted(self.connections.keys())
@@ -743,7 +734,7 @@ class Room(Noun):
             return directions
         return [direction for direction in directions if direction not in self.hidden_directions]
 
-    def has_lit_is_lightable(self):
+    def has_lit_is_lightable(self) -> bool:
         for item in self.items:
             if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
                 return True

@@ -82,15 +82,17 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
                 effects=[]
             )
 
-        target = command.direct if command.direct else None
+        target_candidate = command.direct if command.direct else None
 
 
         # Resolve world object
-        if target:
-            target = _resolve_target_noun(world, target.noun_object.handle) if target.noun_object else None
+        if target_candidate:
+            target = _resolve_target_noun(world, target_candidate.noun_object.handle) if target_candidate.noun_object else None
 
+        if not target:
+            command.direct.noun_object = None         # Over-write direct.noun_object with None if not a valid target for room. maybe handle in interpreter instead?
 
-        # Stage 1: words = all_tokens minus verb token.
+        # old verb expectation
         # For implicit verbs (e.g. bare direction "west"), the verb is not in
         # all_tokens, so pass all tokens unchanged.
         if command.verb_source == "implicit":
@@ -106,6 +108,8 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
             direction = command.direction if command.direction else None,
             modifiers = command.modifier_tokens if command.modifier_tokens else [],
             )
+        
+# pass old and new verb contract data to verb handler during transition
 
         result = verb.execute(target, words, cmd=execute_command)
 

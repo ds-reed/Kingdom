@@ -170,14 +170,14 @@ def register_verbs():
                uses_directions=False),
 
           Verb("drop", inventory.drop,
-               synonyms=[],
+               synonyms=["put"],
                modifiers=["all", "everything"],
                uses_directions=False),
 
-          Verb("put", inventory.put,
-               synonyms=[],
-               modifiers=["in", "on", "into", "onto", "all", "everything"],
-               uses_directions=False)
+#          Verb("put", inventory.put,
+#               synonyms=[],
+#               modifiers=["in", "on", "into", "onto", "all", "everything"],
+#               uses_directions=False)
      ]
 
      return 

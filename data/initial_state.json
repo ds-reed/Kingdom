@@ -41,7 +41,7 @@
                     "is_lightable": true,
                     "is_lit": false,
                     "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                    "special_handlers": {"put": "put_torch"}
+                    "special_handlers": {"drop": "drop_torch"}
                 },
                 {
                     "name": "bean",
