@@ -27,7 +27,6 @@ class MovementVerbHandler(VerbHandler):
         success_verb_phrase: str ("go", "swim") for success messages
         """
         state = self.state()
-        game = self.world()
         room = self.room()
     
 
@@ -127,20 +126,42 @@ class MovementVerbHandler(VerbHandler):
     def climb(self, target: Noun, words: list[str], **kwargs):
         room = self.room()
         
-        # 1. Room must allow climbing - using has_climbable_direction for climable areas generally -even if not literal cliffs
-        if not getattr(room, "has_climbable_direction", False):
+        # 1. Room must allow climbing 
+
+        if not getattr(room, "climb_exits", False):
             return self.build_message("There is nowhere to climb here.")
         
-        # 2. Parse direction
+        # 2. Parse direction or resolve from target
         parsed = self.resolve_noun_or_word(words, interest=[])
         direction = parsed["direction"]
 
-        if direction is None:
+        climbable = False
+        if direction is not None:
+            for item in room.items:
+                if getattr(item, "is_climbable", False):
+                    climbable = True
+                    break
+
+        target_direction = None
+        if direction is None and target is not None:
+            if getattr(target, "is_climbable", False):
+                climb_directions = getattr(target, "climb_directions", [])
+                for d in climb_directions:
+                    for e in room.climb_exits:
+                       if d == e:
+                        target_direction = d
+                        break
+                    if target_direction is not None:
+                        break
+                else:
+                    return self.build_message(f"You can't climb the {target.display_name()}.")
+
+        if  not (direction or target_direction):
             return self.build_message("Climb where?")
 
         # 3. Climbing constraint logic
 
-        if direction in room.climb_exits and not getattr(room, "is_climbable", False):
+        if direction in room.climb_exits and not climbable:
 
             # Climb refusal
             climb_refusal = getattr(room, "climb_refuse_string", None)
@@ -154,7 +175,7 @@ class MovementVerbHandler(VerbHandler):
 
         # 4. Perform climb movement using climb_exits
         result_msg = self.perform_movement(
-            direction,
+            direction or target_direction,
             room.climb_exits,
             verb_phrase="climb",
             success_verb_phrase="climb"

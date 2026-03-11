@@ -12,14 +12,10 @@ from kingdom.renderer import RoomRenderer, render_current_room
 
 class ChangeStateVerbHandler(VerbHandler):
 
-
     # ------------------------------------------------------------
     # state change helper
     # ------------------------------------------------------------
-    
-
-       
-
+      
     def apply_state_change(
         self,
         target,
@@ -77,7 +73,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -178,7 +174,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -271,7 +267,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -358,7 +354,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -443,7 +439,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -513,7 +509,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -557,7 +553,7 @@ class ChangeStateVerbHandler(VerbHandler):
     ) -> str:
         
         keywords = cmd.modifiers
-        target = cmd.direct_objects if cmd.direct_objects else None   #tie only takes one direct object, later when it is a list we need to get just the first one
+        target = cmd.direct_object if cmd.direct_object else None  
 
         preposition = "to"
         indirect = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
@@ -581,7 +577,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -611,11 +607,9 @@ class ChangeStateVerbHandler(VerbHandler):
             preposition=preposition
         )
 
-        # Post-change side effect: enable climbing if configured
-        room = self.room()
-        room.is_climbable = True
-
-        side_effect_msg =  f"The {indirect.canonical_name()} is now tied to the {target.canonical_name()}, providing a secure anchor point for climbing."
+        # Post-change side effect: enable item for climbing
+        target.is_climbable = True
+        side_effect_msg =  f"The {target.canonical_name()} is now tied to the {indirect.canonical_name()} and dangles down the cliff face below."
 
         # ------------- Build the final return string ----------------
         parts: list[str] = []

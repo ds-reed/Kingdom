@@ -11,7 +11,8 @@ from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
 from dataclasses import dataclass, field
 from typing import Optional, List
 
-from kingdom.model.noun_model import Item, World 
+from kingdom.model.noun_model import Item, World
+from kingdom.model.verb_model import Verb 
 
 @dataclass(frozen=False)
 class InterpretedTarget:
@@ -27,13 +28,11 @@ class InterpretedCommand:
     verb: VerbEntry                                                     
     all_tokens: List[str]                                               # all tokens from the input
 
-
-
     # Optional semantic fields
 
     verb_source: Optional[str] = "explicit"                             # how the verb was determined (e.g., "explicit", "implicit", "unknown")
 
-    direct: List[InterpretedTarget] = field(default_factory=list)       # the direct object(s) of the verb, if any
+    direct: InterpretedTarget = None                                    # the direct object of the verb, if any
     prep_phrases: List[dict] = field(default_factory=list)              # list of {"prep": preposition, "object": InterpretedTarget} for any prepositional phrases
 
     direction: Optional[str] = None                                     # canonical direction (e.g., "north", "up", etc.) if verb uses directions and a direction token was present
@@ -42,8 +41,8 @@ class InterpretedCommand:
     modifier_tokens: List[str] = field(default_factory=list)            # e.g., ["all"], ["quickly"], etc.
 
     def __repr__(self):
-        return f"InterpretedCommand(verb={self.verb.canonical if self.verb else None}, verb_source={self.verb_source}, \n \
-        direct={[t.canonical_head.canonical for t in self.direct]},  \n \
+        return f"InterpretedCommand(verb={self.verb.name if self.verb else None}, verb_source={self.verb_source}, \n \
+        direct={self.direct.token_head if self.direct else None},  \n \
         prep_phrases={self.prep_phrases}, \n \
         direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
 
@@ -80,9 +79,9 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Verb resolution
         # ----------------------------------------------------------------------
 
-        def _resolve_verb(action: ParsedAction) -> tuple[Optional[VerbEntry], Optional[str]]:
-            """Return the canonical VerbEntry or None if unknown."""
-            return action.primary_verb, action.verb_source 
+        def _resolve_verb(action: ParsedAction) -> tuple[Optional[Verb], Optional[str]]:
+            """Return the Verb or None if unknown."""
+            return getattr(action.primary_verb, "verb_object", None), action.verb_source 
 
         # ----------------------------------------------------------------------
         # Object resolution
@@ -91,43 +90,24 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             # No direct object at all
 
             if not action.object_phrases:
-                return []
+                return None
 
             # The direct object NP is always the first object phrase
             np = action.object_phrases[0]
             head = np["head"]
 
-            # ALL expansion?
-            if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
-                results = []
-                candidates = _expand_all(base_cmd)   # world objects or handles
-
-                for candidate in candidates:
-                    noun_entry = lexicon.token_to_noun.get(candidate)
-                    if noun_entry:
-                        results.append(
-                            InterpretedTarget(
-                                token_phrase=candidate,
-                                token_head=candidate,
-                                token_adjectives=[],
-                                noun_object=noun_entry.noun_object,
-                            )
-                        )
-                return results
-
             # Normal (non-ALL) case
             noun_entry = lexicon.token_to_noun.get(head)
             if not noun_entry:
-                return []
+                return None
 
-            return [
-                InterpretedTarget(
+            return InterpretedTarget(
                     token_phrase=head,
                     token_head=head,
                     token_adjectives=np.get("adjectives", []),
                     noun_object=noun_entry.noun_object,
                 )
-            ]
+            
 
             
         def _resolve_prep_phrases(action: ParsedAction) -> list[dict]:
@@ -156,7 +136,6 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             return resolved
 
 
-
         # ----------------------------------------------------------------------
         # Direction resolution
         # ----------------------------------------------------------------------
@@ -166,6 +145,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             if not action.direction_tokens or not uses_directions:
                 return None
             return action.direction_tokens[0]
+
 
         # ----------------------------------------------------------------------
         # Modifiers
@@ -182,31 +162,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         def _handle_ambiguity(action: ParsedAction, direct, prep_phrases, location) -> List[InterpretedCommand]:
             """Handle ambiguity by generating multiple InterpretedCommands or adding diagnostics."""    
             return []  # Placeholder    
-        
-        def _should_expand_all(verb: VerbEntry, modifiers: List[str]) -> bool:
-            if "all" in modifiers and verb and verb.expand_all:
-                return True
-            return False   
-        
-        def _expand_all(base_cmd: InterpretedCommand) -> List[Item]:
-            if world is None or base_cmd.verb is None:
-                return []
-
-            room = world.state.current_room
-            getable: list[Item] = []
-
-            for item in room.items:
-                getable.append(item.canonical_name())
-
-            # Items in open containers otherwise the container itself
-            for container in room.containers:
-                if container.is_openable and container.is_open:
-                    for item in container.contents:
-                        getable.append(item.canonical_name())
-                else:
-                    getable.append(container.canonical_name()) 
-
-            return getable
+    
 
     # ----------------------------------------------------------------------
     # Single Action Flow
@@ -227,11 +183,6 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Handle ambiguity (may return zero commands)
         if _is_ambiguous(base_cmd.direct, base_cmd.prep_phrases):
             return _handle_ambiguity(action, base_cmd.direct, base_cmd.prep_phrases, location=None)
-
-        # ALL expansion (may return multiple commands)
-        if _should_expand_all(base_cmd.verb, base_cmd.modifier_tokens):
-            return _expand_all(base_cmd)
-
 
         # Normal case: one command
         return [base_cmd]

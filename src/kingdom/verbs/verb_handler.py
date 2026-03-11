@@ -13,8 +13,8 @@ from kingdom.item_behaviors import VerbOutcome, VerbControl
 
 @dataclass
 class ExecuteCommand:
-    direct_objects: list[Any] = field(default_factory=list)
-    indirect_objects: list[Any] = field(default_factory=list)
+    direct_object: Noun = None
+    indirect_object: list[Noun] = field(default_factory=list)
     prep_phrases: list[dict] = field(default_factory=list)
     direction: Optional[str] = None
     modifiers: list[str] = field(default_factory=list)
@@ -27,22 +27,6 @@ class VerbHandler:
     Provides shared helpers for accessing context, resolving nouns/words,
     common refusal patterns, ALL-handling, and message assembly.
 
-    It supports a standard pipeline for verb excution as follows:
-    1. The parser identifies the verb and resolves a target noun.
-    2. The verb dispatcher calls the corresponding method on the appropriate 
-    VerbHandler subclass, passing target noun, and leftover words.
-    3. The verb handler method uses the following flow
-         - First call self.resolve_noun_or_word() to parse the target noun and any keywords 
-           of interest from the leftover words.
-         - Next check for keywords in the leftover words to modify behavior if appropriate
-         - Then call self.run_special_handler() to check for any item-specific special 
-           handling that should take precedence over default verb logic.
-         - If no special handling occurs, perform main logic based on the resolved target 
-           and context.
-         - Finally, returns a message  (string, list of strings, list of lists...) to be 
-           displayed to the player using the self.build_message() helper
-        -  Note: internal helper functions should return strings or lists and not call 
-                 build_message directly 
     """
 
     class LocationType(Enum):
@@ -89,7 +73,8 @@ class VerbHandler:
     # Context accessors
     # ------------------------------------------------------------
     def world(self):
-        return get_action_state().game          #need to fix attribute name in GameActionState at some point
+        return get_action_state().world          #need to fix attribute name in GameActionState at some point
+    
     def state(self):
         return get_action_state()
 
@@ -364,7 +349,7 @@ class VerbHandler:
         """
         from kingdom.item_behaviors import try_item_special_handler
 
-        outcome = try_item_special_handler(target, verb, words, self.world)
+        outcome = try_item_special_handler(target, verb, words)
         if outcome:
             return outcome
         

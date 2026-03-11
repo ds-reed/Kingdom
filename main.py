@@ -38,7 +38,7 @@ from kingdom.language.executor import execute
 
 
 #------------------ Design Note: Main Refactor (v2) ------------------
-def init_game_state() -> World | None:
+def init_game_state() -> tuple[World | None, Lexicon | None]:
     """
     Welcome player and initialize game world.
     """
@@ -81,7 +81,7 @@ def init_game_state() -> World | None:
 
     except Exception as e:
         print(f"Critical error during game initialization: {e}")
-        return None
+        return None, None
     
     return world, lexicon   # initialization successful
 
@@ -130,7 +130,7 @@ def handle_game_over(
     return False, False  # success → exit recovery mode
 
 def process_command(
-    command: str,
+    raw_command: str,
     world: World,
     lexicon: Lexicon,
     recovery_mode: bool,
@@ -144,12 +144,12 @@ def process_command(
     '''
     result = None
 
-    if not command:
+    if not raw_command:
         return False, recovery_mode, "What would you like to do? (type help for assistance)"
 
     current_room_before_command = world.state.current_room
 
-    parsed = parse(command, lexicon)
+    parsed = parse(raw_command, lexicon)
 
     interpreted = interpret(parsed, world, lexicon)
 
@@ -157,13 +157,13 @@ def process_command(
         return False, recovery_mode, "I don't understand that command."
 
     if recovery_mode:
-        verb_word = interpreted[0].verb.canonical if interpreted[0].verb else None
+        verb_word = interpreted[0].verb.name if interpreted[0].verb else None
         if verb_word not in {"load", "quit", "help"}:
             return False, recovery_mode, "You are dead. Load a saved game or quit."
 
     try:
         for cmd in interpreted:
-            outcome = execute(cmd, world, lexicon, command)                     #pass orignal command for better error message
+            outcome = execute(cmd, world, raw_command)                     #pass orignal command for better error message
             ui.print(outcome.message if outcome else "Command executed.")
 
     except LoadGame:
@@ -270,7 +270,7 @@ def main() -> None:
 
 
             should_quit, recovery_mode, output = process_command(
-                command=command,
+                raw_command=command,
                 world=world,
                 lexicon=lexicon,
                 recovery_mode=recovery_mode,

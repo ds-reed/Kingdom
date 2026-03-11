@@ -70,7 +70,6 @@ def try_item_special_handler(
     target: object,
     verb_name: str,
     words: tuple[str, ...],
-    world: "object | None",
 ) -> str | None:
     """
     Unified special-handler lookup and execution.
@@ -92,7 +91,7 @@ def try_item_special_handler(
         return None
 
     # Execute the handler
-    return handler(target, verb_name, words, world)
+    return handler(target, verb_name, words)
 
 
 
@@ -131,14 +130,14 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
 # ------------------------------------------------------------
 
 # @register_item_behavior("example_behavior")
-# def example_behavior(item, verb, words, world):
+# def example_behavior(item, verb, words):
 #     ...
 #     return VerbOutcome("Example!", stop_outer=True)
 
 #----------------- the Magic Bean test item ---------------------------------
 
 @register_item_behavior("open_bean")
-def open_bean(item, verb_name, words, world):
+def open_bean(item, verb_name, words):
 
     print("Ha Ha - you tried to open a magical bean!")  # or log it
     return VerbOutcome(message="you reached me!!!!", control=VerbControl.SKIP)   
@@ -146,9 +145,10 @@ def open_bean(item, verb_name, words, world):
 # ----------------- the fish ---------------------------------
 
 @register_item_behavior("eat_fish")
-def eat_fish(item, verb, words, world):
+def eat_fish(item, verb, words):
 
     state = _active_state()
+    world = getattr(state, "world", None)
     player = getattr(state, "current_player", None)
     if player is None:
         return VerbOutcome(
@@ -193,9 +193,10 @@ def eat_fish(item, verb, words, world):
 #----------------- the Lamp and Djinni ---------------------------------
 
 @register_item_behavior("rub_lamp")
-def rub_lamp(item, verb, words, world):
+def rub_lamp(item, verb, words):
 
     state = _active_state()
+    world = state.world if state else None
     player = getattr(state, "current_player", None)
     if player is None:
         return VerbOutcome(
@@ -228,16 +229,15 @@ def rub_lamp(item, verb, words, world):
         )
 
         if not djinni_present:
-            game = getattr(state, "game", None)
-            if game is None:
+            if world is None:
                 return VerbOutcome(
-                    message="No active game.",
+                    message="No active world.",
                     control=VerbControl.STOP
                 )
 
-            djinni_room, djinni = game.find_item_in_game("djinni")
+            djinni_room, djinni = world.find_item_in_game("djinni")
             if djinni:
-                game.move_item_between_rooms(djinni, djinni_room, room)
+                world.move_item_between_rooms(djinni, djinni_room, room)
 
         return VerbOutcome(
             message=(
@@ -259,16 +259,16 @@ def rub_lamp(item, verb, words, world):
 # ----------------- the Djinni ---------------------------------
 
 @register_item_behavior("speak_djinni")
-def speak_djinni(item, verb, words, world):
-    return _djinni_scripted_action(item, verb, words, world)
+def speak_djinni(item, verb, words):
+    return _djinni_scripted_action(item, verb, words)
 
 
 @register_item_behavior("make_djinni")
-def make_djinni(item, verb, words, world):
-    return _djinni_scripted_action(item, verb, words, world)
+def make_djinni(item, verb, words):
+    return _djinni_scripted_action(item, verb, words)
 
 
-def _djinni_scripted_action(item, verb, words, world):
+def _djinni_scripted_action(item, verb, words):
     """
     The Djinni does not understand English; any SAY or MAKE attempt
     triggers his pre-ordained magical action.
@@ -276,7 +276,7 @@ def _djinni_scripted_action(item, verb, words, world):
 
     state = _active_state()
     room = getattr(state, "current_room", None)
-    game = getattr(state, "game", None)
+    world = state.world if state else None
 
 
     message_lines = [
@@ -291,7 +291,7 @@ def _djinni_scripted_action(item, verb, words, world):
     # ------------------------------------------------------------
     if "west" not in room.connections:
         dest_name = getattr(item, "wish_exit_destination", "Colossal Cave")
-        destination = game.rooms.get(dest_name)
+        destination = world.rooms.get(dest_name) if world else None
         if destination is None:
             print(f"DEBUG: Could not find destination room '{dest_name}'")
         else:
@@ -314,8 +314,7 @@ def _djinni_scripted_action(item, verb, words, world):
 #---------------------------burning torch!------------------------------
 
 @register_item_behavior("put_torch")
-def put_torch(item, verb_name, indirect_obj, world):
-
+def put_torch(item, verb_name, indirect_obj):
     active_state = _active_state()
     room = getattr(active_state, "current_room", None)
 

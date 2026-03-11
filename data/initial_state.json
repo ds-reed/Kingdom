@@ -29,10 +29,8 @@
         },
         {
             "name": "Tower Cell",
-            "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "description": "in a cramped stone cell at the top of a lonely tower. ",
             "discover_points": 0,
-            "is_climbable": true,
-            "has_climbable_direction": true,
             "climb_exits": {"up": "Demo Landing"},
             "up_refuse_string": "You can't walk that way - did you mean to climb the ladder?",
             "items": [
@@ -82,13 +80,16 @@
                     "open_exit_destination": "Blank Chamber",
                     "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open."
-                }
-            ],
-            "features": [
+                },
                 {
                     "name": "ladder",
-                    "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
-                    "adjectives": ["magic", "glittering", "soft blue"]
+                    "description": "a magic ladder hums with soft blue light.",
+                    "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+                    "adjectives": ["magic", "glittering", "soft blue"],
+                    "is_gettable": false,
+                    "get_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+                    "is_climbable": true,
+                    "climb_directions": ["up"]
                 }
             ],
             "containers": [
@@ -270,8 +271,6 @@
             "climb_exits": {
                     "down": "Clover Rest"
                 },
-            "has_climbable_direction": true,
-            "is_climbable": false,
             "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
             "down_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "items": [
@@ -281,7 +280,9 @@
                     "adjectives": ["sturdy", "coiled"],
                     "is_gettable": true,
                     "is_tieable": true,
-                    "is_tied": false
+                    "is_tied": false,
+                    "is_climbable": false,
+                    "climb_directions": ["down"]
                 },
                 {
                     "name": "hook",
@@ -321,8 +322,6 @@
             "climb_exits": {
                 "up": "Ravine Edge"
                 },
-            "has_climbable_direction": true,
-            "is_climbable": false,
             "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
             "up_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "items": [],

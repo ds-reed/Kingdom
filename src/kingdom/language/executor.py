@@ -4,7 +4,7 @@ from typing import List, Any, Optional
 
 from kingdom.language.interpreter import InterpretedCommand
 from kingdom.model.noun_model import DirectionNoun, World
-from kingdom.language.lexicon import Lexicon
+from kingdom.model.verb_model import Verb
 from kingdom.verbs.verb_handler import ExecuteCommand
 
 
@@ -17,7 +17,7 @@ class CommandOutcome:
     message: str
     effects: List[str]
 
-def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, original_command: str ) -> CommandOutcome:
+def execute(command: InterpretedCommand, world: World,  original_command: str ) -> CommandOutcome:
     
     def execute_with_old_contract():             #compatability layer - remove when all verbs are ported!
 
@@ -57,13 +57,12 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
         # Determine verb 
         if command.verb is not None:
             # Explicit verb
-            verb = command.verb.verb_object
+            verb = command.verb
 
         elif command.verb_source == "implicit":
             # Implicit verb (direction or noun continuation)
             # For now, default to GO; later you can add last-explicit-verb continuation
-            go_entry = lexicon.token_to_verb.get("go")
-            verb = go_entry.verb_object
+            verb = Verb.get_by_name("go")  
 
         elif command.verb_source == "unknown":
             # User typed something in the verb slot that is not a verb
@@ -83,8 +82,7 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
                 effects=[]
             )
 
-        # for Stage 1 parser output: direct is a list, but verbs expect a single target
-        target = command.direct[0] if command.direct else None
+        target = command.direct if command.direct else None
 
 
         # Resolve world object
@@ -105,7 +103,7 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
             target = None
 
         execute_command =  ExecuteCommand(
-            direct_objects = command.direct[0].noun_object if command.direct else [],
+            direct_object = command.direct.noun_object if command.direct else [],
             prep_phrases = command.prep_phrases if command.prep_phrases else {},
             direction = command.direction if command.direction else None,
             modifiers = command.modifier_tokens if command.modifier_tokens else [],
@@ -113,7 +111,6 @@ def execute(command: InterpretedCommand, world: World, lexicon: Lexicon, origina
             )
 
         result = verb.execute(target, words, cmd=execute_command)
- #       result = verb.execute(target, words)
 
         outcome = CommandOutcome(
             verb=verb.canonical_name() if verb else 'None',

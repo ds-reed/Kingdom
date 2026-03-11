@@ -38,7 +38,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -92,7 +92,7 @@ class StatefulVerbHandler(VerbHandler):
         # 1. Verb modifier checks
         # ------------------------------------------------------------
         if "wish" in keywords:    # special case for djinni lamp
-            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, None)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words)
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -114,7 +114,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "") 
 
@@ -155,7 +155,7 @@ class StatefulVerbHandler(VerbHandler):
         if "wish" in keywords:    # special case for djinni lamp
             required = self.lookup_required_item_id("djinni", "make wish")
             if target is None and room.has_item(required): target = required  
-            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, None)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words)
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -169,7 +169,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words, None)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 

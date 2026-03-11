@@ -306,6 +306,10 @@ class Item(Noun):
     can_be_tied_to: bool = field(default=False, metadata={"persist": "if_set"})
     is_tied: bool = field(default=False, metadata={"persist": "if_set"})
 
+    # Climbing
+    is_climbable: bool = field(default=False, metadata={"persist": "if_set"})  
+    climb_directions: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+
     # Swimming
     too_heavy_to_swim: bool = field(default=False, metadata={"persist": "if_set"})
 
@@ -585,8 +589,6 @@ class Room(Noun):
     dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     discover_points: int = field(default=10, metadata={"persist": "if_set"})
     has_water: bool = field(default=False, metadata={"persist": "if_set"})
-    has_climbable_direction: bool = field(default=False, metadata={"persist": "if_set"})
-    is_climbable: bool = field(default=False, metadata={"persist": "if_set"})
 
         # Refuse strings for blocked exits
     climb_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -618,7 +620,7 @@ class Room(Noun):
         features_str = [f.display_name() for f in self.features]
         connections_str = {direction: room.name for direction, room in self.connections.items()}
         return (
-            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, has_climbable_direction={self.has_climbable_direction}, is_climbable={self.is_climbable}, items={items_str}, "
+            f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
             f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
         )
 

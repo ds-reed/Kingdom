@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Any
 
-from kingdom.language.lexicon import Lexicon
+from kingdom.language.lexicon import Lexicon, VerbEntry
 from typing import Any, List, Optional, Tuple
 
 TokenSpan = Tuple[int, int]  # (start_index_in_text, end_index_exclusive)
@@ -14,19 +14,14 @@ TokenSpan = Tuple[int, int]  # (start_index_in_text, end_index_exclusive)
 class ParsedAction:
     # Core text + tokens
     raw_text: str = ""
-    normalized_text: str = ""
     tokens: List[str] = field(default_factory=list)
-    token_spans: List[TokenSpan] = field(default_factory=list)
 
     # Verb fields
-    primary_verb: Optional[Any] = None
+    primary_verb: Optional[VerbEntry] = None
     primary_verb_token: Optional[str] = None
-    primary_verb_canonical: Optional[str] = None
     verb_source: Optional[str] = None
 
     # Noun + phrase fields
-    noun_candidates: List[Any] = field(default_factory=list)  # nounEntries from lexicon
-    noun_candidates_tokens: List[str] = field(default_factory=list)  # tokens that matched noun candidates
     object_phrases: List[Any] = field(default_factory=list)   # Stage 2+
     prep_phrases: List[Any] = field(default_factory=list)     # Stage 3+
     conjunction_groups: List[Any] = field(default_factory=list)
@@ -40,9 +35,10 @@ class ParsedAction:
 
 
     def __repr__(self): 
-        return f"ParsedAction(raw_text='{self.raw_text}', normalized_text='{self.normalized_text}', tokens={self.tokens}, \n \
+        return f"ParsedAction(raw_text='{self.raw_text}', tokens={self.tokens}, \n \
         primary_verb={self.primary_verb.canonical if self.primary_verb else None}, \n \
-        noun_candidates={[n.canonical for n in self.noun_candidates]}, \n \
+        verb_source={self.verb_source}, \n \
+        primary_verb_token={self.primary_verb_token}, \n \
         prep_phrases={self.prep_phrases}, conjunction_groups={self.conjunction_groups}, \n \
         direction_tokens={self.direction_tokens}, \n \
         modifier_tokens={self.modifier_tokens}, \n \
@@ -140,8 +136,6 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
 
 
         # Populate ParsedAction fields
-        ps.noun_candidates = noun_candidates
-        ps.noun_candidates_tokens = noun_candidates_tokens
         ps.direction_tokens = direction_tokens
         ps.modifier_tokens = modifier_tokens
         ps.unknown_tokens = unknown_tokens
@@ -180,11 +174,8 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
         ps.verb_source = verb_source
 
         # Stage 1 output format
-        ps.primary_verb = primary_verb_entry          # full object
-        ps.primary_verb_token = primary_verb_token    # string
-        ps.primary_verb_canonical = (
-            primary_verb_entry.canonical if primary_verb_entry else None
-            )
+        ps.primary_verb = primary_verb_entry                           # full object
+        ps.primary_verb_token = primary_verb_token or raw_verb_token   # string
 
     def stage2_phrase_grouping():
         """
