@@ -3,6 +3,7 @@
 # Pure, deterministic, no world mutation.
 
 from dataclasses import dataclass
+from email.mime import base
 from typing import List, Optional
 
 from kingdom.language.parser import ParsedAction
@@ -20,19 +21,26 @@ class InterpretedTarget:
     token_head: str
     token_adjectives: List[str]
     noun_object: Item
+    
+    def __repr__(self):
+        return f"InterpretedTarget(token_phrase={self.token_phrase}, token_head={self.token_head}, token_adjectives={self.token_adjectives})"
 
 
 @dataclass(frozen=False)
 class InterpretedCommand:
     # Required fields (no defaults)
-    verb: VerbEntry                                                     
+    verb: VerbEntry  
+    verb_token: str                                                     # user entered verb token                                                   
     all_tokens: List[str]                                               # all tokens from the input
 
     # Optional semantic fields
 
     verb_source: Optional[str] = "explicit"                             # how the verb was determined (e.g., "explicit", "implicit", "unknown")
 
+
     direct: InterpretedTarget = None                                    # the direct object of the verb, if any
+    direct_object_token: Optional[str] = None                           # the token of the direct object, if any
+    
     prep_phrases: List[dict] = field(default_factory=list)              # list of {"prep": preposition, "object": InterpretedTarget} for any prepositional phrases
 
     direction: Optional[str] = None                                     # canonical direction (e.g., "north", "up", etc.) if verb uses directions and a direction token was present
@@ -41,7 +49,7 @@ class InterpretedCommand:
     modifier_tokens: List[str] = field(default_factory=list)            # e.g., ["all"], ["quickly"], etc.
 
     def __repr__(self):
-        return f"InterpretedCommand(verb={self.verb.name if self.verb else None}, verb_source={self.verb_source}, \n \
+        return f"InterpretedCommand(verb={self.verb.name if self.verb else None}, verb_source={self.verb_source}, verb_token={self.verb_token}, \n \
         direct={self.direct.token_head if self.direct else None},  \n \
         prep_phrases={self.prep_phrases}, \n \
         direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
@@ -79,9 +87,9 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Verb resolution
         # ----------------------------------------------------------------------
 
-        def _resolve_verb(action: ParsedAction) -> tuple[Optional[Verb], Optional[str]]:
+        def _resolve_verb(action: ParsedAction) -> tuple[Optional[Verb], Optional[str], Optional[str]]:
             """Return the Verb or None if unknown."""
-            return getattr(action.primary_verb, "verb_object", None), action.verb_source 
+            return getattr(action.primary_verb, "verb_object", None), action.verb_source , action.primary_verb_token 
 
         # ----------------------------------------------------------------------
         # Object resolution
@@ -96,17 +104,15 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             np = action.object_phrases[0]
             head = np["head"]
 
-            # Normal (non-ALL) case
             noun_entry = lexicon.token_to_noun.get(head)
-            if not noun_entry:
-                return None
 
             return InterpretedTarget(
-                    token_phrase=head,
-                    token_head=head,
-                    token_adjectives=np.get("adjectives", []),
-                    noun_object=noun_entry.noun_object,
-                )
+                token_phrase=np,
+                token_head=head,
+                token_adjectives=np.get("adjectives", []),
+                noun_object=noun_entry.noun_object if noun_entry else None,
+            )
+
             
 
             
@@ -120,18 +126,17 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
                 # Resolve surface noun → NounEntry
                 noun_entry = lexicon.token_to_noun.get(head)
 
-                if noun_entry:
-                    target = InterpretedTarget(
-                        token_phrase=prep,
-                        token_head=head,
-                        token_adjectives=[],
-                        noun_object=noun_entry.noun_object,
-                    )
+                target = InterpretedTarget(
+                    token_phrase=prep,
+                    token_head=head,
+                    token_adjectives=[],
+                    noun_object=noun_entry.noun_object if noun_entry else None,
+                )
 
-                    resolved.append({
-                        "prep": prep,
-                        "object": target
-                    })
+                resolved.append({
+                    "prep": prep,
+                    "object": target
+                })
 
             return resolved
 
@@ -168,14 +173,16 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
     # Single Action Flow
     # ----------------------------------------------------------------------
         base_cmd = InterpretedCommand(    #empty template to fill in during interpretation
-        verb=None,   
+        verb=None,
+        verb_token="",   
         all_tokens=action.tokens,
         )      
 
-        base_cmd.verb, base_cmd.verb_source = _resolve_verb(action)
+        base_cmd.verb, base_cmd.verb_source, base_cmd.verb_token = _resolve_verb(action)
 
         # Resolve objects, directions, modifiers, etc.
         base_cmd.direct = _resolve_direct_object(action)
+        base_cmd.direct_object_token = base_cmd.direct.token_head if base_cmd.direct else None
         base_cmd.prep_phrases = _resolve_prep_phrases(action)
         base_cmd.direction = _resolve_direction(action, base_cmd.verb.uses_directions if base_cmd.verb else False)
         base_cmd.modifier_tokens = _resolve_modifiers(action)

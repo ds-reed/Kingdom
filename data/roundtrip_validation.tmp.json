@@ -67,7 +67,7 @@
                         "imposing",
                         "tall"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "can_be_spoken_to": true,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {
@@ -145,7 +145,7 @@
                         "rusty",
                         "iron"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "is_openable": true,
                     "is_open": false,
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
@@ -478,7 +478,7 @@
                         "iron",
                         "anchored"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
                     "can_be_tied_to": true
                 }

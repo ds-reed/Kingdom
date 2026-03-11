@@ -74,6 +74,7 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
         register_verbs()
         
         lexicon = lex()  # build lexicon for parser access
+        action_state.lexicon = lexicon  # store lexicon in action state for access during game
 
 
         lines = render_current_room(action_state, display=False)

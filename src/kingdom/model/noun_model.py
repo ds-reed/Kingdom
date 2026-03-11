@@ -26,6 +26,9 @@ class Noun:
 
     def __init__(self):
         self._register_noun()
+    
+    def __repr__(self):
+        return f"Noun(canonical_name={self.canonical_name()}, display_name={self.display_name()}, obj_handle={self.obj_handle()})"
 
     def _register_noun(self) -> None:
         Noun.all_nouns.append(self)
@@ -263,7 +266,7 @@ class Item(Noun):
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
-    is_gettable: bool = field(default=True, metadata={"persist": "if_set"})
+    is_takeable: bool = field(default=True, metadata={"persist": "if_set"})
     get_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
     # Open/close mechanics
@@ -490,24 +493,18 @@ class Container(Noun):
 
     def add_item(self, item):
         if item is None:
-            print("ERROR: add_item received None")
             return
 
         if self.capacity is not None and len(self.contents) >= self.capacity:
-            print(f"ERROR: Cannot add {item.name} to {self.name} - capacity reached")
-            return
-
-        if item.current_container == self:
-            print(f"ERROR: {item.name} is already in {self.name}")
-            return
-
-        if item.current_container is not None:
-            item.current_container.contents.remove(item)
+            return(f"Cannot add {item.name} to {self.name} - capacity reached)")
 
         self.contents.append(item)
         item.current_container = self
 
         return
+    
+    def all_items(self) -> list["Item"]:
+        return list(self.contents)
 
     def has_item(self, item) -> bool:
         return item in self.contents
@@ -563,6 +560,25 @@ class Player:
 
     def add_to_sack(self, item):
         return self.sack.add_item(item)
+    
+    def take_item_from_room(self, item, room):
+        msg = self.sack.add_item(item)
+        if msg: return msg
+        room.remove_item(item)
+
+    def drop_item_to_room(self, item, room):
+        self.sack.remove_item(item)
+        room.add_item(item)
+
+    def put_item_into_container(self, item, container):
+        msg = container.add_item(item)
+        if msg: return msg
+        self.sack.remove_item(item)
+
+    def take_item_from_container(self, item, container):
+        msg = self.sack.add_item(item)
+        if msg: return msg
+        container.remove_item(item)
 
     def remove_from_sack(self, item):
         return self.sack.remove_item(item)
@@ -571,7 +587,7 @@ class Player:
         return self.sack.has_item(item)
 
     def get_inventory_items(self):
-        return self.sack.contents
+        return list(self.sack.contents)
 
 
 @dataclass
@@ -665,7 +681,11 @@ class Room(Noun):
 
     def has_item(self, item) -> bool:
         return item in self.items
-
+    
+    def all_items(self) -> list["Item"]:
+        all_items = list(self.items)
+        return all_items
+    
     def has_container(self, container) -> bool:
         return container in self.containers
 

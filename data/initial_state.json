@@ -18,7 +18,7 @@
                     "name": "djinni",
                     "description": "an imposing djinni",
                     "adjectives": ["imposing", "tall"],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "can_be_spoken_to": true,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {"say": "speak_djinni", "make": "make_djinni"}
@@ -47,7 +47,7 @@
                     "name": "bean",
                     "description": "a single shiny bean",
                     "adjectives": ["single", "shiny"],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
                     "special_handlers": {"open": "open_bean"}
@@ -66,7 +66,7 @@
                     "name": "trapdoor",
                     "description": "a rusty iron trapdoor",
                     "adjectives": ["rusty", "iron"],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "is_openable": true,
                     "is_open": false,
                     "is_lockable": true,
@@ -86,7 +86,7 @@
                     "description": "a magic ladder hums with soft blue light.",
                     "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
                     "adjectives": ["magic", "glittering", "soft blue"],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "get_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
                     "is_climbable": true,
                     "climb_directions": ["up"]
@@ -278,7 +278,7 @@
                     "name": "rope",
                     "description": "a sturdy length of rope",
                     "adjectives": ["sturdy", "coiled"],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_tieable": true,
                     "is_tied": false,
                     "is_climbable": false,
@@ -289,7 +289,7 @@
                     "description": "an iron hook firmly anchored into the rock at the ravine's edge",
                     "adjectives": ["iron", "anchored"],
                     "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "is_tied_to": false,
                     "is_tied_to_string": "a long sturdy rope is tied securly to the hook and dangles down over the edge of the ravine",
                     "can_be_tied_to": true               

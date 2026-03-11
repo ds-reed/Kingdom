@@ -98,16 +98,13 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
         else:
             words = list(command.all_tokens[1:]) if command.all_tokens else []  # strip off verb token
 
-        # Stage 1: ALL disables target
-        if "all" in command.modifier_tokens:
-            target = None
-
         execute_command =  ExecuteCommand(
-            direct_object = command.direct.noun_object if command.direct else [],
+            verb_token = command.verb_token,
+            direct_object = command.direct.noun_object if command.direct else None,
+            direct_object_token = command.direct.token_head if command.direct else None,
             prep_phrases = command.prep_phrases if command.prep_phrases else {},
             direction = command.direction if command.direction else None,
             modifiers = command.modifier_tokens if command.modifier_tokens else [],
-            all_tokens = command.all_tokens
             )
 
         result = verb.execute(target, words, cmd=execute_command)

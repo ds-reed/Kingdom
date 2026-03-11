@@ -41,7 +41,7 @@ CONTAINER_FIELDS = [
 
 ITEM_FIELDS = [
     "name",
-    "is_gettable",
+    "is_takeable",
     "handle",
     "is_openable",
     "is_open",
@@ -159,7 +159,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
 
     sentinel_item = Item(
         name="Roundtrip Item",
-        is_gettable=False,
+        is_takeable=False,
         handle="rt_item",
         is_openable=True,
         is_open=True,

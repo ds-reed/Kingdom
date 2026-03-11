@@ -13,11 +13,10 @@ class VerbEntry:
     synonyms: List[str] = field(default_factory=list)
     modifiers: List[str] = field(default_factory=list)
     uses_directions: bool = False
-    expand_all: bool = False
     verb_object: Verb = None
 
     def __repr__(self):
-        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}, expand_all={self.expand_all}, verb_object={self.verb_object})"
+        return f"VerbEntry(canonical={self.canonical}, synonyms={self.synonyms}, modifiers={self.modifiers}, uses_directions={self.uses_directions}"
 
 @dataclass(frozen=True)
 class NounEntry:
@@ -30,7 +29,7 @@ class NounEntry:
     noun_object: Noun = None
 
     def __repr__(self):
-        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)}, noun_object={self.noun_object})"
+        return f"NounEntry(handle={self.handle}, canonical={self.canonical}, display={self.display}, synonyms={self.synonyms}, category={self.category}, adjectives={getattr(self, 'adjectives', None)}"
 
 @dataclass(frozen=True)
 class DirectionEntry:
@@ -73,12 +72,25 @@ class Lexicon:
     token_to_preposition: Dict[str, List[str]] = field(default_factory=dict)
 
     def __repr__(self):
+        verbs_str = "\n    ".join(repr(v) for v in self.verbs)
+        nouns_str = "\n    ".join(repr(n) for n in self.nouns)
+        directions_str = "\n    ".join(repr(d) for d in self.directions)
+        modifiers_str = "\n    ".join(self.modifiers)
+        preps_str = "\n    ".join(repr(p) for p in self.prepositions.values())
+
         return (
-            f"Lexicon(verbs={self.verbs}, nouns={self.nouns}, \n"
-            f"directions={self.directions}, modifiers={self.modifiers}, \n"
-            f"prepositions={self.prepositions}, conjunctions={self.conjunctions}, \n"
-            f"particles={self.particles}, adjectives={self.adjectives}) \n"
+            "Lexicon:\n"
+            f"  verbs:\n    {verbs_str}\n"
+            f"  nouns:\n    {nouns_str}\n"
+            f"  directions:\n    {directions_str}\n"
+            f"  modifiers:\n    {modifiers_str}\n"
+            f"  prepositions:\n    {preps_str}\n"
+            f"  conjunctions: {self.conjunctions}\n"
+            f"  particles: {self.particles}\n"
+            f"  adjectives: {self.adjectives}"
         )
+
+        
 
 
 
@@ -186,7 +198,7 @@ def lex() -> Lexicon:
     preposition_entries = {
         "into": PrepositionEntry(
             canonical="into",
-            synonyms=["in", "inside", "within", "in to"],
+            synonyms=["in", "inside", "within"],
         ),
         "onto": PrepositionEntry(
             canonical="onto",
@@ -202,14 +214,6 @@ def lex() -> Lexicon:
         ),
         "at": PrepositionEntry(
             canonical="at",
-            synonyms=[],
-        ),
-        "in": PrepositionEntry(
-            canonical="in",
-            synonyms=[],
-        ),
-        "on": PrepositionEntry(
-            canonical="on",
             synonyms=[],
         ),
         "to": PrepositionEntry(

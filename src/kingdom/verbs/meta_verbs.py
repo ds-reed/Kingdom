@@ -28,10 +28,11 @@ class MetaVerbHandler(VerbHandler):
         # Resolve either a noun or keywords of interest
         parse = self.resolve_noun_or_word(
             words,
-            interest=["room", "player", "Verbs", "commands", "all", "set"]
+            interest=["room", "player", "Verbs", "commands", "lexicon", "all", "set"]
         )
         noun = parse["noun"]
         keywords = parse["keywords"]
+        lexicon = self.lexicon()
 
         def debug_set(noun, field):
             if noun is None:
@@ -85,21 +86,6 @@ class MetaVerbHandler(VerbHandler):
             return lines
 
 
-        def debug_words(words: tuple[str, ...]) -> str:
-
-            lines = ["debugging words..."]
-
-            for word in words:
-                matching_nouns = [noun for noun in Noun.all_nouns if noun.canonical_name()== word]
-
-                for noun in matching_nouns:
-                    lines.append(f"id: {id(noun)}\n")
-                    lines.append(f"class: {noun.__class__.__name__}\n")
-                    for k, v in vars(noun).items():
-                        lines.append(f"{k}: {v!r}\n")
-
-            return lines
-
         # Case 1: Keywords found in leftover words
         keywords = parse["keywords"]
 
@@ -125,6 +111,10 @@ class MetaVerbHandler(VerbHandler):
                 target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
                 result = debug_set(target_noun, field_name)
                 print(result)
+
+            if "lexicon" in keywords:
+                print("debugging lexicon...")
+                print(lexicon)
             return 
 
         # Case 2: use target noun if present; try parser-resolved noun if not

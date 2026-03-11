@@ -1,5 +1,3 @@
-# parser/parser.py
-
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Any
@@ -42,7 +40,7 @@ class ParsedAction:
         prep_phrases={self.prep_phrases}, conjunction_groups={self.conjunction_groups}, \n \
         direction_tokens={self.direction_tokens}, \n \
         modifier_tokens={self.modifier_tokens}, \n \
-        unknown_tokens={self.unknown_tokens}) \n "
+        unknown_tokens={self.unknown_tokens}, \n \ "
 
 
 def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
@@ -203,16 +201,6 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
         #   i3  = index immediately AFTER the conjunction ("and"), start of NP2
         #   i4  = index immediately AFTER the second noun phrase (NP2)
         #
-        # Example: "grab the sword and shield"
-        #   tokens: 0:grab 1:the 2:sword 3:and 4:shield
-        #
-        #   i = 1  → "the"
-        #   consume_noun_phrase(1) → NP1 = "the sword", i2 = 3
-        #   tokens[i2] = "and"
-        #   i3 = i2 + 1 = 4
-        #   consume_noun_phrase(i3) → NP2 = "shield", i4 = 5
-        #
-        #   i = i4 = 5 → continue scanning
         # ------------------------------------------------------------
 
         # ------------------------------------------------------------
@@ -233,19 +221,35 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                 adjectives.append(tokens[i])
                 i += 1
 
-            # Expect a noun
-            if i < n and is_noun(tokens[i]):
-                noun_index = i
+
+            head = None
+            
+            # Special case: quantifiers like "all" behave as NP heads
+            if i < n and tokens[i] in ("all", "everything"):
+                head = tokens[i]
                 i += 1
-                # span end is EXCLUSIVE index of end of NP
-                span = (start, i)
                 return {
-                    "head": tokens[noun_index],
-                    "adjectives": adjectives,
-                    "span": span,
+                    "head": head,
+                    "adjectives": [],
+                    "span": (start, i),
                 }, i
 
-            return None, start
+            if i < n and is_noun(tokens[i]):
+                head = tokens[i]
+                i += 1
+            elif adjectives:
+                head = adjectives.pop()  # Treat last unknown as noun-like head
+
+            if head is None:
+                return None, start
+
+            # span end is EXCLUSIVE index of end of NP
+            span = (start, i)
+            return {
+                "head": head,
+                "adjectives": adjectives,
+                "span": span,
+            }, i
 
         # ------------------------------------------------------------
         # Main scan
@@ -277,7 +281,8 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
             # -------------------------
             # Noun phrase (possibly NP1 AND NP2)
             # -------------------------
-            if is_particle(t) or is_noun(t) or (is_unknown(t) and not is_conjunction(t)):
+            if (is_particle(t) or is_noun(t) or (is_unknown(t) and not is_conjunction(t)) or t in ("all", "everything")):     #treat all or everything as noun-like heads for phrase grouping
+  
                 np1, i2 = consume_noun_phrase(i)
                 if np1:
 
@@ -338,16 +343,19 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                 i += 1
 
             # Skip adjectives (unknowns before noun)
+            adjectives = []
             while i < n and is_unknown(tokens[i]):
+                adjectives.append(tokens[i])
                 i += 1
 
-            # Expect noun
+            head = None
             if i < n and is_noun(tokens[i]):
                 head = tokens[i]
                 i += 1
-                return head, i
+            elif adjectives:
+                head = adjectives.pop()  # Treat last unknown as noun-like head
 
-            return None, i
+            return head, i
 
         # ------------------------------------------------------------
         # Main scan for phase 3
@@ -398,7 +406,6 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
     stage3_enrich()
 
     return ps_return
-
 
 
 

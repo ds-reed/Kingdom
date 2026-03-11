@@ -32,160 +32,110 @@ class InventoryVerbHandler(VerbHandler):
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
         
-
-        state = self.state()
-        world = self.world()  
         room = self.room()
         player = self.player()
 
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]
+        keywords = cmd.modifiers
+        target = cmd.direct_object
 
-        # ------------------------------------------------------------
-        # 1. TAKE ALL 
-        # ------------------------------------------------------------
-        if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
-            getable: list[Item] = []
-
-
-            for item in room.items:
-                getable.append(item)
-
-            # Items in open containers
-            for container in room.containers:
-                if container.is_openable and container.is_open:
-                    for item in container.contents:
-                        getable.append(item)
-                else:
-                    getable.append(container)  # if container isn't open, we still try to take it and let the refusal message come from the container's special handler
-
-            return self.handle_all(getable, self.take, "take")
+        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("from", "in"))
         
-        # ------------------------------------------------------------
-        # 2. Missing target
-        # ------------------------------------------------------------
-        if target is None:
-                return self.build_message(self.missing_target("take"))
-   
-        # ------------------------------------------------------------
-        # 3. Special handler pipeline
-        # ------------------------------------------------------------
 
-        outcome = try_item_special_handler(target, "take", words)
-        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+        if target:
+            if target.get_class_name() == "Item":
+                inventory_items = [target]
+            elif target.get_class_name() == "Container":
+                return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")
+        elif "all" in keywords or "everything" in keywords:
+            if source:
+                if isinstance(source, Container):
+                    inventory_items = source.all_items()
+                else:
+                    return self.build_message(f"You don't see any {source_name} here to take from.")
+            else:
+                inventory_items = room.all_items()
+        else:
+            if not cmd.direct_object_token:
+                return self.build_message(self.missing_target(cmd.verb_token))
+            return self.build_message(f"You see no {cmd.direct_object_token} here.")
 
-        # ------------------------------------------------------------
-        # 4. Determine if item is already in inventory
-        # ------------------------------------------------------------
-        loc = self.locate_item(target)
-        if loc.type == self.LocationType.INVENTORY:
-            return self.build_message(f"You already have {target.display_name()}.")
+        msgs = []
+        for item in inventory_items:
+            outcome = try_item_special_handler(item, "take", words)
+            if outcome:
+                msgs.append(outcome.message or "")
+                if outcome.control == VerbControl.STOP: 
+                    return self.build_message(msgs)
+                if outcome.control == VerbControl.SKIP:
+                    continue
+            if hasattr(item, "is_takeable") and not item.is_takeable:
+                msgs.append(item.get_refuse_string or f"You can't take {item.display_name()}.")
+                continue
 
-        # ------------------------------------------------------------
-        # 5. If it's here but not gettable
-        # ------------------------------------------------------------
-        if not getattr(target, "is_gettable", True) \
-                    or isinstance(target, Container):  #can't take containers for now
-            refuse = getattr(target, "get_refuse_string", None)
-            return self.build_message(refuse or f"You can't take {target.display_name()}.")
+            if source:
+                sack_full_msg=player.take_item_from_container(item, source)
+            else:
+                sack_full_msg=player.take_item_from_room(item, room)
+            if not sack_full_msg:
+                msgs.append(f"You {cmd.verb_token} {item.display_name()}.")
+            else:
+                msgs.append(sack_full_msg)
 
-        # ------------------------------------------------------------
-        # 7. Take from room
-        # ------------------------------------------------------------
-        if loc.type is self.LocationType.ROOM_FLOOR:
-            room.remove_item(target)
-            player.add_to_sack(target)
-            return self.build_message(f"You take {target.display_name()}.")
+        return self.build_message(msgs)
 
-        # ------------------------------------------------------------
-        # 8. Take from open container
-        # ------------------------------------------------------------
-        if loc.type is self.LocationType.INSIDE_CONTAINER:
-            # Find the container again (loc.container should have it)
-            found_container = loc.container
-            found_container.remove_item(target)
-            player.add_to_sack(target)
-            return self.build_message(
-                f"You take {target.display_name()} "
-                f"from {found_container.display_name()}."
-            )
 
-        # ------------------------------------------------------------
-        # 9. Should never reach here
-        # ------------------------------------------------------------
-        return self.build_message("DEBUG: Take says I don't know how to do that.")
 
 
     def drop(
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
-        state = self.state()
-        world = self.world()
         room = self.room()
         player = self.player()
 
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]
+        keywords = cmd.modifiers
+        target = cmd.direct_object
 
-        # ------------------------------------------------------------
-        # 1. DROP ALL
-        # ------------------------------------------------------------
-        if target is None and ("all" in keywords or "everything" in keywords):     #target is none check to prevent recursive calls in all loop
+        if target and target.get_class_name() == "Item":
+            inventory_items = [target] 
+        elif "all" in keywords or "everything" in keywords:
             inventory_items = player.get_inventory_items()
-            return self.handle_all(inventory_items, self.drop, "drop")
+        else:
+            if not cmd.direct_object_token:
+                return self.build_message(self.missing_target(cmd.verb_token))
+            return self.build_message(f"You have no {cmd.direct_object_token}.")
 
-        # ------------------------------------------------------------
-        # 2. Missing target
-        # ------------------------------------------------------------
-        if target is None:
-            if not words:
-                return self.build_message(self.missing_target("drop"))
-            return self.build_message(f"You have no {' '.join(words)}.")
+        msgs = []
+        for item in inventory_items:
+            outcome = try_item_special_handler(item, "drop", words)
+            if outcome:
+                msgs.append(outcome.message or "")
+                if outcome.control == VerbControl.STOP: 
+                    return self.build_message(msgs)
+                if outcome.control == VerbControl.SKIP:
+                    continue
 
-        # ------------------------------------------------------------
-        # 3. Special handler pipeline
-        # ------------------------------------------------------------
-        outcome = try_item_special_handler(target, "drop", words)
-        if outcome: 
-            return self.build_message(outcome.message or "")
+            player.drop_item_to_room(item, room)
+            msgs.append(f"You {cmd.verb_token} {item.display_name()}.")
 
-        # ------------------------------------------------------------
-        # 4. Determine where the item is
-        # ------------------------------------------------------------
-        loc = self.locate_item(target)
-
-        # Not in inventory
-        if loc.type != self.LocationType.INVENTORY:
-            name = target.display_name()
-            if name:
-                return self.build_message(f"You aren't carrying {name}.")
-            return self.build_message(self.missing_target("drop"))
-
-        # ------------------------------------------------------------
-        # 5. Perform the drop
-        # ------------------------------------------------------------
-        player.remove_from_sack(target)
-        room.add_item(target)
-        return self.build_message(f"You drop {target.display_name()}.")
+        return self.build_message(msgs)
 
 
     def put(self, target, words, cmd: ExecuteCommand = None):
         player = self.player()
-        room = self.room()
 
         # 1. Destination
-
-        dest_target = next((pp["object"] for pp in cmd.prep_phrases if pp["prep"] == "into"), None)
-        dest = dest_target.noun_object if dest_target else None
+        print("put cmd.prep_phrases:", cmd.prep_phrases)
+        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("into"))
 
         if dest is None:
+            if dest_name:
+                return self.build_message(f"You don't see any {dest_name} here.")
             return self.build_message("Put where?")
 
         if not isinstance(dest, Container):
@@ -202,17 +152,19 @@ class InventoryVerbHandler(VerbHandler):
 
         target = cmd.direct_object if cmd.direct_object else None                                        
         if target not in player.get_inventory_items():
-            msgs.append(f"You're not carrying {target.display_name()}.")  
+            return(f"You're not carrying {target.display_name()}.")  
 
-            outcome = try_item_special_handler(target, "put", [dest.handle])        # special handers expecting list of words, so pass the handle of the destination as a single word in a list
+        outcome = try_item_special_handler(target, "put", [dest.handle])        # special handers expecting list of words, so pass the handle of the destination as a single word in a list
 
-            if outcome: 
-                 msgs.append( outcome.message or "")
-                 if outcome.control == VerbControl.STOP:
-                     return self.build_message(msgs)
-            if not outcome or outcome.control != VerbControl.SKIP:
-                player.remove_from_sack(target)
-                dest.add_item(target)
+        if outcome: 
+                msgs.append( outcome.message or "")
+                if outcome.control == VerbControl.STOP:
+                    return self.build_message(msgs)
+        if not outcome or outcome.control != VerbControl.SKIP:
+            container_full_msg = player.put_item_into_container(target, dest)
+            if container_full_msg:
+                msgs.append(container_full_msg)
+            else:
                 msgs.append(f"You put {target.display_name()} into {dest.display_name()}.")
 
         return self.build_message(msgs)

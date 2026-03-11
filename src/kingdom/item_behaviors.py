@@ -99,7 +99,7 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_gettable: bool,  get_refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  get_refuse_string: str) -> None:
     state = _active_state()
     if state is None:
         return
@@ -117,7 +117,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
     new_item = Item(
         name,
         handle=handle,
-        is_gettable=is_gettable,
+        is_takeable=is_takeable,
         get_refuse_string=get_refuse_string,
         )
     
@@ -179,7 +179,7 @@ def eat_fish(item, verb, words):
     vomit = _spawn_room_item(world, 
         name="There is vomit on a nearby wall.",
         handle="vomit",
-        is_gettable=False,      
+        is_takeable=False,      
         get_refuse_string="EW! The nasty vomit just makes your hands dirty."
     )
 

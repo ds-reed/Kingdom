@@ -13,12 +13,22 @@ from kingdom.item_behaviors import VerbOutcome, VerbControl
 
 @dataclass
 class ExecuteCommand:
+    verb_token: str
     direct_object: Noun = None
-    indirect_object: list[Noun] = field(default_factory=list)
+    direct_object_token: str = None
     prep_phrases: list[dict] = field(default_factory=list)
     direction: Optional[str] = None
     modifiers: list[str] = field(default_factory=list)
-    all_tokens: list[str] = field(default_factory=list)
+
+    def __repr__(self):
+        return (
+            f"ExecuteCommand(verb_token={self.verb_token}, "
+            f"direct_object_token={self.direct_object_token}, "
+            f"prep_phrases={self.prep_phrases}, "
+            f"direction={self.direction}, "
+            f"modifiers={self.modifiers})"
+        )
+
 
 
 class VerbHandler:
@@ -83,6 +93,9 @@ class VerbHandler:
 
     def player(self):
         return get_action_state().current_player
+    
+    def lexicon(self):
+        return get_action_state().lexicon
 
     # ------------------------------------------------------------
     # Standard refusal helpers
@@ -110,9 +123,9 @@ class VerbHandler:
     # preposition/noun resolution helpers
     # ------------------------------------------------------------
 
-    def extract_indirect_from_prep_phrases(self, prep_phrases:list[dict], prep: str) -> Optional[Noun]:
-        prep= next((pp["object"] for pp in prep_phrases if pp["prep"] == prep), None)
-        return prep.noun_object if prep else None
+    def extract_indirect_from_prep_phrases(self, prep_phrases:list[dict], prep: list[str]) -> tuple[Optional[Noun], str]:
+        prep= next((pp["object"] for pp in prep_phrases if pp["prep"] in prep), None)
+        return (prep.noun_object if prep else None, prep.token_head if prep else "")
 
 
     # ------------------------------------------------------------

@@ -64,7 +64,7 @@
                         "imposing",
                         "tall"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
                     "is_openable": false,
                     "is_lockable": false,
@@ -99,7 +99,7 @@
                     "handle": "torch",
                     "synonyms": [],
                     "adjectives": [],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": true,
@@ -121,7 +121,7 @@
                         "single",
                         "shiny"
                     ],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": true,
                     "open_action_description": "You crack open the bean with a satisfying snap.",
                     "is_lockable": false,
@@ -145,7 +145,7 @@
                     "adjectives": [
                         "ornate"
                     ],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": true,
                     "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
                     "closed_state_description": "an ornate broach with a tightly-closed clasp.",
@@ -169,7 +169,7 @@
                         "rusty",
                         "iron"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "is_openable": true,
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
                     "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
@@ -216,7 +216,7 @@
                                 "cheery",
                                 "orange"
                             ],
-                            "is_gettable": true,
+                            "is_takeable": true,
                             "is_openable": false,
                             "is_lockable": false,
                             "is_lightable": false,
@@ -237,7 +237,7 @@
                             "adjectives": [
                                 "suspicious-looking"
                             ],
-                            "is_gettable": true,
+                            "is_takeable": true,
                             "is_openable": false,
                             "is_lockable": false,
                             "is_lightable": false,
@@ -261,7 +261,7 @@
                                 "small",
                                 "brass"
                             ],
-                            "is_gettable": true,
+                            "is_takeable": true,
                             "is_openable": false,
                             "is_lockable": false,
                             "unlock_key": "small brass key",
@@ -284,7 +284,7 @@
                                 "dull",
                                 "brass"
                             ],
-                            "is_gettable": true,
+                            "is_takeable": true,
                             "is_openable": false,
                             "is_lockable": false,
                             "is_lightable": false,
@@ -311,7 +311,7 @@
                                 "cheap",
                                 "plastic"
                             ],
-                            "is_gettable": true,
+                            "is_takeable": true,
                             "is_openable": false,
                             "is_lockable": false,
                             "is_lightable": false,
@@ -393,7 +393,7 @@
                         "heavy",
                         "solid"
                     ],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": false,
@@ -432,7 +432,7 @@
                     "adjectives": [
                         "silver"
                     ],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": false,
@@ -493,7 +493,7 @@
                     "handle": "apple",
                     "synonyms": [],
                     "adjectives": [],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": false,
@@ -533,7 +533,7 @@
                         "sturdy",
                         "coiled"
                     ],
-                    "is_gettable": true,
+                    "is_takeable": true,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": false,
@@ -554,7 +554,7 @@
                         "iron",
                         "anchored"
                     ],
-                    "is_gettable": false,
+                    "is_takeable": false,
                     "is_openable": false,
                     "is_lockable": false,
                     "is_lightable": false,

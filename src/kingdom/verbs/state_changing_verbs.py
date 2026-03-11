@@ -555,8 +555,8 @@ class ChangeStateVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object if cmd.direct_object else None  
 
-        preposition = "to"
-        indirect = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
+        preposition = ("to")
+        indirect, indirect_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
       
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -572,6 +572,8 @@ class ChangeStateVerbHandler(VerbHandler):
             return self.build_message(self.missing_target("tie"))
 
         if indirect is None:
+            if indirect_name:
+                return self.build_message(f"You don't see any {indirect_name} here to tie the {target.canonical_name()} to.")
             return self.build_message(f"Tie {target.canonical_name()} to what?")
 
         # ------------------------------------------------------------
@@ -592,7 +594,7 @@ class ChangeStateVerbHandler(VerbHandler):
             verb_phrase="tie",
             indirect = indirect,
             ind_capability_attr = "can_be_tied_to",
-            ind_phrase = f"tie the {target.canonical_name()} to" 
+            ind_phrase = f"tie the {target.canonical_name()} to {indirect_name}" 
         )
         if cant_msg:
             return self.build_message(cant_msg)

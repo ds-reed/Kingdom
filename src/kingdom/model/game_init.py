@@ -27,6 +27,7 @@ class GameActionState:
     current_player: Player | None = None
     current_room: Room | None = None
     player_name: str | None = None
+    lexicon: "Lexicon" | None = None
     score: int = 0
 
 
@@ -65,6 +66,7 @@ def init_session(
         current_player=resolved_player,
         current_room=initial_room,
         player_name=resolved_player_name,
+        lexicon=None,  # will be set after verb registration
         score=0,
     )
 
@@ -284,7 +286,7 @@ def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.
 
     Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
-    Items can be strings or dicts with 'name', 'is_gettable', 'refuse_string'.
+    Items can be strings or dicts with 'name', 'is_takeable', 'refuse_string'.
     """
     rooms: list[Room] = []
     pending_connections = []
