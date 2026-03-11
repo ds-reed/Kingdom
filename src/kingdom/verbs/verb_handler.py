@@ -87,9 +87,8 @@ class VerbHandler:
     # ------------------------------------------------------------
     # Context accessors
     # ------------------------------------------------------------
-    def game(self):
-        return get_action_state().game
-
+    def world(self):
+        return get_action_state().game          #need to fix attribute name in GameActionState at some point
     def state(self):
         return get_action_state()
 
@@ -352,7 +351,7 @@ class VerbHandler:
         """
         from kingdom.item_behaviors import try_item_special_handler
 
-        outcome = try_item_special_handler(target, verb, words, None)
+        outcome = try_item_special_handler(target, verb, words, self.world)
         if outcome:
             return outcome
         

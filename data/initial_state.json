@@ -42,7 +42,8 @@
                     "adjectives": ["old", "wooden"],
                     "is_lightable": true,
                     "is_lit": false,
-                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls."
+                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                    "special_handlers": {"put": "put_torch"}
                 },
                 {
                     "name": "bean",
@@ -72,6 +73,7 @@
                     "is_open": false,
                     "is_lockable": true,
                     "is_locked": true,
+                    "is_flamable": false,
                     "unlock_key": "small brass key",
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
@@ -96,6 +98,7 @@
                     "adjectives": ["greasy", "brown"],
                     "is_openable": true,
                     "is_open": false,
+                    "is_flamable": true,
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
                     "close_action_description": "You fold the top of the greasy lunch bag shut.",
                     "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
@@ -121,7 +124,9 @@
                             "name": "key",
                             "description": "a small brass key",
                             "adjectives": ["small", "brass"],
-                            "unlock_key": "small brass key"
+                            "unlock_key": "small brass key",
+                            "is_flamable": false,
+                            "is_edible": true
                         },
                         {
                             "name": "lamp",
@@ -129,6 +134,7 @@
                             "adjectives": ["battered", "dull", "brass"],
                             "is_rubbable": true,
                             "is_rubbed": false,
+                            "is_flamable": false,
                             "rub_success_string": "The lamp grows shiny from rubbing.",
                             "rubbed_state_description": "a battered and shiny brass lamp.",
                             "special_handlers": {"rub": "rub_lamp"},
@@ -139,6 +145,7 @@
                             "description": "a cheap plastic lighter",
                             "adjectives": ["cheap", "plastic"],
                             "can_ignite": true,
+                            "is_flamable": false,
                             "ignite_success_string": "You flick the lighter and a small flame appears."
                         }
                     ]
@@ -180,7 +187,8 @@
                     "description": "a heavy solid gold bar",
                     "synonyms": ["gold bar", "bar of gold", "bar"],
                     "adjectives": ["heavy", "solid"],
-                    "too_heavy_to_swim": true
+                    "too_heavy_to_swim": true,
+                    "is_flamable": false
                 }
             ],
             "containers": [],
@@ -205,7 +213,8 @@
                     "description": "a lit silver lantern",
                     "adjectives": ["silver"],
                     "light_source": true,
-                    "is_lit": true
+                    "is_lit": true,
+                    "is_flamable": false
                 }
             ],
             "containers": [

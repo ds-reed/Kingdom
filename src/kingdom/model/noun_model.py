@@ -289,6 +289,7 @@ class Item(Noun):
     unlit_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     can_ignite: bool = field(default=False, metadata={"persist": "if_set"})
     ignite_success_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    is_flamable: bool = field(default=True, metadata={"persist": "if_non_default"})
 
     # Rub mechanics
     is_rubbable: bool = field(default=False, metadata={"persist": "if_set"})
@@ -454,6 +455,7 @@ class Container(Noun):
     found: bool = False
     capacity: Optional[int] = None
     is_openable: bool = False
+    is_flamable: bool = True
     is_open: bool = field(default=False, metadata={"persist_if_parent": "is_openable"})
     opened_state_description: Optional[str] = None
     closed_state_description: Optional[str] = None

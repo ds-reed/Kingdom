@@ -36,7 +36,7 @@ class InventoryVerbHandler(VerbHandler):
         
 
         state = self.state()
-        game = self.game()  
+        world = self.world()  
         room = self.room()
         player = self.player()
 
@@ -126,7 +126,7 @@ class InventoryVerbHandler(VerbHandler):
         **kwargs
     ) -> str:
         state = self.state()
-        game = self.game()
+        world = self.world()
         room = self.room()
         player = self.player()
 
@@ -204,12 +204,17 @@ class InventoryVerbHandler(VerbHandler):
                 msgs.append(f"You're not carrying {obj.display_name()}.")
                 continue
 
-            if not getattr(obj, "is_gettable", True):
-                msgs.append(f"You can't move {obj.display_name()}.")
-                continue
+            outcome = self.run_special_handler(target, "put", [dest.handle])        # special handers expecting list of words, so pass the handle of the destination as a single word in a list
+
+            if outcome: 
+                 msgs.append( outcome.message or "")
+                 if outcome.control == VerbControl.STOP:
+                     return self.build_message(msgs)
+                 if outcome.control == VerbControl.SKIP:
+                     continue  
 
             player.remove_from_sack(obj)
             dest.add_item(obj)
             msgs.append(f"You put {obj.display_name()} into {dest.display_name()}.")
 
-        return self.build_message(" ".join(msgs))
+        return self.build_message(msgs)

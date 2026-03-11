@@ -50,7 +50,7 @@ class ChangeStateVerbHandler(VerbHandler):
     ) -> str:
 
         room = self.room()
-        game = self.game()
+        world = self.world()
         
         parse = self.resolve_noun_or_word(words, interest=['sesame', 'all', 'everything'])
         keywords = parse["keywords"]
@@ -113,7 +113,7 @@ class ChangeStateVerbHandler(VerbHandler):
         destination = getattr(target, "open_exit_destination", None)
 
         if direction and destination:
-            destination_room = game.rooms.get(destination)
+            destination_room = world.rooms.get(destination)
 
             if room and destination_room:
                 room.connections[direction] = destination_room
@@ -153,7 +153,7 @@ class ChangeStateVerbHandler(VerbHandler):
     ) -> str:
 
         room = self.room()
-        game = self.game()
+        world = self.world()
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
@@ -205,7 +205,7 @@ class ChangeStateVerbHandler(VerbHandler):
         destination = getattr(target, "open_exit_destination", None)
 
         if direction and destination:
-            destination_room = game.rooms.get(destination)
+            destination_room = world.rooms.get(destination)
 
             if room and destination_room:
                 room.connections.pop(direction, None)   # should use room_remove_exit function when we have it
@@ -246,7 +246,7 @@ class ChangeStateVerbHandler(VerbHandler):
     ) -> str:
 
         room = self.room()
-        game = self.game()
+        world = self.world()
         
         parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
         keywords = parse["keywords"]
@@ -331,7 +331,7 @@ class ChangeStateVerbHandler(VerbHandler):
     def light(self, target: Optional[Noun], words: tuple[str, ...], **kwargs) -> str:
 
         room = self.room()
-        game = self.game()
+        world = self.world()
         player = self.player()
         inventory = player.sack.contents
         

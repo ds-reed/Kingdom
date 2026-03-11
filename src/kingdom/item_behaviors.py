@@ -12,6 +12,8 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
+from kingdom.model.noun_model import Noun
+
 class VerbControl(Enum):
     CONTINUE = auto()  # fall through to default behavior
     SKIP = auto()      # skip this item but continue ALL
@@ -68,7 +70,7 @@ def try_item_special_handler(
     target: object,
     verb_name: str,
     words: tuple[str, ...],
-    ctx: "object | None",
+    world: "object | None",
 ) -> str | None:
     """
     Unified special-handler lookup and execution.
@@ -90,7 +92,7 @@ def try_item_special_handler(
         return None
 
     # Execute the handler
-    return handler(target, verb_name, words, ctx)
+    return handler(target, verb_name, words, world)
 
 
 
@@ -129,14 +131,14 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
 # ------------------------------------------------------------
 
 # @register_item_behavior("example_behavior")
-# def example_behavior(item, verb, words, ctx):
+# def example_behavior(item, verb, words, world):
 #     ...
 #     return VerbOutcome("Example!", stop_outer=True)
 
 #----------------- the Magic Bean test item ---------------------------------
 
 @register_item_behavior("open_bean")
-def open_bean(item, verb_name, words, ctx):
+def open_bean(item, verb_name, words, world):
 
     print("Ha Ha - you tried to open a magical bean!")  # or log it
     return VerbOutcome(message="you reached me!!!!", control=VerbControl.SKIP)   
@@ -144,7 +146,7 @@ def open_bean(item, verb_name, words, ctx):
 # ----------------- the fish ---------------------------------
 
 @register_item_behavior("eat_fish")
-def eat_fish(item, verb, words, ctx):
+def eat_fish(item, verb, words, world):
 
     state = _active_state()
     player = getattr(state, "current_player", None)
@@ -174,11 +176,11 @@ def eat_fish(item, verb, words, ctx):
             return VerbOutcome( message="You made quite a mess here!", control=VerbControl.SKIP )
         
     # spawn vomit if it doesn't already exist
-    vomit = _spawn_room_item(ctx, 
+    vomit = _spawn_room_item(world, 
         name="There is vomit on a nearby wall.",
         handle="vomit",
         is_gettable=False,      
-        get_refuse_string="EW! You can't get that."
+        get_refuse_string="EW! The nasty vomit just makes your hands dirty."
     )
 
     # Final message - TRS80 old-school style
@@ -191,7 +193,7 @@ def eat_fish(item, verb, words, ctx):
 #----------------- the Lamp and Djinni ---------------------------------
 
 @register_item_behavior("rub_lamp")
-def rub_lamp(item, verb, words, ctx):
+def rub_lamp(item, verb, words, world):
 
     state = _active_state()
     player = getattr(state, "current_player", None)
@@ -257,16 +259,16 @@ def rub_lamp(item, verb, words, ctx):
 # ----------------- the Djinni ---------------------------------
 
 @register_item_behavior("speak_djinni")
-def speak_djinni(item, verb, words, ctx):
-    return _djinni_scripted_action(item, verb, words, ctx)
+def speak_djinni(item, verb, words, world):
+    return _djinni_scripted_action(item, verb, words, world)
 
 
 @register_item_behavior("make_djinni")
-def make_djinni(item, verb, words, ctx):
-    return _djinni_scripted_action(item, verb, words, ctx)
+def make_djinni(item, verb, words, world):
+    return _djinni_scripted_action(item, verb, words, world)
 
 
-def _djinni_scripted_action(item, verb, words, ctx):
+def _djinni_scripted_action(item, verb, words, world):
     """
     The Djinni does not understand English; any SAY or MAKE attempt
     triggers his pre-ordained magical action.
@@ -275,11 +277,7 @@ def _djinni_scripted_action(item, verb, words, ctx):
     state = _active_state()
     room = getattr(state, "current_room", None)
     game = getattr(state, "game", None)
-    if room is None or game is None:
-        return VerbOutcome(
-            message="The Djinni fizzles out due to unstable magic.",
-            control=VerbControl.STOP
-        )
+
 
     message_lines = [
         "The Djinni seems puzzled by your exotic language.",
@@ -313,3 +311,29 @@ def _djinni_scripted_action(item, verb, words, ctx):
         control=VerbControl.STOP
     )
 
+#---------------------------burning torch!------------------------------
+
+@register_item_behavior("put_torch")
+def put_torch(item, verb_name, indirect_obj, world):
+
+    active_state = _active_state()
+    room = getattr(active_state, "current_room", None)
+
+    message = []
+    if getattr(item, "is_lit", False):
+        container = Noun.get_by_name(indirect_obj[0])
+        if container and getattr(container, "is_flamable", False):
+            message.append(f"As you put the burning torch into {container.display_name()} it catches on fire!")
+            for item in container.contents:
+                if getattr(item, "is_flamable", False):
+                    message.append(f"{item.display_name()} is destroyed by the fire!")
+                    container.remove_item(item)
+                else:
+                    message.append(f"{item.display_name()} is unharmed by the fire and drops to the ground.")
+                    room.add_item(item)
+            message.append(f"{container.display_name()} is destroyed by the fire!")
+            room.remove_container(container)  # remove the container itself
+
+
+            return VerbOutcome(message=message, control=VerbControl.STOP)
+    return None
