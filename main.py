@@ -154,9 +154,6 @@ def process_command(
 
     interpreted = interpret(parsed, world, lexicon)
 
-    if interpreted is None:
-        return False, recovery_mode, "I don't understand that command."
-
     if recovery_mode:
         verb_word = interpreted[0].verb.name if interpreted[0].verb else None
         if verb_word not in {"load", "quit", "help"}:
@@ -252,23 +249,14 @@ def main() -> None:
     try:
         
         world, lexicon = init_game_state()
-   
-        if not world:
-            print(f"Failed to initialize world. Please check logfile for details.")
-            return
-        
-        if not lexicon:
-            print(f"Failed to initialize lexicon. Please check logfile for details.")
-            return
         
         recovery_mode = False
 
         while True:
 
-            ui.print("\n")  # Add spacing before prompt
+            ui.print("\n") 
             command = ui.prompt("Enter command: ")
-            ui.print("\n")  # Add spacing after command input
-
+            ui.print("\n")
 
             should_quit, recovery_mode, output = process_command(
                 raw_command=command,
