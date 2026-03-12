@@ -39,46 +39,6 @@ class VerbHandler:
 
     """
 
-    class LocationType(Enum):
-        """Where an item can physically be in the game world."""
-        INVENTORY     = auto()   # directly in player's sack/inventory
-        ROOM_FLOOR    = auto()   # loose on the room floor
-        CONTAINER_IN_ROOM   = auto()   # the container itself is present in the room
-        INSIDE_CONTAINER    = auto()   # inside a container
-
-    @dataclass(frozen=True)
-    class ItemLocation:
-        """Precise, type-safe description of an item's location."""
-        type: 'VerbHandler.LocationType'
-        container: Optional['Container'] = None   # only relevant for INSIDE_CONTAINER
-
-        def is_accessible(self) -> bool:
-            """Quick default rule — override or extend per verb if needed."""
-            match self.type:
-                case VerbHandler.LocationType.INVENTORY | VerbHandler.LocationType.ROOM_FLOOR | VerbHandler.LocationType.CONTAINER_IN_ROOM:
-                    return True
-                case VerbHandler.LocationType.INSIDE_CONTAINER:
-                    # Assuming Container has .is_open (bool) or similar
-                    return self.container is not None and self.container.is_open
-                case _:
-                    return False
-
-        def describe(self) -> str:
-            """Human-readable phrase for messages."""
-            match self.type:
-                case VerbHandler.LocationType.INVENTORY:
-                    return "in your inventory"
-                case VerbHandler.LocationType.ROOM_FLOOR:
-                    return "here on the ground"
-                case VerbHandler.LocationType.CONTAINER_IN_ROOM:
-                    return "here (as a container)"
-                case VerbHandler.LocationType.INSIDE_CONTAINER if self.container:
-                    return f"inside the {self.container.display_name()}"
-                case _:
-                    return "somewhere strange"
-
-
-
     # ------------------------------------------------------------
     # Context accessors
     # ------------------------------------------------------------
@@ -122,14 +82,13 @@ class VerbHandler:
     # ------------------------------------------------------------
     # preposition/noun resolution helpers
     # ------------------------------------------------------------
-
     def extract_indirect_from_prep_phrases(self, prep_phrases:list[dict], prep: list[str]) -> tuple[Optional[Noun], str]:
         prep= next((pp["object"] for pp in prep_phrases if pp["prep"] in prep), None)
         return (prep.noun_object if prep else None, prep.token_head if prep else "")
 
 
     # ------------------------------------------------------------
-    # Noun / word resolution
+    # Noun / word resolution - remove when new parser is fully wired in
     # ------------------------------------------------------------
     def resolve_noun_or_word(
         self,
@@ -137,24 +96,7 @@ class VerbHandler:
         interest: list[str] = [],
     ) -> dict:
         """
-        This internal resolution system is in place until we upgrade the parser. Right now, 
-        verbs get passed a target noun and a list of leftover words. The target noun has
-        been pre-resolved to be a valid target Item or DirectionNoun for the room the player
-        is in. (i.e. only nouns that are present in the room or valid directions will be passed as
-        the target argument.) 
-        
-        This function allows verb handlers to resolve an item or direction from the leftover words.
-
-        It also enables verbs to modify their behavior based on keywords in the leftover words, 
-        e.g. "look inside"  
-
-        The function returns a dict with the following keys:
-        - "noun": the resolved Noun (or None if no noun found in words)
-        - "direction": the resolved canonical direction string (or None if no direction found)
-        - "keywords": a set of any keywords of interest that were found in the words
-        - "raw": a tuple of the original leftover words
-
-        Note that the target noun is not handled in the resolution - we just parse the leftover words.
+        This internal resolution system is in place until we upgrade the parser.
         """
 
         result = {
@@ -180,6 +122,10 @@ class VerbHandler:
 
 
         return result
+    
+    # ------------------------------------------------------------
+    # Basic checks - used by multiple verbs 
+    # ------------------------------------------------------------
 
     def basic_checks(self, target, *, verb_phrase=None, capability_attr=None, current_state_attr=None, desired_state=None, already_msg=None, indirect=None, ind_capability_attr=None, ind_phrase=None) -> Optional[str]:
 
@@ -200,7 +146,9 @@ class VerbHandler:
         player = self.player()
         inventory = player.get_inventory_items()
         for item in inventory:
- #           if the item has an attribute matching the string required type and the value of that attribute matches the required name, then we consider the requirement met. This allows for flexible requirements like "a key that unlocks the chest" without hardcoding specific item names in the verb handler.
+ #    if the item has an attribute matching the string required type and the value of that attribute matches the required name, 
+ #    then we consider the requirement met. This allows for flexible requirements like "a key that unlocks the chest" without 
+ #    hardcoding specific item names in the verb handler.
             if hasattr(item, required_type):
                 if required_name is None or getattr(item, required_type) == required_name:
                     return None  # requirement met
@@ -215,71 +163,8 @@ class VerbHandler:
         return required   
 
   
-
     # ------------------------------------------------------------
-    # ALL-handling framework  - needs a re-write
-    # ------------------------------------------------------------
-    def handle_all(
-        self,
-        items: Iterable[Noun],
-        single_fn: Callable[[Noun, tuple[str, ...]], str],
-        verb_name: str,
-    ) -> str:
-        """
-        Generic ALL handler:  
-        - loops through items
-        - calls the single-item handler
-        - accumulates messages
-        - returns a summary
-        """
-        items = list(items)
-        if not items:
-            return f"There is nothing you can {verb_name}."
-
-        messages = []
-        names = []
-
-        for item in items:
-            result = single_fn(item, ("all",))
-            if result:
-                messages.append(result)
-            names.append(item.canonical_name())
-
-        return "\n".join(messages)
-
-    # looks for item in inventory, room or in containers or a container itself if asked for.
-    def locate_item(self, item: Noun) -> Optional[ItemLocation]:
-        """
-        Determine exactly where an item is located, returning a rich ItemLocation
-        or None if the item cannot be found in the current context.
-        """
-        player = self.player()
-        room = self.room()
-
-        if room is None:
-            return None  # rare safety case
-
-        # 1. Directly in player's inventory / sack
-        if player.has_item(item):                  # ← use your Player helper method
-            return self.ItemLocation(self.LocationType.INVENTORY)
-
-        # 2. Loose on the room floor
-        if room.has_item(item):      # ← use your Room helper
-            return self.ItemLocation(self.LocationType.ROOM_FLOOR)
-
-        # 3. The item is a container and is present in the room itself
-        if isinstance(item, Container) and room.has_container(item):   # ← use your Room helper
-            return self.ItemLocation(self.LocationType.CONTAINER_IN_ROOM)
-
-        # 4. Item is inside some container in the room
-        containing_container = room.find_containing_container(item)   # ← use your Room helper
-        if containing_container is not None:
-            return self.ItemLocation(self.LocationType.INSIDE_CONTAINER, container=containing_container)
-
-        return None
-
-    # ------------------------------------------------------------
-    # Direction helpers
+    # Direction helpers  - remove when new parser is fully wired in
     # ------------------------------------------------------------
     def is_direction(self, token: str) -> bool:
         """
@@ -317,7 +202,7 @@ class VerbHandler:
         return DIRECTIONS.reverse_of(direction)
 
     # ------------------------------------------------------------
-    # Message assembly
+    # Message assembly - remove when new rendering system is developed
     # ------------------------------------------------------------
     def build_message(self, *parts) -> str:
         """
@@ -351,19 +236,3 @@ class VerbHandler:
         flat_parts = flatten(parts)
 
         return "\n".join(flat_parts)
-
-    # ------------------------------------------------------------
-    # Special handler pipeline
-    # ------------------------------------------------------------
-    def run_special_handler(self, target: Noun, verb: str, words):
-        """
-        Wrapper for item special handlers.
-        Subclasses call this before performing their main logic.
-        """
-        from kingdom.item_behaviors import try_item_special_handler
-
-        outcome = try_item_special_handler(target, verb, words)
-        if outcome:
-            return outcome
-        
-        return None

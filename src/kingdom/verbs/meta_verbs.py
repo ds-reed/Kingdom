@@ -122,16 +122,26 @@ class MetaVerbHandler(VerbHandler):
         if cmd.modifiers is not None:
             keywords.extend(cmd.modifiers)
 
-        # Case 1: Noun
 
-        if noun:
-            debug_noun(noun)
-            return self.build_message(debug_noun(noun))
-        
+
 
         # Case 1: Keywords  
 
         if keywords:
+            if "set" in keywords:  #check set first so room or player doesn't intercept
+                target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
+                bool_attrs = [
+                    name for name, value in vars(target_noun).items()
+                    if isinstance(value, bool)
+                    ]
+                print(f"Boolean fields available to toggle on {target_noun.display_name()}")
+                for field in bool_attrs:
+                    print(f" - {field} - {getattr(target_noun, field)}")
+
+                field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
+                debug_set(target_noun, field_name)
+                return self.build_message(f"Toggled {field_name} on {target_noun.display_name()}.")
+            
             if "room" in keywords or "all" in keywords:
                 lines = ["debugging current room..."]
                 return_msg = "No current room." if room is None else debug_noun(room)
@@ -149,24 +159,19 @@ class MetaVerbHandler(VerbHandler):
                 lines.extend(str(verb) for verb in Verb.all_verbs)
                 return(self.build_message(lines))
 
-            if "set" in keywords:
-                target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
-                bool_attrs = [
-                    name for name, value in vars(target_noun).items()
-                    if isinstance(value, bool)
-                    ]
-                print(f"Boolean fields available to toggle on {target_noun.display_name()}")
-                for field in bool_attrs:
-                    print(f" - {field} - {getattr(target_noun, field)}")
 
-                field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
-                debug_set(target_noun, field_name)
-                return self.build_message(f"Toggled {field_name} on {target_noun.display_name()}.")
 
             if "lexicon" in keywords:
                 lines = ["debugging lexicon..."]
                 lines.append(str(lexicon))
                 return self.build_message(lines)
+            
+        # Case 2: Noun with no keywords
+
+        if noun:
+            debug_noun(noun)
+            return self.build_message(debug_noun(noun))
+        
 
         # Nothing to debug - print message
         lines = ["DEBUG: No keywords found to debug. Try 'debug room', 'debug player', 'debug verbs', or 'debug set'."]

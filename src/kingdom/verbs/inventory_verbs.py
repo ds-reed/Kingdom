@@ -45,8 +45,10 @@ class InventoryVerbHandler(VerbHandler):
 
         if target:
             if target.get_class_name() == "Item":
+                if player.has_item(target):
+                    return(self.build_message(f"You already have {target.display_name()}."))
                 inventory_items = [target]
-                if hasattr(target, "current_container") and target.current_container is not None:   #handle implicit take from container (because we are nice)
+                if getattr(target, "current_container", None):
                     source = target.current_container
             elif target.get_class_name() == "Container":
                 return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # toto some day..
@@ -72,8 +74,8 @@ class InventoryVerbHandler(VerbHandler):
                     return self.build_message(msgs)
                 if outcome.control == VerbControl.SKIP:
                     continue
-            if hasattr(item, "is_takeable") and not item.is_takeable:
-                msgs.append(item.get_refuse_string or f"You can't take {item.display_name()}.")
+            if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
+                msgs.append(getattr(item, "get_refuse_string", f"You can't {cmd.verb_token} {item.display_name()}."))   # use generic if no refuse string
                 continue
 
             if source:
@@ -121,14 +123,14 @@ class InventoryVerbHandler(VerbHandler):
             if dest.get_class_name() != "Container":
                 return self.build_message(f"You can't put things into {dest.display_name()}.")
 
-            if dest.is_openable and not dest.is_open:
+            if getattr(dest, "is_openable", False) and not getattr(dest, "is_open", False):
                 return self.build_message(f"{dest.display_name().capitalize()} is closed.")
-            words = [dest.handle]
+            dest_handle = [dest.handle]
 
 
         msgs = []
         for item in inventory_items:
-            outcome = try_item_special_handler(item, "drop", words)
+            outcome = try_item_special_handler(item, "drop", dest_handle)   # for drop with a destination, we pass the destination handle as context to the special handler
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
