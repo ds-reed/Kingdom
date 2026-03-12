@@ -2,7 +2,7 @@
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, Feature
 from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
-from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.verb_model import Verb
 
 class MetaVerbHandler(VerbHandler):
@@ -24,14 +24,15 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # DEBUG
     # ------------------------------------------------------------
-    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
+    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None) -> str:
         # Resolve either a noun or keywords of interest
-        parse = self.resolve_noun_or_word(
-            words,
-            interest=["room", "player", "Verbs", "commands", "lexicon", "all", "set"]
-        )
-        noun = parse["noun"]
-        keywords = parse["keywords"]
+
+        if cmd.direct_object:
+            noun = cmd.direct_object
+        elif cmd.direct_object_token:
+            noun = Item.get_by_name(cmd.direct_object_token)
+
+        keywords = cmd.modifiers if cmd and cmd.modifiers else []
         lexicon = self.lexicon()
 
         def debug_set(noun, field):
@@ -87,7 +88,6 @@ class MetaVerbHandler(VerbHandler):
 
 
         # Case 1: Keywords found in leftover words
-        keywords = parse["keywords"]
 
         if keywords:
             if "room" in keywords or "all" in keywords:
@@ -107,8 +107,16 @@ class MetaVerbHandler(VerbHandler):
                 print(Verb.all_verbs)
 
             if "set" in keywords:
-                field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
                 target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
+                bool_attrs = [
+                    name for name, value in vars(target_noun).items()
+                    if isinstance(value, bool)
+                    ]
+                print(f"Boolean fields available to toggle on {target_noun.display_name()}")
+                for field in bool_attrs:
+                    print(f" - {field} - {getattr(target_noun, field)}")
+
+                field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
                 result = debug_set(target_noun, field_name)
                 print(result)
 
@@ -122,9 +130,6 @@ class MetaVerbHandler(VerbHandler):
         
         if target is not None:
             return self.build_message(debug_noun(target))
-
-        # Case 3: No noun, no keywords → debug raw words
-        return self.build_message(debug_words(parse["raw"]))
 
 
     # ------------------------------------------------------------

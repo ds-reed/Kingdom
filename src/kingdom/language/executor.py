@@ -84,13 +84,13 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
 
         target_candidate = command.direct if command.direct else None
 
-
+        target = None
         # Resolve world object
-        if target_candidate:
+        if target_candidate is not None:
             target = _resolve_target_noun(world, target_candidate.noun_object.handle) if target_candidate.noun_object else None
 
-        if not target:
-            command.direct.noun_object = None         # Over-write direct.noun_object with None if not a valid target for room. maybe handle in interpreter instead?
+        if command and command.direct:
+                command.direct.noun_object = target         # Over-write direct.noun_object with None if not a valid target for room. maybe handle in interpreter instead?
 
         # old verb expectation
         # For implicit verbs (e.g. bare direction "west"), the verb is not in

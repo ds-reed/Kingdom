@@ -318,6 +318,7 @@ class Item(Noun):
 
     # Speaking
     can_be_spoken_to: bool = field(default=False, metadata={"persist": "if_set"})
+    speak_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
     # Special handling (verb overides registered in item_behaviors.py)
     trigger_room: Optional[str] = field(default=None, metadata={"persist": "if_set"})
@@ -557,6 +558,9 @@ class Player:
             description=f"{self.name}'s sack",
             capacity=10,
         )
+
+    def display_name(self) -> str:
+        return self.name
 
     def add_to_sack(self, item):
         return self.sack.add_item(item)
@@ -813,6 +817,21 @@ class Feature(Noun):
         self.name = str(self.name)
         self.description = self.description or self.name
         self.handle = normalize_key(self.handle or self.name)
+
+        # Accept set/tuple inputs from tests or tooling, but keep persisted payload JSON-safe.
+        if isinstance(self.synonyms, set):
+            self.synonyms = sorted(str(value) for value in self.synonyms)
+        elif self.synonyms is None:
+            self.synonyms = []
+        elif not isinstance(self.synonyms, list):
+            self.synonyms = [str(value) for value in self.synonyms]
+
+        if isinstance(self.adjectives, set):
+            self.adjectives = sorted(str(value) for value in self.adjectives)
+        elif self.adjectives is None:
+            self.adjectives = []
+        elif not isinstance(self.adjectives, list):
+            self.adjectives = [str(value) for value in self.adjectives]
 
         super().__init__()
 

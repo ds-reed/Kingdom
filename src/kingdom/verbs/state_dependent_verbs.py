@@ -121,21 +121,18 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 4. Main logic
         # ------------------------------------------------------------   
-        result_msg = self.apply_state_change(
-            target=target,
-            verb_phrase="say",
-            state_attr="has_been_spoken_to",
-            desired_state=True,
-        )
         
         # ------------- Build the final return string ----------------
         parts: list[str] = []
 
+        if getattr(target, "speak_string", None):
+            parts.append(target.speak_string)
+        else:
+            parts.append(f"You say something to the {target.canonical_name()}, but it doesn't respond.") 
+
         # Action text (from special handler or state-change)
         if outcome and outcome.message:
             parts.append(outcome.message)
-        elif result_msg:
-            parts.append(result_msg)
 
         return self.build_message(parts)
                 

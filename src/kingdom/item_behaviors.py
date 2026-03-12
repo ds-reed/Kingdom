@@ -320,18 +320,23 @@ def put_torch(item, verb_name, indirect_obj):
 
     message = []
     if getattr(item, "is_lit", False):
+        if not indirect_obj:
+            return None
+
         container = Noun.get_by_name(indirect_obj[0])
         if container and getattr(container, "is_flamable", False):
             message.append(f"As you put the burning torch into {container.display_name()} it catches on fire!")
-            for item in container.contents:
-                if getattr(item, "is_flamable", False):
-                    message.append(f"{item.display_name()} is destroyed by the fire!")
-                    container.remove_item(item)
+            for contained_item in list(container.contents):
+                if getattr(contained_item, "is_flamable", False):
+                    message.append(f"{contained_item.display_name()} is destroyed by the fire!")
+                    container.remove_item(contained_item)
                 else:
-                    message.append(f"{item.display_name()} is unharmed by the fire and drops to the ground.")
-                    room.add_item(item)
+                    message.append(f"{contained_item.display_name()} is unharmed by the fire and drops to the ground.")
+                    if room is not None:
+                        room.add_item(contained_item)
             message.append(f"{container.display_name()} is destroyed by the fire!")
-            room.remove_container(container)  # remove the container itself
+            if room is not None:
+                room.remove_container(container)  # remove the container itself
 
 
             return VerbOutcome(message=message, control=VerbControl.STOP)

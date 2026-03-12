@@ -111,6 +111,8 @@
                             "description": "a cheery orange carrot",
                             "adjectives": ["cheery", "orange"],
                             "is_edible": true,
+                            "can_be_spoken_to": true,
+                            "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!",
                             "examine_string": "The carrot cheerfully waves hello!",
                             "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
                         },

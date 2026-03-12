@@ -154,7 +154,7 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                 verb_source = "implicit"
                 raw_verb_token = None
 
-            elif len(ps.tokens) == 1 and first in ps.noun_candidates_tokens:
+            elif len(ps.tokens) == 1 and first in noun_candidates_tokens:
                 verb_source = "implicit"
                 raw_verb_token = None
 

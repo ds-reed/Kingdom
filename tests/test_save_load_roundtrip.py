@@ -16,7 +16,6 @@ ROOM_FIELDS = [
     "description",
     "found",
     "discover_points",
-    "is_climbable",
 ]
 
 CONTAINER_FIELDS = [
@@ -133,7 +132,6 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     sentinel_room.hidden_directions.add("west")
     sentinel_room.swim_exits["east"] = anchor
     sentinel_room.climb_exits["down"] = anchor
-    sentinel_room.is_climbable = True
     game.rooms[sentinel_room.name] = sentinel_room
 
     sentinel_container = Container(

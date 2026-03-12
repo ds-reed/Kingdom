@@ -155,7 +155,7 @@ def register_verbs():
           Verb("DEBUG", meta.DEBUG,
                synonyms=[],
                hidden=True,
-               modifiers=[],
+               modifiers=["room", "player", "Verbs", "commands", "lexicon", "all", "set"],
                uses_directions=False),
 
           # Inventory verbs
@@ -174,10 +174,6 @@ def register_verbs():
                modifiers=["all", "everything"],
                uses_directions=False),
 
-#          Verb("put", inventory.put,
-#               synonyms=[],
-#               modifiers=["in", "on", "into", "onto", "all", "everything"],
-#               uses_directions=False)
      ]
 
      return 

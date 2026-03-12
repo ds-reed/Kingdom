@@ -9,7 +9,7 @@ class InventoryVerbHandler(VerbHandler):
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
         player = self.player()
         inventory = player.get_inventory_items()
@@ -26,7 +26,7 @@ class InventoryVerbHandler(VerbHandler):
             f"You have ({count} {label}): "
             f"{', '.join(names)}"
         )
-
+    
 
     def take(
         self,
@@ -86,8 +86,6 @@ class InventoryVerbHandler(VerbHandler):
                 msgs.append(sack_full_msg)
 
         return self.build_message(msgs)
-
-
 
 
     def drop(
