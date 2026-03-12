@@ -253,19 +253,28 @@ def lex() -> Lexicon:
         for syn in entry.synonyms:
             token_to_preposition.setdefault(syn, []).append(canonical)
 
+
+    #dedup modifiers
+    modifiers = set([mod 
+                for verb_entry in verb_entries 
+                for mod in verb_entry.modifiers])
+    modifiers = list(modifiers)
+
+    #dedup adjectives
+    adjectives = set([adj 
+                    for noun_entry in noun_entries 
+                    for adj in noun_entry.adjectives])
+    adjectives = list(adjectives)
+
     return Lexicon(
         verbs=verb_entries,
         nouns=noun_entries,
         directions=direction_entries,
         prepositions=preposition_entries,
 
-        modifiers=[mod 
-                for verb_entry in verb_entries 
-                for mod in verb_entry.modifiers],
+        modifiers=modifiers,
 
-        adjectives=[adj 
-                    for noun_entry in noun_entries 
-                    for adj in noun_entry.adjectives],
+        adjectives=adjectives,
 
         conjunctions=["and", "or", "but"],
         particles=["the", "a", "an"],

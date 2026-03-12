@@ -1,6 +1,6 @@
 # meta verbs include things like HELP and DEBUG that don't interact in any way with the world state. I may consolidate this later  
 
-from kingdom.model.noun_model import Noun, Item, Room, Container, Feature
+from kingdom.model.noun_model import Noun, Item, Room, Container, Feature, Player
 from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.verb_model import Verb
@@ -25,15 +25,7 @@ class MetaVerbHandler(VerbHandler):
     # DEBUG
     # ------------------------------------------------------------
     def DEBUG(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None) -> str:
-        # Resolve either a noun or keywords of interest
 
-        if cmd.direct_object:
-            noun = cmd.direct_object
-        elif cmd.direct_object_token:
-            noun = Item.get_by_name(cmd.direct_object_token)
-
-        keywords = cmd.modifiers if cmd and cmd.modifiers else []
-        lexicon = self.lexicon()
 
         def debug_set(noun, field):
             if noun is None:
@@ -55,26 +47,35 @@ class MetaVerbHandler(VerbHandler):
 
             lines = []
             lines.append(f"id: {id(noun)}")
-            lines.append(f"class: {noun.__class__.__name__}")
+            lines.append(f"class: {noun.get_class_name()}")
 
             # Special handling for Room objects
-            if isinstance(noun, Room):
+            if noun.get_class_name() == "Room":
                 for field, value in vars(noun).items():
 
                     # Summaries for collections of nouns
                     if field in ("items", "containers", "features"):
                         names = [obj.display_name() for obj in value]
-                        for name in names:
-                            lines.append(f"{field}: {name}\n")
+                        if names:
+                            lines.append(f"{field}:")
+                            for name in names:
+                                lines.append(f"  - {name}")
+                        else:
+                            lines.append(f"{field}: []")
                         continue
 
                     # Summaries for exit dictionaries
                     if field in ("connections", "swim_exits", "climb_exits"):
                         exits = {d: r.name for d, r in value.items()}
-                        lines.append(f"{field}: {exits}")
+                        if exits:
+                            lines.append(f"{field}:")
+                            for direction, room_name in exits.items():
+                                lines.append(f"  {direction}: {room_name}\n")
+                        else:
+                            lines.append(f"{field}: {{}}\n")
                         continue
 
-                    # Everything else: print raw
+                    # Everything else: print raw, one per line
                     lines.append(f"{field}: {value!r}")
 
                 return lines
@@ -85,26 +86,68 @@ class MetaVerbHandler(VerbHandler):
                 lines.append(f"{k}: {v!r}")
 
             return lines
+        
+        def debug_player(player: Player | None) -> list[str]:
+            if player is None:
+                return ["No current player."]
 
+            lines = []
+            lines.append(f"id: {id(player)}")
+            lines.append(f"name: {player.name}")
+            inventory = player.get_inventory_items()
+            if inventory:
+                lines.append("Inventory:")
+                for item in inventory:
+                    lines.append(f"  - {item.display_name()}")
+            else:
+                lines.append("Inventory: []\n")
+            return lines
+        
 
-        # Case 1: Keywords found in leftover words
+        # Resolve either a noun or keywords of interest
+
+        room = self.room()
+        player = self.player()
+        noun = None
+        keywords = []
+        lexicon = self.lexicon()
+
+        if cmd.direct_object:
+            noun = cmd.direct_object
+        elif cmd.direct_object_token:
+            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token)  
+            if noun is None:
+                keywords = [cmd.direct_object_token]    # if no noun found, treat the noun-like token as a keyword for debugging purposes
+        
+        if cmd.modifiers is not None:
+            keywords.extend(cmd.modifiers)
+
+        # Case 1: Noun
+
+        if noun:
+            debug_noun(noun)
+            return self.build_message(debug_noun(noun))
+        
+
+        # Case 1: Keywords  
 
         if keywords:
             if "room" in keywords or "all" in keywords:
-                room = self.room()
-                print("debugging current room...")
+                lines = ["debugging current room..."]
                 return_msg = "No current room." if room is None else debug_noun(room)
-                print(*return_msg)
+                lines.append(return_msg)
+                return(self.build_message(lines))
 
             if "player" in keywords or "all" in keywords:
-                player = self.player()
-                print("debugging current player...")
-                return_msg = "No current player." if player is None else debug_noun(player)
-                print(*return_msg)
+                lines = ["debugging current player..."]
+                return_msg = ["No current player."] if player is None else debug_player(player)
+                lines.extend(return_msg)
+                return(self.build_message(lines))
             
             if "verbs" in keywords or "commands" in keywords or "all" in keywords:
-                print("debugging all verbs...")
-                print(Verb.all_verbs)
+                lines = ["debugging all verbs..."]
+                lines.extend(str(verb) for verb in Verb.all_verbs)
+                return(self.build_message(lines))
 
             if "set" in keywords:
                 target_noun = noun if noun is not None else self.room()  # default to current room if no noun specified
@@ -117,19 +160,17 @@ class MetaVerbHandler(VerbHandler):
                     print(f" - {field} - {getattr(target_noun, field)}")
 
                 field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
-                result = debug_set(target_noun, field_name)
-                print(result)
+                debug_set(target_noun, field_name)
+                return self.build_message(f"Toggled {field_name} on {target_noun.display_name()}.")
 
             if "lexicon" in keywords:
-                print("debugging lexicon...")
-                print(lexicon)
-            return 
+                lines = ["debugging lexicon..."]
+                lines.append(str(lexicon))
+                return self.build_message(lines)
 
-        # Case 2: use target noun if present; try parser-resolved noun if not
-        if target is None: target = noun
-        
-        if target is not None:
-            return self.build_message(debug_noun(target))
+        # Nothing to debug - print message
+        lines = ["DEBUG: No keywords found to debug. Try 'debug room', 'debug player', 'debug verbs', or 'debug set'."]
+        return self.build_message(lines)
 
 
     # ------------------------------------------------------------

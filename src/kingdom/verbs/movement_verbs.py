@@ -9,7 +9,7 @@ from kingdom.model.noun_model import Noun, Room
 from kingdom.model.game_init import GameOver
 from kingdom.model.verb_model import Verb
 from kingdom.renderer import render_current_room
-from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 
 
 class MovementVerbHandler(VerbHandler):
@@ -62,11 +62,9 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, target, words, **kwargs):
+    def go(self, target, words, cmd:ExecuteCommand):
 
-        parsed = self.resolve_noun_or_word(words, interest=[])
-
-        direction = parsed["direction"]
+        direction = cmd.direction if cmd and cmd.direction else None
 
         if direction is None:
             return self.build_message("Go where?")
@@ -76,7 +74,7 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(result_msg)
 
 
-    def swim(self, target: Noun, words: list[str], **kwargs):
+    def swim(self, target: Noun, words: list[str], cmd:ExecuteCommand):
         room = self.room()
 
         def check_swim_constraints():
@@ -94,8 +92,6 @@ class MovementVerbHandler(VerbHandler):
 
             return None
         
-        
-
         # 1. Room must allow swimming
         if not getattr(room, "has_water", False):
             return self.build_message("There is nowhere to swim here.")
@@ -105,9 +101,8 @@ class MovementVerbHandler(VerbHandler):
         if constraint_error:
             return constraint_error
 
-        # 3. Parse direction
-        parsed = self.resolve_noun_or_word(words, interest=[])
-        direction = parsed["direction"]
+        # 3. get direction 
+        direction = cmd.direction if cmd and cmd.direction else None
 
         if direction is None:
             return self.build_message("You splash around aimlessly.")
@@ -123,18 +118,18 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(result_msg)
     
 
-    def climb(self, target: Noun, words: list[str], **kwargs):
+    def climb(self, target: Noun, words: list[str], cmd:ExecuteCommand):
         room = self.room()
+
+        target = cmd.direct_object if cmd and cmd.direct_object else None
+        direction = cmd.direction if cmd and cmd.direction else None
         
         # 1. Room must allow climbing 
 
         if not getattr(room, "climb_exits", False):
             return self.build_message("There is nowhere to climb here.")
         
-        # 2. Parse direction or resolve from target
-        parsed = self.resolve_noun_or_word(words, interest=[])
-        direction = parsed["direction"]
-
+        # 2. If a direction is given, look for climbable items and set climbable flag if found
         climbable = False
         if direction is not None:
             for item in room.items:
@@ -142,24 +137,25 @@ class MovementVerbHandler(VerbHandler):
                     climbable = True
                     break
 
+        # 3. If no direction is given, check if target is a climbable item and room has climb_exits
         target_direction = None
         if direction is None and target is not None:
             if getattr(target, "is_climbable", False):
-                climb_directions = getattr(target, "climb_directions", [])
+                climb_directions = getattr(target, "climb_directions", [])      # check climbable objects supported climb_directions
                 for d in climb_directions:
                     for e in room.climb_exits:
                        if d == e:
-                        target_direction = d
+                        target_direction = d           # if room has a climbable exit that climable object supports, we have a match
                         break
                     if target_direction is not None:
                         break
                 else:
-                    return self.build_message(f"You can't climb the {target.display_name()}.")
-
+                    # if target is climbable but doesn't support any of the room's climb exits, we can't climb it 
+                    return self.build_message(f"You can't climb the {target.display_name()}.")    
         if  not (direction or target_direction):
-            return self.build_message("Climb where?")
+            return self.build_message("Climb where?")    # if room has no climb directions and no direction was given, we have no clue.
 
-        # 3. Climbing constraint logic
+        # 4. Climbing constraint logic
 
         if direction in room.climb_exits and not climbable:
 
@@ -171,9 +167,8 @@ class MovementVerbHandler(VerbHandler):
 
             return self.build_message(climb_refusal or default)
     
-        
 
-        # 4. Perform climb movement using climb_exits
+        # 5. Perform climb movement using climb_exits
         result_msg = self.perform_movement(
             direction or target_direction,
             room.climb_exits,
@@ -182,15 +177,18 @@ class MovementVerbHandler(VerbHandler):
         )
 
         return self.build_message(result_msg)
+    
 
-    def teleport(self, target: Noun, words: list[str], **kwargs):
+    def teleport(self, target: Noun, words: list[str], cmd: "ExecuteCommand"):
         """Teleport to any room by name or number. No target → list rooms."""
         state = self.state()
         world = self.world()
         room = self.room()
 
+        requested_room = cmd.direct_object_token if cmd.direct_object_token else None
+
         # No argument → show list
-        if not words and target is None:
+        if requested_room is None:
             room_list = sorted(world.rooms.values(), key=lambda r: r.name)
 
             lines = ["Teleport — available rooms:"]
@@ -201,33 +199,29 @@ class MovementVerbHandler(VerbHandler):
             lines.append("       goto 7")
             return "\n".join(lines)
 
-        # Resolve target room
+        requested_room = requested_room.strip().lower()
         desired_room = None
 
-        # 1. find desired room from words because only nouns in the current room or inventory are considered targets by the parser
-        if desired_room is None and words:
-            query = " ".join(words).strip().lower()
+        #check number 
+        try:
+            idx = int(requested_room) - 1
+            rooms_sorted = sorted(world.rooms.values(), key=lambda r: r.canonical_name())
+            if 0 <= idx < len(rooms_sorted):
+                desired_room = rooms_sorted[idx]
+        except ValueError:
+            pass
 
-            # Number?
-            try:
-                idx = int(query) - 1
-                rooms_sorted = sorted(world.rooms.values(), key=lambda r: r.canonical_name())
-                if 0 <= idx < len(rooms_sorted):
-                    desired_room = rooms_sorted[idx]
-            except ValueError:
-                pass
-
-            # Name prefix/partial match
-            if desired_room is None:
-                matches = [
-                    r for r in world.rooms.values()
-                    if query in r.display_name().lower() or query in r.canonical_name().lower()
-                ]
-                if len(matches) == 1:
-                    desired_room = matches[0]
-                elif len(matches) > 1:
-                    names = ", ".join(r.canonical_name() for r in matches)
-                    return self.build_message(f"Ambiguous room name — matches: {names}")
+        # Name prefix/partial match
+        if desired_room is None:
+            matches = [
+                r for r in world.rooms.values()
+                if requested_room in r.display_name().lower() or requested_room in r.canonical_name().lower()
+            ]
+            if len(matches) == 1:
+                desired_room = matches[0]
+            elif len(matches) > 1:
+                names = ", ".join(r.canonical_name() for r in matches)
+                return self.build_message(f"Ambiguous room name — matches: {names}")
 
         if desired_room is None:
             return self.build_message("No matching room. Type 'teleport' to list rooms.")
