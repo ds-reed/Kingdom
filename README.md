@@ -1,119 +1,164 @@
 # Kingdom
 
-A command-driven text adventure engine in Python.
+Kingdom is a command-driven text adventure engine in Python. It loads world state from JSON, builds a runtime lexicon from the current world and verb registry, parses free-text commands, interprets them in context, and dispatches execution through modular verb handlers.
 
-Kingdom loads world state from JSON, parses free-text commands, resolves nouns in context, and dispatches verbs through modular handlers. The codebase is organized around a split model layer, parser/resolver flow, renderer/UI, and verb handler modules.
+The current codebase is organized around four main areas:
+
+- world and persistence models in `src/kingdom/model/`
+- parser / interpreter / executor flow in `src/kingdom/language/`
+- verb logic in `src/kingdom/verbs/`
+- rendering and terminal UI in `src/kingdom/renderer.py` and `src/kingdom/UI.py`
 
 ## Current Highlights
 
-- Refactored **verb handler architecture** (`src/kingdom/verbs/*`)
-- Registry-based **direction system** with synonyms and implicit movement
-- Context-aware command resolution (`parse_command` + `resolve_command`)
-- Room rendering split into semantic presentation logic (`renderer.py`)
-- Save/load support backed by JSON world state (`game_persistence.py`)
-- Two terminal presentation modes: **modern** and **trs80**
+- JSON-backed world bootstrapping and save/load
+- Parser -> interpreter -> executor pipeline
+- Lexicon generated from current nouns, verbs, directions, and prepositions
+- Context-sensitive noun resolution against room, inventory, and open containers
+- Prepositional phrase parsing for commands such as `put all into bag` and `tie rope to hook`
+- Implicit direction handling for single-token movement such as `west`
+- Support for modifiers such as `all`
+- Item-specific special behaviors in `src/kingdom/item_behaviors.py`
+- Modern and TRS80-style terminal presentation modes
 
-## Project Layout
+## Repository Layout
 
 ```text
 Kingdom/
 ├── main.py
 ├── pyproject.toml
+├── README.md
 ├── run_kingdom.bat
 ├── run_kingdom_modern.bat
 ├── run_kingdom_TRS80.bat
 ├── run_state_check.bat
 ├── data/
 │   ├── initial_state.json
-│   ├── demo_initial_state.json
 │   ├── working_state.json
-│   └── *.sav / *.bak.*
+│   └── other save / scratch JSON files
 ├── docs/
 │   ├── project_structure.md
-│   ├── trs80_legacy_spirit_guide.md
-│   └── ...
+│   ├── main_parse_through_render_flow.md
+│   ├── Parser Design Note (Updated).md
+│   ├── Parser Refactor TODO.md
+│   └── trs80_legacy_spirit_guide.md
 ├── logs/
+├── saves/
 ├── scripts/
 │   ├── check_world_json.py
-│   ├── find_obsolete_attributes.py
-│   └── validate_save_load_roundtrip.py
+│   └── find_obsolete_attributes.py
 ├── tests/
-│   ├── test_parser.py
-│   ├── test_world_container_persistence.py
-│   └── ...
+│   ├── demo.py
+│   ├── test_inventory_get_behavior.py
+│   ├── test_save_load_roundtrip.py
+│   └── test_world_container_persistence.py
 └── src/kingdom/
     ├── __init__.py
-    ├── dispatch_context.py
     ├── item_behaviors.py
-    ├── parser.py
-    ├── resolver.py
     ├── renderer.py
     ├── terminal_style.py
     ├── UI.py
     ├── utilities.py
     ├── language/
-    │   ├── lexicon/
-    │   │   ├── noun_registry.py
-    │   │   └── verb_registry.py
-    │   └── parser/
+    │   ├── executor.py
+    │   ├── interpreter.py
+    │   ├── lexicon.py
+    │   ├── parser.py
+    │   └── tests/
     ├── model/
-    │   ├── noun_model.py
-    │   ├── verb_model.py
+    │   ├── direction_model.py
     │   ├── game_init.py
-    │   └── game_persistence.py
+    │   ├── game_persistence.py
+    │   ├── noun_model.py
+    │   └── verb_model.py
     └── verbs/
-        ├── verb_handler.py
+        ├── inventory_verbs.py
+        ├── meta_verbs.py
         ├── movement_verbs.py
         ├── state_changing_verbs.py
-        ├── inventory_verbs.py
-        └── meta_verbs.py
+        ├── state_dependent_verbs.py
+        ├── verb_handler.py
+        └── verb_registration.py
 ```
 
-## Runtime Architecture
+## Runtime Flow
 
-### 1) Bootstrapping (`main.py`)
+### 1. Bootstrapping
 
-- Parses CLI args (`--mode modern|trs80`)
-- Loads world data from `data/initial_state.json`
-- Creates player and game state (`GameActionState`)
-- Builds UI and initializes session state
-- Registers verbs through `build_verb_registry(...)`
+`main.py` initializes the terminal mode, loads `data/initial_state.json`, creates the player and session state, registers verbs, builds the lexicon, and renders the starting room.
 
-### 2) Parsing (`parser.py`)
+Primary setup code lives in:
 
-- Tokenizes and normalizes player input
-- Identifies primary verb and noun phrases
-- Resolves implicit movement (single direction token => `go`)
+- `src/kingdom/model/game_init.py`
+- `src/kingdom/model/game_persistence.py`
+- `src/kingdom/verbs/verb_registration.py`
 
-### 3) Dispatch (`model.Verb` + handlers)
+### 2. Parsing
 
-- Verb executes noun-side override if present (`on_<verb>`)
-- Falls back to handler method
-- Verb model lives in `src/kingdom/model/verb_model.py`
-- Handler modules are grouped by concern:
-  - movement
-  - inventory
-  - state changing
-  - meta/help/debug
+`src/kingdom/language/parser.py` converts raw input into one or more `ParsedAction` objects.
 
-### 4) Presentation (`renderer.py` + `UI.py`)
+Current parser responsibilities include:
 
-- Builds room/item/exit text in renderer
-- UI layer handles terminal-specific display behavior
+- normalization and tokenization
+- explicit verb detection
+- implicit verb handling for direction-only input
+- noun phrase grouping
+- conjunction grouping
+- prepositional phrase capture
+- modifier capture, including `all`
+- unknown token tracking
 
-## Commands (Current Core Set)
+### 3. Interpretation
 
-The current core verbs are registered in `src/kingdom/language/lexicon/verb_registry.py`.
+`src/kingdom/language/interpreter.py` converts parsed syntax into `InterpretedCommand` objects.
 
-Examples include:
+This layer resolves:
 
-- `go`, `swim`, `teleport` (hidden)
-- `take`, `drop`, `inventory`
-- `open`, `close`, `unlock`, `light`, `extinguish`, `eat`, `rub`, `say`, `make` (hidden)
-- `look`, `save`, `load`, `quit`
-- `help`, `score`, `debug` (hidden)
+- the executable verb object
+- direct objects
+- prepositional targets
+- direction arguments
+- modifiers
 
-Direction synonyms are supported through the direction registry and world data.
+### 4. Execution
+
+`src/kingdom/language/executor.py` bridges interpreted commands into the current verb handler contract.
+
+Verb behavior is organized by concern in `src/kingdom/verbs/`:
+
+- `movement_verbs.py`
+- `inventory_verbs.py`
+- `state_changing_verbs.py`
+- `state_dependent_verbs.py`
+- `meta_verbs.py`
+
+Item-specific overrides and puzzle logic live in `src/kingdom/item_behaviors.py`.
+
+### 5. Rendering
+
+`src/kingdom/renderer.py` and `src/kingdom/UI.py` handle presentation and terminal-specific output.
+
+## Parser and Command Enhancements
+
+The current language stack supports more than simple `verb noun` commands.
+
+Examples of supported command shapes include:
+
+- `west`
+- `open lunch bag`
+- `look in lunch bag`
+- `get fish from lunch bag`
+- `put all into bag`
+- `tie rope to hook`
+- `unlock and open trapdoor`
+
+Important parser/runtime behaviors:
+
+- direction synonyms are recognized through the direction registry
+- noun resolution uses the active lexicon built from live game objects
+- open-container items can be individually targeted by commands such as `get fish`
+- bulk `get all` behavior is intentionally narrower and does not automatically drain open containers
+- prepositions are normalized through the lexicon, so synonyms such as `inside` can map to canonical forms such as `into`
 
 ## Running the Game
 
@@ -121,11 +166,6 @@ Direction synonyms are supported through the direction registry and world data.
 
 ```bash
 python main.py
-```
-
-Default mode is `modern`.
-
-```bash
 python main.py --mode modern
 python main.py --mode trs80
 ```
@@ -136,15 +176,24 @@ python main.py --mode trs80
 - `run_kingdom_modern.bat`
 - `run_kingdom_TRS80.bat`
 
-## Data and State
+## World Data and Persistence
 
 - Seed world: `data/initial_state.json`
-- Working save examples: `data/working_state.json`, `data/*-save.json`
-- World/entity models live in `src/kingdom/model/noun_model.py`
-- Session/bootstrap state lives in `src/kingdom/model/game_init.py`
-- Save/load I/O lives in `src/kingdom/model/game_persistence.py`
+- Save files: `saves/*.json`
+- World/entity models: `src/kingdom/model/noun_model.py`
+- Session/bootstrap state: `src/kingdom/model/game_init.py`
+- Save/load I/O: `src/kingdom/model/game_persistence.py`
 
-## Validate World JSON
+The world JSON defines:
+
+- rooms and connections
+- swim and climb exits
+- items, containers, and features
+- item attributes such as openable, lockable, lightable, edible, climbable, and custom special handlers
+
+## Validation and Tests
+
+### World JSON validation
 
 ```bash
 python scripts/check_world_json.py data/initial_state.json
@@ -155,27 +204,42 @@ Windows helper:
 
 - `run_state_check.bat`
 
-By default, `run_state_check.bat` validates `data/initial_state.json` and then
-runs the save/load roundtrip validator.
+### Pytest
 
-## Validate Save/Load Roundtrip
+Default pytest discovery is configured in `pyproject.toml` for `tests/` and `src/kingdom/tests` with `test_*.py` naming.
+
+Run the current non-language suite:
 
 ```bash
-python scripts/validate_save_load_roundtrip.py
+pytest --ignore=src/kingdom/language/tests
 ```
 
-This script performs a full save→load roundtrip and verifies constructor-backed
-fields on rooms, containers, and items are preserved.
+Run the parser/language tests separately when needed:
 
-`run_state_check.bat` now runs both:
-- world JSON checks (`scripts/check_world_json.py`)
-- save/load roundtrip validation (`scripts/validate_save_load_roundtrip.py`)
+```bash
+pytest src/kingdom/language/tests
+```
+
+Run the smoke flow directly:
+
+```bash
+pytest tests/demo.py -q
+```
+
+Current top-level regression coverage includes:
+
+- save/load roundtrip persistence
+- room/container/feature persistence behavior
+- inventory regression checks such as `get all` vs. implicit single-item pickup from open containers
+- end-to-end smoke flow through the main command pipeline
 
 ## Requirements
 
 - Python 3.13+
+- `pytest` for test runs
 
 ## Notes
 
-- `tests/demo.py` is present as a smoke-test style script, while `main.py` is the primary runtime entrypoint.
-- TRS80-basic source is the orignial 1978 era BASIC version of Castle, which the Kingdom framework is intended to support
+- `docs/main_parse_through_render_flow.md` is the best high-level architecture note for the current command pipeline.
+- `src/kingdom/language/tests/` contains parser/interpreter-focused tests and harnesses that are intentionally separate from the broader gameplay regression suite.
+- The TRS80 BASIC source under `docs/TRS80-basic source/` preserves the original inspiration and reference material for the project.
