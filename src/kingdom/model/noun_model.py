@@ -16,6 +16,61 @@ def _derive_handle(text: str) -> str:
         tokens = tokens[1:]
     return tokens[-1]
 
+from dataclasses import MISSING, fields
+
+class PersistRule:
+    def __init__(self, field):
+        self.name = field.name
+        self.init = field.init
+        self.rule = field.metadata.get("persist", "non_default")
+        self.parent = field.metadata.get("persist_if_parent")
+
+        # Correct handling of default_factory vs default
+        if field.default_factory is not MISSING:
+            # Create a fresh default value for comparison
+            self.default = field.default_factory()
+        else:
+            self.default = field.default
+
+    def should_serialize(self, obj, value):
+        # Skip runtime-only fields
+        if not self.init:
+            return False
+
+        # Parent-dependent persistence
+        if self.parent:
+            if getattr(obj, self.parent, False):
+                return True
+
+        # Explicit rules
+        if self.rule == "always":
+            return True
+
+        if self.rule == "if_set":
+            return value is not None
+
+        # Default rule: non-default
+        if value is None:
+            return False
+
+        if value == self.default:
+            return False
+
+        return True
+
+
+def serialize_non_default(obj):
+    payload = {}
+    for f in fields(obj):
+        rule = PersistRule(f)
+        value = getattr(obj, f.name)
+        if rule.should_serialize(obj, value):
+            payload[f.name] = value
+    return payload
+
+
+
+
 
 @dataclass(init=False)
 class Noun:
@@ -403,48 +458,6 @@ class Item(Noun):
             "handle": getattr(item, "obj_handle", lambda: _derive_handle(str(item)))(),
         }
 
-  
-
-def serialize_non_default(obj: Any) -> dict:
-    """
-    Serialize dataclass fields according to persistence rules.
-    - Skips runtime fields (init=False)
-    - Uses metadata: "always", "if_set", "persist_if_parent", default=non_default
-    """
-    payload = {}
-    for f in fields(obj):
-        if f.init is False:
-            continue
-
-        value = getattr(obj, f.name)
-        persist_rule = f.metadata.get("persist", "non_default")
-        parent_field = f.metadata.get("persist_if_parent")
-
-        # Save if parent is True (even if value == default)
-        if parent_field:
-            parent_value = getattr(obj, parent_field, False)
-            if parent_value is True:
-                payload[f.name] = value
-                continue
-
-        if persist_rule == "always":
-            payload[f.name] = value
-            continue
-
-        if persist_rule == "if_set":
-            if value is not None:
-                payload[f.name] = value
-            continue
-
-        # Default: omit None / False / default value
-        if value is None:
-            continue
-        if value == f.default:
-            continue
-
-        payload[f.name] = value
-
-    return payload
 
 
 @dataclass

@@ -218,7 +218,7 @@ def _construct_containers(data):                  #  construct each container an
     Container.all_containers.clear()
 
     for entry in data:
-        container = _construct_container_from_spec(entry)
+        container = construct_from_spec(entry, Container)
 
         # Add contained items
         for item_spec in entry.get("items", []):
@@ -231,126 +231,87 @@ def _construct_feature_from_spec(spec):
     return construct_from_spec(spec, Feature)
  
 
-
-
-
-
 def _construct_rooms(data):
-    """Construct Room objects from loaded JSON data list.
-
-    Each room dict should have 'name', 'description', optional 'items', optional 'Container', and optional 'connections'.
-    Items can be strings or dicts with 'name', 'is_takeable', 'refuse_string'.
-    """
-    rooms: list[Room] = []
+    rooms = []
     pending_connections = []
+
+    # Phase 1: Construct all rooms
     for entry in data:
-        room = Room(
-            entry.get("name"),
-            entry.get("description", ""),
-            found=entry.get("found", False),
-            is_dark=entry.get("is_dark", False),
-            has_water=entry.get("has_water", False),
-            climb_refuse_string=entry.get("climb_refuse_string"),
-            up_refuse_string=entry.get("up_refuse_string"),
-            down_refuse_string=entry.get("down_refuse_string"),
-            east_refuse_string=entry.get("east_refuse_string"),
-            west_refuse_string=entry.get("west_refuse_string"),
-            north_refuse_string=entry.get("north_refuse_string"),
-            south_refuse_string=entry.get("south_refuse_string"),
-            dark_description=entry.get("dark_description"),
-            discover_points=entry.get("discover_points", 10),
-        )
+        room = construct_from_spec(entry, Room)
         rooms.append(room)
 
-        # Add items to the room
+        # Save connection info for later
+        pending_connections.append((
+            room,
+            entry.get("connections", {}),
+            entry.get("hidden_directions", entry.get("hidden_exits", [])),
+            entry.get("swim_exits", {}),
+            entry.get("climb_exits", {})
+        ))
+
+    # Phase 2: Populate rooms
+    for entry, room in zip(data, rooms):
         for item_spec in entry.get("items", []):
             room.items.append(_construct_item_from_spec(item_spec))
-        # Add Containers to the room
+
         for container_data in entry.get("containers", []):
             container = _construct_container_from_spec(container_data)
-
             for item_spec in container_data.get("items", []):
-                item_obj = _construct_item_from_spec(item_spec)
-                container.add_item(item_obj)
+                container.add_item(_construct_item_from_spec(item_spec))
+            room.add_container(container)
 
-            room.add_container(container) 
+        for feature_data in entry.get("features", []):
+            room.add_feature(_construct_feature_from_spec(feature_data))
 
-        # Add Features to the room
-        for feature_data in entry.get("features", entry.get("", [])):
-            feature = _construct_feature_from_spec(feature_data)
-            room.add_feature(feature)
-
-        room.swim_exits = entry.get("swim_exits", {})
-        room.climb_exits = entry.get("climb_exits", {})
-
-        hidden_directions = entry.get("hidden_directions", entry.get("hidden_exits", []))
-        pending_connections.append((room, entry.get("connections", {}), hidden_directions))
-
-    # ------------------------------------------------------------
-    # Connect rooms
-    # ------------------------------------------------------------
-
+    # Phase 3: Resolve connections
     room_by_name = {room.name: room for room in rooms}
-    for room, raw_connections, hidden_exits in pending_connections:
-        if isinstance(raw_connections, dict):
-            iterable = raw_connections.items()
-            for direction, destination_name in iterable:
-                visible = True
-                target_name = destination_name
-                if isinstance(destination_name, dict):
-                    target_name = destination_name.get("room")
-                    visible = bool(destination_name.get("visible", True))
-                destination_room = room_by_name.get(target_name)
-                if destination_room is not None:
-                    room.connect_room(direction, destination_room, visible=visible)
-        elif isinstance(raw_connections, list):
-            for connection in raw_connections:
-                if isinstance(connection, dict):
-                    direction = connection.get("direction")
-                    destination_name = connection.get("room")
-                    visible = bool(connection.get("visible", True))
-                    if direction and destination_name:
-                        destination_room = room_by_name.get(destination_name)
-                        if destination_room is not None:
-                            room.connect_room(direction, destination_room, visible=visible)
-                elif isinstance(connection, str):
-                    destination_room = room_by_name.get(connection)
-                    if destination_room is not None:
-                        room.connect_room(connection, destination_room)
 
-        if isinstance(hidden_exits, list):
-            for direction in hidden_exits:
-                if isinstance(direction, str):
-                    room.set_exit_visibility(direction, visible=False)
-        # ------------------------------------------------------------
-        # Resolve swim_exits 
-        # ------------------------------------------------------------
-        raw_swim_exits = getattr(room, "swim_exits", {})
-        resolved_swim_exits = {}
-
-        for direction, dest_name in raw_swim_exits.items():
-            dest_room = room_by_name.get(dest_name)
-            if dest_room:
-                resolved_swim_exits[direction] = dest_room
-            else:
-                print(f"DEBUG: Swim exit destination '{dest_name}' not found for room '{room.name}'.")
-
-        room.swim_exits = resolved_swim_exits
-
-        # ------------------------------------------------------------
-        # Resolve climb_exits 
-        # ------------------------------------------------------------
-        raw_climb_exits = getattr(room, "climb_exits", {})
-        resolved_climb_exits = {}
-
-        for direction, dest_name in raw_climb_exits.items():
-            dest_room = room_by_name.get(dest_name)
-            if dest_room:
-                resolved_climb_exits[direction] = dest_room
-            else:
-                print(f"DEBUG: Climb exit destination '{dest_name}' not found for room '{room.name}'.")
-
-        room.climb_exits = resolved_climb_exits
+    for room, raw_connections, hidden_exits, swim_exits, climb_exits in pending_connections:
+        _resolve_standard_connections(room, raw_connections, room_by_name)
+        _resolve_hidden_exits(room, hidden_exits)
+        _resolve_special_exits(room, swim_exits, climb_exits, room_by_name)
 
     return rooms
+
+def _resolve_standard_connections(room, raw_connections, room_by_name):
+    if isinstance(raw_connections, dict):
+        for direction, dest in raw_connections.items():
+            visible = True
+            target = dest
+            if isinstance(dest, dict):
+                target = dest.get("room")
+                visible = bool(dest.get("visible", True))
+            if target in room_by_name:
+                room.connect_room(direction, room_by_name[target], visible=visible)
+
+    elif isinstance(raw_connections, list):
+        for conn in raw_connections:
+            if isinstance(conn, dict):
+                direction = conn.get("direction")
+                target = conn.get("room")
+                visible = bool(conn.get("visible", True))
+                if direction and target in room_by_name:
+                    room.connect_room(direction, room_by_name[target], visible=visible)
+            elif isinstance(conn, str):
+                if conn in room_by_name:
+                    room.connect_room(conn, room_by_name[conn])
+
+def _resolve_hidden_exits(room, hidden_exits):
+    if isinstance(hidden_exits, list):
+        for direction in hidden_exits:
+            if isinstance(direction, str):
+                room.set_exit_visibility(direction, visible=False)
+
+def _resolve_special_exits(room, swim_exits, climb_exits, room_by_name):
+    room.swim_exits = {
+        direction: room_by_name[name]
+        for direction, name in swim_exits.items()
+        if name in room_by_name
+    }
+
+    room.climb_exits = {
+        direction: room_by_name[name]
+        for direction, name in climb_exits.items()
+        if name in room_by_name
+    }
 

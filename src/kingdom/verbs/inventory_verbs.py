@@ -103,6 +103,7 @@ class InventoryVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object
         words = []
+        dest_handle = None
 
         dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("into"))
 
