@@ -43,7 +43,7 @@ def register_verbs():
                uses_directions=True),
 
           Verb("climb", movement.climb,
-               synonyms=[],
+               synonyms=["ascend", "descend", "slide"],
                modifiers=[],
                uses_directions=True),
 
@@ -55,7 +55,7 @@ def register_verbs():
 
           # Change state verbs
           Verb("light", change.light,
-               synonyms=[],
+               synonyms=["burn"],
                modifiers=["all", "everything"],
                uses_directions=False),
 
@@ -100,7 +100,7 @@ def register_verbs():
 
           Verb("say", stateful.say,
                synonyms=["speak", "talk", "shout", "whisper"],
-               modifiers=["to djinni", "wish"],
+               modifiers=["wish"],
                uses_directions=False),
 
           Verb("make", stateful.make,
@@ -110,7 +110,7 @@ def register_verbs():
                uses_directions=False),
 
           Verb("look", stateful.look,
-               synonyms=["examine", "inspect"],
+               synonyms=["examine", "inspect", "search"],
                modifiers=["in", "inside", "at"],
                uses_directions=False),
 
@@ -122,7 +122,7 @@ def register_verbs():
 
           # Meta verbs
           Verb("help", meta.help,
-               synonyms=["commands", "h", "?"],
+               synonyms=["commands", "h",],
                modifiers=["commands"],
                uses_directions=False),
 
@@ -160,12 +160,12 @@ def register_verbs():
 
           # Inventory verbs
           Verb("inventory", inventory.inventory,
-               synonyms=["inven"],
+               synonyms=["inven", "items"],
                modifiers=[],
                uses_directions=False),
 
           Verb("take", inventory.take,
-               synonyms=["get"],
+               synonyms=["get", "remove"],
                modifiers=["all", "everything", "in", "from"],
                uses_directions=False),
 

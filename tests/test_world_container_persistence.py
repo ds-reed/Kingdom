@@ -109,7 +109,7 @@ def test_room_features_roundtrip_save_load(tmp_path: Path) -> None:
         name="mural",
         description="a faded mural",
         examine_string="A faded mural depicts a forgotten king.",
-        synonyms={"wall mural", "painting"},
+        synonyms=["wall mural", "painting"],
     )
     tower_cell.add_feature(feature)
 

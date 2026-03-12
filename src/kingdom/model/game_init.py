@@ -166,29 +166,6 @@ def setup_world(world: World, source):
 
     return containers, world.rooms
 
-            
-def _construct_item_from_spec(item_spec) -> "Item":
-    if isinstance(item_spec, str):
-        return Item(item_spec)
-
-    if not isinstance(item_spec, dict):
-        raise TypeError("Item spec must be a dict")
-
-    normalized = dict(item_spec)
-
-    init_field_names = {f.name for f in dataclass_fields(Item) if f.init}
-    constructor_kwargs = {
-        key: value
-        for key, value in normalized.items()
-        if key in init_field_names
-    }
-
-    return Item(**constructor_kwargs)
-
-
-
-#----- functions for constructing objects from JSON data -----
-
 
 def _load_directions(json_data):
     directions = json_data.get("directions", {})
@@ -205,82 +182,58 @@ def _load_directions(json_data):
         )
 
 
-def _construct_containers(data):
-    """Construct Container objects from loaded JSON data list.
 
-    Expects `data` to be a list of dicts with keys like 'name', 'description', 'items', etc.
-    """
-    Container.all_containers.clear()           # Clear for clean load
+#----- functions for constructing objects from JSON data -----
+
+def construct_from_spec(spec, cls, *, name_fallbacks=()):              # helper function for all constructors
+    if isinstance(spec, str):
+        return cls(spec)
+
+    if not isinstance(spec, dict):
+        raise TypeError(f"{cls.__name__} spec must be a dict")
+
+    normalized = dict(spec)
+
+    # Apply fallback names
+    if "name" not in normalized:
+        for fb in name_fallbacks:
+            if fb in normalized:
+                normalized["name"] = normalized[fb]
+                break
+
+    init_fields = {f.name for f in dataclass_fields(cls) if f.init}
+    kwargs = {k: v for k, v in normalized.items() if k in init_fields}
+
+    return cls(**kwargs)
+
+            
+def _construct_item_from_spec(spec):
+    return construct_from_spec(spec, Item)
+
+
+def _construct_container_from_spec(spec):
+    return construct_from_spec(spec, Container)
+
+def _construct_containers(data):                  #  construct each container and populate with with Items
+    Container.all_containers.clear()
 
     for entry in data:
         container = _construct_container_from_spec(entry)
 
         # Add contained items
         for item_spec in entry.get("items", []):
-            new_item = _construct_item_from_spec(item_spec)
-            container.add_item(new_item)
+            container.add_item(_construct_item_from_spec(item_spec))
 
     return Container.all_containers
 
 
-def _construct_container_from_spec(container_spec) -> "Container":
-    if isinstance(container_spec, str):
-        return Container(name=container_spec)
-
-    if not isinstance(container_spec, dict):
-        raise TypeError("Container spec must be a dict")
-
-    init_field_names = {f.name for f in dataclass_fields(Container) if f.init}
-
-    normalized = dict(container_spec)
-    if "name" not in normalized:
-        if normalized.get("box_name"):
-            normalized["name"] = normalized["box_name"]
-        elif normalized.get("canonical_name"):
-            normalized["name"] = normalized["canonical_name"]
-
-    if "handle" not in normalized and normalized.get("canonical_name"):
-        normalized["handle"] = normalized["canonical_name"]
-
-    constructor_kwargs = {
-        key: value
-        for key, value in normalized.items()
-        if key in init_field_names
-    }
-
-    return Container(**constructor_kwargs)
+def _construct_feature_from_spec(spec):
+    return construct_from_spec(spec, Feature)
+ 
 
 
-def _construct_feature_from_spec(feature_spec) -> "Feature":
-    if isinstance(feature_spec, str):
-        return Feature(name=feature_spec)
 
-    if not isinstance(feature_spec, dict):
-        raise TypeError("Feature spec must be a dict")
 
-    init_field_names = {f.name for f in dataclass_fields(Feature) if f.init}
-
-    normalized = dict(feature_spec)
-    if "name" not in normalized:
-        if normalized.get("canonical_name"):
-            normalized["name"] = normalized["canonical_name"]
-        elif normalized.get("handle"):
-            normalized["name"] = normalized["handle"]
-
-    if "description" not in normalized and normalized.get("name"):
-        normalized["description"] = normalized["name"]
-
-    synonyms = normalized.get("synonyms")
-    if synonyms is not None and not isinstance(synonyms, list):
-        normalized["synonyms"] = list(synonyms)
-
-    constructor_kwargs = {
-        key: value
-        for key, value in normalized.items()
-        if key in init_field_names
-    }
-
-    return Feature(**constructor_kwargs)
 
 def _construct_rooms(data):
     """Construct Room objects from loaded JSON data list.

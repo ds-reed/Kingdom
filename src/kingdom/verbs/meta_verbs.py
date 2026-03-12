@@ -123,8 +123,6 @@ class MetaVerbHandler(VerbHandler):
             keywords.extend(cmd.modifiers)
 
 
-
-
         # Case 1: Keywords  
 
         if keywords:
