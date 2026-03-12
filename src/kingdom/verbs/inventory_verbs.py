@@ -75,7 +75,8 @@ class InventoryVerbHandler(VerbHandler):
                 if outcome.control == VerbControl.SKIP:
                     continue
             if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
-                msgs.append(getattr(item, "get_refuse_string", f"You can't {cmd.verb_token} {item.display_name()}."))   # use generic if no refuse string
+                refuse = item.get_refuse_string or f"You can't {cmd.verb_token} {item.display_name()}."
+                msgs.append(refuse)
                 continue
 
             if source:
@@ -105,7 +106,7 @@ class InventoryVerbHandler(VerbHandler):
 
         dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("into"))
 
-        if target and target.get_class_name() == "Item":
+        if target and target.get_class_name() == "Item" and player.has_item(target):
             inventory_items = [target] 
         elif "all" in keywords or "everything" in keywords:
             inventory_items = player.get_inventory_items()
