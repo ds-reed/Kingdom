@@ -108,7 +108,6 @@ class ChangeStateVerbHandler(VerbHandler):
         )
 
 
-################# broken by new exits restructure #################
 
         # Post-change side effect: reveal exit if configured
         side_effect_msg = ""
@@ -117,16 +116,16 @@ class ChangeStateVerbHandler(VerbHandler):
         if direction is not None:  #opening has a side effect of opening an exit in the room
             reverse_direction = self.get_reverse_of(direction)
 
-            forward_exit = room.get_exit("go", direction)
+            forward_exit = room.get_exit(getattr(target, "open_exit_type", "go"), direction)
             if forward_exit:
                 forward_exit.set_existing("is_visible", True)
                 forward_exit.set_existing("is_passable", True)
                 side_effect_msg = f"You notice a passage leading {direction}."
 
             
-            destination = Room.get_by_name(getattr(target, "open_exit_destination", None))
+            destination = forward_exit.destination if forward_exit else None
 
-            reverse_exit = destination.get_exit("go", reverse_direction)
+            reverse_exit = destination.get_exit(getattr(target, "open_exit_type", "go"), reverse_direction) if destination else None
             if reverse_exit:
                 reverse_exit.set_existing("is_visible", True)
                 reverse_exit.set_existing("is_passable", True)
@@ -213,7 +212,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # Post-change side effect: hide exit if configured
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
-        destination = getattr(target, "open_exit_destination", None)
+        destination = getattr(target, "open_exit_type", None)
 
         if direction and destination:
             destination_room = world.rooms.get(destination)

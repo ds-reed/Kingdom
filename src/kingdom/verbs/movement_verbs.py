@@ -21,23 +21,25 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, exit_obj, direction, success_verb_phrase):
+    def perform_movement(self, exit_obj, direction, success_verb_phrase, destination=None):
         state = self.state()
-        next_room = getattr(exit_obj, "destination", None)
-        if next_room is None:
+        if destination is None:
+            destination = getattr(exit_obj, "destination", None)
+        if destination is None:
             return f"ERROR - MISSING DESTINATION."
 
         # Move
-        state.current_room = next_room
-
-        # Scoring
-        if not next_room.found:
-            state.score += getattr(next_room, "discover_points", 0)
-            next_room.found = True
+        state.current_room = destination
 
         # Render
         lines = [f"You {success_verb_phrase} {direction}."]
-        lines.extend(render_current_room(state))
+        lines.extend(render_current_room(destination) or [])
+
+        # Scoring
+        if not destination.found:
+            state.score += getattr(destination, "discover_points", 0)
+            destination.found = True
+
         return lines
     
     def check_movement(self, exit_obj, movement_type, direction):
@@ -132,17 +134,28 @@ class MovementVerbHandler(VerbHandler):
 
         return self.build_message(result_msg)
     
+
+    # ------------------------------------------------------------
+    # CLIMB verb      
+    # 
+    # Note: Climb always requires a climbable item in the room.
+    #       If you have stairs or a fixed ladder in the room,  
+    #       you must provide a fixed object in the room to climb.
+    #       Use "is_visible false" to hide the fixed object and 
+    #       put the stairs or ladder in the room description.          
+    # ------------------------------------------------------------
     
     def climb(self, target: Noun, words: list[str], cmd: ExecuteCommand):
         room = self.room()
 
         target = cmd.direct_object if cmd and cmd.direct_object else None
         direction = cmd.direction if cmd and cmd.direction else None
+        verb_token = cmd.verb_token if cmd else "climb"
 
         # Room must have climb exits
         climb_exits = room.exits.get("climb", {})
         if not climb_exits:
-            return self.build_message("There is nothing to climb here.")
+            return self.build_message(f"There is nothing to {verb_token} {direction or 'here'}.")
 
         # If a direction is given, check if any climbable item is present
         climbable = False
@@ -163,11 +176,11 @@ class MovementVerbHandler(VerbHandler):
                         target_direction = d
                         break
                 else:
-                    return self.build_message(f"You can't climb the {target.display_name()}.")
+                    return self.build_message(f"You can't {verb_token} {direction or ''} the {target.display_name()}.")
 
         # If neither a direction nor a target-derived direction exists
         if not (direction or target_direction):
-            return self.build_message("Climb where?")
+            return self.build_message(f"{verb_token.capitalize()} where?")
 
         # Resolve final direction
         final_direction = direction or target_direction
@@ -178,9 +191,9 @@ class MovementVerbHandler(VerbHandler):
             movement_refusal = self.check_movement(exit_obj, "climb", final_direction)
             if movement_refusal:
                 return self.build_message(movement_refusal)
-            return self.build_message(self.perform_movement(exit_obj, final_direction, "climb"))
+            return self.build_message(self.perform_movement(exit_obj, final_direction, verb_token))
         
-        return self.build_message(f"You can't climb {final_direction} from here.")
+        return self.build_message(f"You can't {verb_token} {final_direction} from here.")
 
 
     def teleport(self, target: Noun, words: list[str], cmd: "ExecuteCommand"):
@@ -237,10 +250,8 @@ class MovementVerbHandler(VerbHandler):
         old_room_name = room.canonical_name()
         state.current_room = desired_room
         new_room_name = desired_room.canonical_name()
-        desired_room.found = True
 
-        lines = [f"You teleport from {old_room_name} to {new_room_name}."]
-        lines.extend(render_current_room(state))
-        return self.build_message(lines)
+        return(self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)))
+
 
     

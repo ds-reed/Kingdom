@@ -97,7 +97,8 @@ def save_game(world, filepath) -> Path:
     }
 
     for room in world.rooms.values():
-        payload["rooms"].append(room._serialize_room())
+        payload["rooms"].append(room.to_dict())
+
 
     try:
         with target.open("w", encoding="utf-8") as file:

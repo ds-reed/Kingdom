@@ -34,7 +34,7 @@ CONTAINER_FIELDS = [
     "unlock_key",
     "locked_description",
     "open_exit_direction",
-    "open_exit_destination",
+    "open_exit_type",
     "examine_string",
 ]
 
@@ -52,7 +52,7 @@ ITEM_FIELDS = [
     "close_action_description",
     "examine_string",
     "open_exit_direction",
-    "open_exit_destination",
+    "open_exit_type",
     "is_lockable",
     "is_locked",
     "unlock_key",
@@ -73,7 +73,7 @@ ITEM_FIELDS = [
     "too_heavy_to_swim",
     "eat_refuse_string",
     "eaten_success_string",
-    "get_refuse_string",
+    "take_refuse_string",
     "special_handlers",
 ]
 
@@ -96,6 +96,23 @@ def _compare_fields(entity_name: str, before_obj, after_obj, fields: list[str]) 
                 f"{entity_name}.{field}: before={before_value!r} after={after_value!r}"
             )
     return mismatches
+
+
+def _exit_snapshot(room: Room) -> dict[str, dict[str, dict[str, object]]]:
+    snapshot: dict[str, dict[str, dict[str, object]]] = {}
+    for movement_type, exits in room.exits.items():
+        movement_payload: dict[str, dict[str, object]] = {}
+        for direction, exit_obj in exits.items():
+            movement_payload[direction] = {
+                "destination": exit_obj.destination.name if exit_obj.destination else None,
+                "is_visible": bool(exit_obj.is_visible),
+                "is_passable": bool(exit_obj.is_passable),
+                "refuse_string": exit_obj.refuse_string,
+                "go_refuse_string": exit_obj.go_refuse_string,
+            }
+        if movement_payload:
+            snapshot[movement_type] = movement_payload
+    return snapshot
 
 
 def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_path: Path) -> None:
@@ -128,10 +145,9 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         found=True,
         discover_points=77,
     )
-    sentinel_room.go_exits["west"] = anchor
-    sentinel_room.hidden_exits.add("west")
-    sentinel_room.swim_exits["east"] = anchor
-    sentinel_room.climb_exits["down"] = anchor
+    sentinel_room.add_exit("go", "west", anchor, is_visible=False)
+    sentinel_room.add_exit("swim", "east", anchor)
+    sentinel_room.add_exit("climb", "down", anchor)
     game.rooms[sentinel_room.name] = sentinel_room
 
     sentinel_container = Container(
@@ -150,7 +166,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         unlock_key="rt_key",
         locked_description="The sentinel box is locked tight.",
         open_exit_direction="down",
-        open_exit_destination=anchor.name,
+        open_exit_type=anchor.name,
         examine_string="A carefully instrumented box.",
     )
     sentinel_room.add_container(sentinel_container)
@@ -169,7 +185,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         close_action_description="You close it.",
         examine_string="Highly instrumented test item.",
         open_exit_direction="up",
-        open_exit_destination=anchor.name,
+        open_exit_type=anchor.name,
         is_lockable=True,
         is_locked=True,
         unlock_key="rt_item_key",
@@ -190,7 +206,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         too_heavy_to_swim=True,
         eat_refuse_string="Do not eat this.",
         eaten_success_string="Crunch.",
-        get_refuse_string="No getting this one.",
+        take_refuse_string="No getting this one.",
         special_handlers={"rub": "rub_lamp", "eat": "eat_fish"},
     )
     sentinel_room.add_item(sentinel_item)
@@ -245,32 +261,11 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     mismatches.extend(_compare_fields("Container", sentinel_container, loaded_container, CONTAINER_FIELDS))
     mismatches.extend(_compare_fields("Item", sentinel_item, loaded_item, ITEM_FIELDS))
 
-    before_go_exits = {k: v.name for k, v in sentinel_room.go_exits.items()}
-    after_go_exits = {k: v.name for k, v in loaded_room.go_exits.items()}
-    if before_go_exits != after_go_exits:
+    before_exits = _exit_snapshot(sentinel_room)
+    after_exits = _exit_snapshot(loaded_room)
+    if before_exits != after_exits:
         mismatches.append(
-            f"Room.go_exits: before={before_go_exits!r} after={after_go_exits!r}"
-        )
-
-    before_swim = {k: v.name for k, v in sentinel_room.swim_exits.items()}
-    after_swim = {k: v.name for k, v in loaded_room.swim_exits.items()}
-    if before_swim != after_swim:
-        mismatches.append(
-            f"Room.swim_exits: before={before_swim!r} after={after_swim!r}"
-        )
-
-    before_climb = {k: v.name for k, v in sentinel_room.climb_exits.items()}
-    after_climb = {k: v.name for k, v in loaded_room.climb_exits.items()}
-    if before_climb != after_climb:
-        mismatches.append(
-            f"Room.climb_exits: before={before_climb!r} after={after_climb!r}"
-        )
-
-    if sorted(sentinel_room.hidden_exits) != sorted(loaded_room.hidden_exits):
-        mismatches.append(
-            "Room.hidden_exits: "
-            f"before={sorted(sentinel_room.hidden_exits)!r} "
-            f"after={sorted(loaded_room.hidden_exits)!r}"
+            f"Room.exits: before={before_exits!r} after={after_exits!r}"
         )
 
     assert not mismatches, "save/load roundtrip mismatches detected:\n" + "\n".join(

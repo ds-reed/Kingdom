@@ -41,7 +41,7 @@ class InventoryVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object
 
-        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("from", "in"))
+        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
 
         if target:
             if target.get_class_name() == "Item":
@@ -51,15 +51,19 @@ class InventoryVerbHandler(VerbHandler):
                 if getattr(target, "current_container", None):
                     source = target.current_container
             elif target.get_class_name() == "Container":
-                return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # toto some day..
+                return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # todo some day..
         elif "all" in keywords or "everything" in keywords:
             if source:
                 if isinstance(source, Container):
-                    inventory_items = source.all_items()
+                    if getattr(source, "is_openable", False) and not getattr(source, "is_open", False):
+                        return self.build_message(f"{source.display_name().capitalize()} is closed.")
+                    inventory_items = [item for item in source.all_items() if getattr(item, "is_visible", True)]
+                    if not inventory_items:
+                        return self.build_message(f"The {source.display_name()} is empty.")
                 else:
                     return self.build_message(f"You don't see any {source_name} here to take from.")
             else:
-                inventory_items = room.all_items()
+                inventory_items = [item for item in room.all_items() if getattr(item, "is_visible", True)]
         else:
             if not cmd.direct_object_token:
                 return self.build_message(self.missing_target(cmd.verb_token))
@@ -75,7 +79,7 @@ class InventoryVerbHandler(VerbHandler):
                 if outcome.control == VerbControl.SKIP:
                     continue
             if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
-                refuse = item.get_refuse_string or f"You can't {cmd.verb_token} {item.display_name()}."
+                refuse = item.take_refuse_string or f"You can't {cmd.verb_token} {item.display_name()}."
                 msgs.append(refuse)
                 continue
 
@@ -105,12 +109,14 @@ class InventoryVerbHandler(VerbHandler):
         words = []
         dest_handle = None
 
-        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into"))
+        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into", "in"))
 
         if target and target.get_class_name() == "Item" and player.has_item(target):
             inventory_items = [target] 
         elif "all" in keywords or "everything" in keywords:
             inventory_items = player.get_inventory_items()
+            if not inventory_items:
+                return self.build_message("You don't have anything!")
         else:
             if not cmd.direct_object_token:
                 return self.build_message(self.missing_target(cmd.verb_token))

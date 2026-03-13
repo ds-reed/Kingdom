@@ -36,7 +36,6 @@ from kingdom.language.executor import execute
 
 
 
-
 #------------------ Design Note: Main Refactor (v2) ------------------
 def init_game_state() -> tuple[World | None, Lexicon | None]:
     """
@@ -77,7 +76,7 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
         action_state.lexicon = lexicon  # store lexicon in action state for access during game
 
 
-        lines = render_current_room(action_state, display=False)
+        lines = render_current_room(action_state.current_room)
         ui.render_room(lines, clear=False)
 
     except Exception as e:
@@ -124,7 +123,7 @@ def handle_game_over(
     action_state.score = max(0, int(action_state.score) - int(penalty)) 
 
     if action_state.current_room is not None:
-        lines = render_current_room(action_state, clear=False)
+        lines = render_current_room(action_state, look=true)
         ui.render_room(lines, clear=False)
         print() 
     
@@ -178,7 +177,7 @@ def process_command(
         ui.print(f"Game loaded from {loaded_path}.")
         ui.clear_screen()
         ui.print(f"Welcome back {get_action_state().player_name}!","\n")
-        ui.render_room(render_current_room(get_action_state()), clear=False)
+        ui.render_room(render_current_room(get_action_state().current_room), clear=False)
         return False, recovery_mode, None  # no custom message on load, just rely on room render" 
     
     except SaveGame:

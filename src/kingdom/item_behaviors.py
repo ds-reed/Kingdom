@@ -99,7 +99,7 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  get_refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_string: str) -> None:
     state = _active_state()
     if state is None:
         return
@@ -118,7 +118,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
         name,
         handle=handle,
         is_takeable=is_takeable,
-        get_refuse_string=get_refuse_string,
+        take_refuse_string=take_refuse_string,
         )
     
     room.items.append(new_item)   
@@ -180,7 +180,7 @@ def eat_fish(item, verb, words):
         name="There is vomit on a nearby wall.",
         handle="vomit",
         is_takeable=False,      
-        get_refuse_string="EW! The nasty vomit just makes your hands dirty."
+        take_refuse_string="EW! The nasty vomit just makes your hands dirty."
     )
 
     # Final message - TRS80 old-school style
@@ -287,15 +287,27 @@ def _djinni_scripted_action(item, verb, words):
     ]
 
     # ------------------------------------------------------------
-    # 1. Add a west exit (Room object, not string)
+    # 1. reveal and open the west exit in current room
     # ------------------------------------------------------------
-    if "west" not in room.go_exits:
-        dest_name = getattr(item, "wish_exit_destination", "Colossal Cave")
-        destination = world.rooms.get(dest_name) if world else None
-        if destination is None:
-            print(f"DEBUG: Could not find destination room '{dest_name}'")
-        else:
-            room.go_exits["west"] = destination
+
+    direction = "west"
+    reverse_direction = "east"
+
+    forward_exit = room.get_exit("go", direction)
+    if forward_exit:
+        forward_exit.set_existing("is_visible", True)
+        forward_exit.set_existing("is_passable", True)
+        message_lines.append(f"You notice a new passage leading {direction}.")
+
+        destination = forward_exit.destination
+
+        reverse_exit = destination.get_exit("go", reverse_direction)
+        if reverse_exit:
+            reverse_exit.set_existing("is_visible", True)
+            reverse_exit.set_existing("is_passable", True)
+    else:
+        message_lines.append(f"ERROR - no direction found in room data for {direction}.")
+
 
     # ------------------------------------------------------------
     # 2. Remove the Djinni from the current room

@@ -5,7 +5,7 @@ from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbCo
 from kingdom.verbs.verb_handler import VerbHandler
 
 from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature
-from kingdom.renderer import RoomRenderer, render_current_room
+from kingdom.renderer import RoomRenderer, render_current_room, render_item, render_container, render_container_contents
 
 
 
@@ -196,27 +196,24 @@ class StatefulVerbHandler(VerbHandler):
         keywords = parse["keywords"]
         raw = parse["raw"]
 
-        renderer = RoomRenderer()
-
         if "inside" in keywords or "in" in keywords:
             if target is None:
                 return self.build_message("Look inside what?")
             if isinstance(target, Container):
-                return self.build_message(renderer.describe_container_contents(target))
+                return self.build_message(render_container_contents(room, target))
             return self.build_message(f"You can't look inside the {target.display_name()}.")
         
         if not target: target = noun
 
         if target is not None:
-            if getattr(target, "examine_string", None) is not None:
-                return self.build_message(target.examine_string)
-            elif isinstance(target, Container):
-                return self.build_message(f"You see {target.display_name()}. There might be something interesting inside.")
+            if target.get_class_name() == "Item":
+                return self.build_message(render_item(room, target))
+            elif target.get_class_name() == "Container":
+                return self.build_message(render_container(room, target))
             elif isinstance(target, Feature):
                 return self.build_message(f"Looking closely at the {target.canonical_name()}, you see {target.description}")
-            elif room.has_item(target):
-                return self.build_message(f"You see {target.display_name()} here.")
+
             
         if raw: return self.build_message("I don't understand what you want to look at.")
 
-        return self.build_message(renderer.describe_room(room))
+        return self.build_message(render_current_room(room, look=True))

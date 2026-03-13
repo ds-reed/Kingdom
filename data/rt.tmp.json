@@ -69,7 +69,7 @@
                     ],
                     "is_takeable": false,
                     "can_be_spoken_to": true,
-                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
+                    "take_refuse_string": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {
                         "say": "speak_djinni",
                         "make": "make_djinni"
@@ -151,7 +151,7 @@
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
                     "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
                     "open_exit_direction": "down",
-                    "open_exit_destination": "Blank Chamber",
+                    "open_exit_type": "Blank Chamber",
                     "is_lockable": true,
                     "is_locked": true,
                     "unlock_key": "small brass key",
@@ -379,7 +379,7 @@
                     "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
                     "close_action_description": "You push the wardrobe doors shut.",
                     "open_exit_direction": "west",
-                    "open_exit_destination": "Narnia",
+                    "open_exit_type": "Narnia",
                     "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable."
                 }
             ],

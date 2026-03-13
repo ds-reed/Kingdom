@@ -71,13 +71,19 @@ def serialize_non_default(obj):
 
 @dataclass
 class Exit:
-    movement_type: str
-    direction: str
-    destination: Optional["Room"] = None
-    is_visible: bool = True
-    is_passable: bool = True
-    refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    movement_type: str = field(metadata={"persist": False})
+    direction: str = field(metadata={"persist": False})
+    destination: "Room" = field(metadata={"persist": False})
+
+    # Mutable state
+    is_visible: bool = field(default=True, metadata={"persist": "non_default"})
+    is_passable: bool = field(default=True, metadata={"persist": "non_default"})
+    refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+
+    # Runtime-only (example)
+    # temp_flag: bool = field(default=False, metadata={"persist": False})
+
 
     def set_existing(self, name, value):
         if not hasattr(self, name):
@@ -348,137 +354,79 @@ class Item(Noun):
     # Identity & lexicon
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
-    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
 
-    # Basic interaction
+    # Take interaction
     is_takeable: bool = field(default=True, metadata={"persist": "non_default"})
-    get_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    take_refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
 
     # Open/close mechanics
     is_openable: bool = field(default=False, metadata={"persist": "non_default"})
-    opened_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
-    closed_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
-    open_action_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
-    close_action_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
-    examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    open_exit_direction: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
-    open_exit_destination: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
-    )
+    is_open: bool = field(default=False, metadata={"persist": "non_default"})
+    opened_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
+    closed_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
+    open_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
+    close_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
+    examine_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    open_exit_direction: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
+    open_exit_type: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
 
     # Lock/unlock mechanics
-    is_lockable: bool = field(default=False, metadata={"persist": "non_default"})
-    unlock_key: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
-    )
-    locked_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
-    )
-    unlocked_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
-    )
-    unlockable_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
-    )
+    is_lockable: bool = field(default=False, metadata={"persist": "non_default", })
+    is_locked: bool = field(default=False, metadata={"persist": "non_default", "persist_if_parent": "is_lockable"})
+    unlock_key: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lockable"})
+    locked_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lockable"})
+    unlocked_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lockable"})
+    unlockable_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lockable"})
 
     # Light/extinguish mechanics
     is_lightable: bool = field(default=False, metadata={"persist": "non_default"})
-    lit_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lightable"}
-    )
-    unlit_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_lightable"}
-    )
+    is_lit: bool = field(default=False, metadata={"persist": "non_default"})
+    lit_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lightable"})
+    unlit_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_lightable"})
     can_ignite: bool = field(default=False, metadata={"persist": "non_default"})
-    ignite_success_string: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "can_ignite"}
-    )
+    ignite_success_string: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "can_ignite"})
     is_flamable: bool = field(default=True, metadata={"persist": "non_default"})
 
     # Rub mechanics
     is_rubbable: bool = field(default=False, metadata={"persist": "non_default"})
-    rubbed_state_description: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_rubbable"}
-    )
-    rub_success_string: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_rubbable"}
-    )
+    is_rubbed: bool = field(default=False, metadata={"persist": "non_default"})
+    rubbed_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_rubbable"})
+    rub_success_string: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_rubbable"})
 
     # Eating
     is_edible: bool = field(default=False, metadata={"persist": "non_default"})
-    eat_refuse_string: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_edible"}
-    )
-    eaten_success_string: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "is_edible"}
-    )
+    eat_refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_edible"})
+    eaten_success_string: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_edible"})
 
     # Tieing
     is_tieable: bool = field(default=False, metadata={"persist": "non_default"})
+    is_tied: bool = field(default=False, metadata={"persist": "non_default"})
     can_be_tied_to: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Climbing
     is_climbable: bool = field(default=False, metadata={"persist": "non_default"})
-    climb_directions: list[str] = field(
-        default_factory=list,
-        metadata={"persist": "if_set", "persist_if_parent": "is_climbable"}
-    )
+    climb_directions: list[str] = field(default_factory=list, metadata={"persist": "non_default", "persist_if_parent": "is_climbable"})
 
     # Swimming
     too_heavy_to_swim: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Speaking
     can_be_spoken_to: bool = field(default=False, metadata={"persist": "non_default"})
-    speak_string: Optional[str] = field(
-        default=None,
-        metadata={"persist": "if_set", "persist_if_parent": "can_be_spoken_to"}
-    )
+    speak_string: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "can_be_spoken_to"})
+
+    # Visibility
+    is_visible: bool = field(default=True, metadata={"persist": "non_default"}) 
+
+    # Broken state
+    is_broken: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Special handling
-    trigger_room: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "if_set"})
+    trigger_room: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "non_default"})
 
-    # ------------------------------------------------------------
-    # Mutable state (persistent runtime state)
-    # ------------------------------------------------------------
-    # These booleans change during gameplay and must always be saved.
-    # They intentionally have no metadata.
-    is_open: bool = False
-    is_locked: bool = False
-    is_lit: bool = False
-    is_rubbed: bool = False
-    is_hidden: bool = False
-    is_tied: bool = False
-    is_broken: bool = False
 
     # ------------------------------------------------------------
     # Runtime-only fields (never saved)
@@ -499,9 +447,9 @@ class Item(Noun):
             if self.open_exit_direction is not None and str(self.open_exit_direction).strip()
             else None
         )
-        self.open_exit_destination = (
-            str(self.open_exit_destination).strip()
-            if self.open_exit_destination is not None and str(self.open_exit_destination).strip()
+        self.open_exit_type = (
+            str(self.open_exit_type).strip()
+            if self.open_exit_type is not None and str(self.open_exit_type).strip()
             else None
         )
 
@@ -558,10 +506,11 @@ class Container(Noun):
     all_containers: ClassVar[List["Container"]] = []
     # Required by noun class
     name: str = field(metadata={"persist": "always"})
-    description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+
 
     # Normal optional fields
     found: bool = False
@@ -578,8 +527,11 @@ class Container(Noun):
     unlock_key: Optional[str] = None
     locked_description: Optional[str] = None
     open_exit_direction: Optional[str] = None
-    open_exit_destination: Optional[str] = None
-    examine_string: Optional[str] = None  
+    open_exit_type: Optional[str] = None
+    examine_string: Optional[str] = None
+    
+    # Visibility
+    is_visible: bool = field(default=True, metadata={"persist": "non_default"})   
 
     # Runtime state – never saved
     contents: List["Item"] = field(default_factory=list, init=False)
@@ -704,18 +656,18 @@ class Room(Noun):
     # --- Persistent fields (from JSON) ---
     name: str = field(metadata={"persist": "always"})
     description: str = field(default="", metadata={"persist": "always"})
-    handle: str = field(default=None, metadata={"persist": "if_set"})
-    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    found: bool = field(default=False, metadata={"persist": "if_set"})
-    is_dark: bool = field(default=False, metadata={"persist": "if_set"})
-    dark_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    discover_points: int = field(default=10, metadata={"persist": "if_set"})
-    has_water: bool = field(default=False, metadata={"persist": "if_set"})
+    handle: str = field(default=None, metadata={"persist": "non_default"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    found: bool = field(default=False, metadata={"persist": "non_default"})
+    is_dark: bool = field(default=False, metadata={"persist": "non_default"})
+    dark_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    discover_points: int = field(default=10, metadata={"persist": "non_default"})
+    has_water: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Refuse strings for blocked exits
-    refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
  
 
     # --- Runtime-constructed fields (not in JSON) ---
@@ -952,12 +904,12 @@ class Room(Noun):
 @dataclass
 class Feature(Noun):
     name: str = field(metadata={"persist": "always"})
-    description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
-    found: bool = field(default=False, metadata={"persist": "if_set"})
+    description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    examine_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
+    found: bool = field(default=False, metadata={"persist": "non_default"})
 
     def __post_init__(self):
         self.name = str(self.name)

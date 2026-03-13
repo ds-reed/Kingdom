@@ -11,40 +11,8 @@ class RoomRenderer:
     Produces semantic text; UI layer decides how to display it.
     """
 
-    # ----------------------------------------------------------------------
-    # Public API
-    # ----------------------------------------------------------------------
 
-    def describe_room(self, room: Room) -> str:
-        """Return a one-paragraph description of the room."""
-        if room is None:
-            return "You are nowhere."
-
-        if self.is_dark_room(room):
-            return self.dark_room_message(room)
-
-        if not room.description:
-            desc = f"You are in {room.name}."
-        else:            
-            desc = f"You are {room.description}"
-
-        exits = room.get_all_exits(movement_type="all", visible_only=True)
-        exits_text = self.build_visible_exits_text(exits)
-
-        # Items and containers (display text)
-        display_text = []
-        for obj in [*room.items, *room.containers]:
-            text = obj.display_name()
-            if text:
-                display_text.append(text)
-
-        display_text_str = " ".join(display_text)
-        if display_text_str:
-            return f"{desc} {display_text_str} {exits_text}".strip()
-
-        return f"{desc} {exits_text}".strip()
-
-    def room_display_lines(self, room: Room) -> list[str]:
+    def describe_room(self, room: Room, look=False) -> list[str]:   
         """Return a list of lines for UI rendering."""
         if self.is_dark_room(room):
             return [self.dark_room_message(room)]
@@ -52,20 +20,26 @@ class RoomRenderer:
         lines: list[str] = []
 
         # Room description
-        if room.found or not room.description:
+    
+        if (room.found and not look) or not room.description:
             lines.append(f"You are in {room.name}.")
         else:            
             lines.append(f"You are {room.description}")
 
         # Items
-        if room.items:
-            names = ", ".join(item.display_name() for item in room.items)
+        visible_items = [item for item in room.items if getattr(item, "is_visible", True)]
+        if visible_items:
+            names = ", ".join(item.display_name() for item in visible_items)
             lines.append(f"You see {names}")
 
         # Containers
-        if room.containers:
-            names = ", ".join(container.display_name() for container in room.containers)
-            lines.append(f"There is {names} here.")
+        visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
+        if visible_containers:
+            names = ", ".join(container.display_name() for container in visible_containers)
+            if len(visible_containers) == 1:
+                lines.append(f"You see {names} here.")
+            else:
+                lines.append(f"There are {names} here.")
 
         # Exits
         exits = room.get_all_exits(movement_type="all", visible_only=True)
@@ -75,15 +49,25 @@ class RoomRenderer:
 
         return lines
 
-    def describe_item(self, item: Item) -> str:
-        """Return a description of an item when the player LOOKs at it."""
-        desc = getattr(item, "description", None)
+    def describe_item(self, room: Room, item: Item) -> str:
+        if self.is_dark_room(room):
+            return self.dark_room_message(room)
+        desc = getattr(item, "examine_string", None)
         if desc:
             return desc
         return f"You look at {item.display_name()} carefully."
+    
+    def describe_container(self, room: Room, container: Container) -> str:
+        if self.is_dark_room(room):
+            return self.dark_room_message(room)
+        desc = getattr(container, "examine_string", None)
+        if desc:
+            return desc
+        return f"You look at {container.display_name()} carefully. There might be something interesting inside."
 
-    def describe_container_contents(self, container: Container) -> str:
-        """Return a description of a container's contents."""
+    def describe_container_contents(self, room: Room, container: Container) -> str:
+        if self.is_dark_room(room):
+            return self.dark_room_message(room)
         if container.is_openable and not container.is_open:
             return f"You see {container.display_name()} is closed."
         if not container.contents:
@@ -105,14 +89,10 @@ class RoomRenderer:
         if not getattr(room, "is_dark", False):
             return False
 
-        # Room-specific override
-        has_lit = getattr(room, "has_lit_light_source", None)
-        if callable(has_lit) and has_lit():
-            return False
 
         # Room items
         for item in room.items:
-            if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+            if getattr(item, "is_lit", False):
                 return False
 
         # Containers (only open ones)
@@ -120,13 +100,13 @@ class RoomRenderer:
             if container.is_openable and not container.is_open:
                 continue
             for item in container.contents:
-                if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+                if getattr(item, "is_lit", False):
                     return False
 
         # Player inventory
         if player:
             for item in player.sack.contents:
-                if getattr(item, "is_lightable", False) and getattr(item, "is_lit", False):
+                if getattr(item, "is_lit", False):
                     return False
 
         return True
@@ -184,16 +164,23 @@ class RoomRenderer:
         return f"There are exits {self.join_with_and(phrases)}."
 
 
-def render_current_room(state, display=True, clear=False):
-
-    room = state.current_room
-    if room is None:
-        return
-    
-    renderer = RoomRenderer()
-    lines = renderer.room_display_lines(room)
-
-    return lines
 
 
+# ----------------------------------------------------------------------
+# Public API
+# ----------------------------------------------------------------------
+
+renderer = RoomRenderer()
+
+def render_current_room(room, look=False) -> list[str] | None:
+    return(renderer.describe_room(room, look=look))
+
+def render_item(room, item) -> list[str] | None:
+    return(renderer.describe_item(room, item))
+
+def render_container(room, item) -> list[str] | None:
+    return(renderer.describe_container(room, item))
+
+def render_container_contents(room, container) -> list[str] | None:
+    return(renderer.describe_container_contents(room, container))
 

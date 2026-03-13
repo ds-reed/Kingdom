@@ -44,25 +44,22 @@
                 "name": "torch",
                 "description": "an old wooden torch",
                 "handle": "torch",
-                "synonyms": [],
                 "adjectives": [
                     "old",
                     "wooden"
                 ],
                 "is_lightable": true,
+                "is_lit": true,
                 "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
                 "unlit_state_description": null,
-                "climb_directions": [],
                 "special_handlers": {
                     "drop": "drop_torch"
-                },
-                "is_lit": true
+                }
             },
             {
                 "name": "bean",
                 "description": "a single shiny bean",
                 "handle": "bean",
-                "synonyms": [],
                 "adjectives": [
                     "single",
                     "shiny"
@@ -73,8 +70,7 @@
                 "open_action_description": "You crack open the bean with a satisfying snap.",
                 "close_action_description": null,
                 "open_exit_direction": null,
-                "open_exit_destination": null,
-                "climb_directions": [],
+                "open_exit_type": null,
                 "special_handlers": {
                     "open": "open_bean"
                 }
@@ -83,7 +79,6 @@
                 "name": "broach",
                 "description": "an ornate broach",
                 "handle": "broach",
-                "synonyms": [],
                 "adjectives": [
                     "ornate"
                 ],
@@ -93,14 +88,12 @@
                 "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
                 "close_action_description": null,
                 "open_exit_direction": null,
-                "open_exit_destination": null,
-                "climb_directions": []
+                "open_exit_type": null
             },
             {
                 "name": "carrot",
                 "description": "a cheery orange carrot",
                 "handle": "carrot",
-                "synonyms": [],
                 "adjectives": [
                     "cheery",
                     "orange"
@@ -109,7 +102,6 @@
                 "is_edible": true,
                 "eat_refuse_string": null,
                 "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
-                "climb_directions": [],
                 "can_be_spoken_to": true,
                 "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!"
             },
@@ -117,14 +109,12 @@
                 "name": "fish",
                 "description": "a suspicious looking fish",
                 "handle": "fish",
-                "synonyms": [],
                 "adjectives": [
                     "suspicious-looking"
                 ],
                 "is_edible": true,
                 "eat_refuse_string": null,
                 "eaten_success_string": null,
-                "climb_directions": [],
                 "special_handlers": {
                     "eat": "eat_fish"
                 }
@@ -133,7 +123,6 @@
                 "name": "key",
                 "description": "a small brass key",
                 "handle": "key",
-                "synonyms": [],
                 "adjectives": [
                     "small",
                     "brass"
@@ -142,14 +131,12 @@
                 "is_flamable": false,
                 "is_edible": true,
                 "eat_refuse_string": null,
-                "eaten_success_string": null,
-                "climb_directions": []
+                "eaten_success_string": null
             },
             {
                 "name": "lamp",
                 "description": "a battered and dull brass lamp",
                 "handle": "lamp",
-                "synonyms": [],
                 "adjectives": [
                     "battered",
                     "dull",
@@ -159,7 +146,6 @@
                 "is_rubbable": true,
                 "rubbed_state_description": "a battered and shiny brass lamp.",
                 "rub_success_string": "The lamp grows shiny from rubbing.",
-                "climb_directions": [],
                 "trigger_room": "Blank Chamber",
                 "special_handlers": {
                     "rub": "rub_lamp"
@@ -169,43 +155,36 @@
                 "name": "lighter",
                 "description": "a cheap plastic lighter",
                 "handle": "lighter",
-                "synonyms": [],
                 "adjectives": [
                     "cheap",
                     "plastic"
                 ],
                 "can_ignite": true,
                 "ignite_success_string": "You flick the lighter and a small flame appears.",
-                "is_flamable": false,
-                "climb_directions": []
+                "is_flamable": false
             }
         ]
     },
     "current_room": "Tower Cell",
     "start_room": "Tower Cell",
-    "score": 10,
+    "score": 0,
     "rooms": [
         {
             "name": "Djinni Lair",
             "description": "You shouldn't be here.",
             "handle": "djinni lair",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
+            "exits": {},
             "items": [
                 {
                     "name": "djinni",
                     "description": "an imposing djinni",
                     "handle": "djinni",
-                    "synonyms": [],
                     "adjectives": [
                         "imposing",
                         "tall"
                     ],
                     "is_takeable": false,
-                    "get_refuse_string": "The 10 foot tall djinni glares at you.",
-                    "climb_directions": [],
+                    "take_refuse_string": "The 10 foot tall djinni glares at you.",
                     "can_be_spoken_to": true,
                     "speak_string": null,
                     "special_handlers": {
@@ -219,56 +198,78 @@
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder along the wall hums with soft blue light and leads up into the cloudy distance.",
             "handle": "tower cell",
-            "found": false,
-            "is_dark": false,
             "discover_points": 0,
-            "has_water": false,
-            "up_refuse_string": "You can't walk that way - did you mean to climb the ladder?",
+            "exits": {
+                "climb": {
+                    "up": {
+                        "destination": "Demo Landing",
+                        "go_refuse_string": "You can't walk that direction, did you mean to climb the ladder?"
+                    },
+                    "down": {
+                        "destination": "Blank Chamber",
+                        "refuse_string": "The trapdoor is firmly shut."
+                    }
+                }
+            },
             "items": [
                 {
                     "name": "trapdoor",
                     "description": "a rusty iron trapdoor",
                     "handle": "trapdoor",
-                    "synonyms": [],
                     "adjectives": [
                         "rusty",
                         "iron"
                     ],
                     "is_takeable": false,
                     "is_openable": true,
-                    "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
-                    "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
+                    "is_open": true,
+                    "opened_state_description": "an open trapdoor in the middle of the floor. A slick fireman's pole leads down into darkness.",
+                    "closed_state_description": "a closed, rusty iron trapdoor in the middle of the floor.",
                     "open_action_description": null,
                     "close_action_description": null,
                     "open_exit_direction": "down",
-                    "open_exit_destination": "Blank Chamber",
+                    "open_exit_type": "climb",
                     "is_lockable": true,
+                    "is_locked": false,
                     "unlock_key": "small brass key",
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key.",
-                    "is_flamable": false,
-                    "climb_directions": [],
-                    "is_locked": true
+                    "is_flamable": false
                 },
                 {
                     "name": "ladder",
                     "description": "a magic ladder hums with soft blue light.",
                     "handle": "ladder",
-                    "synonyms": [],
                     "adjectives": [
                         "magic",
                         "glittering",
                         "soft blue"
                     ],
                     "is_takeable": false,
-                    "get_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+                    "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
                     "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
                     "is_climbable": true,
                     "climb_directions": [
                         "up"
                     ],
-                    "is_hidden": true
+                    "is_visible": false
+                },
+                {
+                    "name": "pole",
+                    "description": "a greasy pole.",
+                    "handle": "pole",
+                    "adjectives": [
+                        "greasy"
+                    ],
+                    "is_takeable": false,
+                    "take_refuse_string": "The pole is firmly anchored to the floor and ceiling.",
+                    "examine_string": "a firestation-type pole that is slathered in slippery grease.",
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "down"
+                    ],
+                    "is_visible": false
                 }
             ],
             "containers": [
@@ -276,7 +277,6 @@
                     "name": "bag",
                     "description": "a greasy brown lunch bag",
                     "handle": "bag",
-                    "synonyms": [],
                     "adjectives": [
                         "greasy",
                         "brown"
@@ -288,20 +288,30 @@
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
                     "close_action_description": "You fold the top of the greasy lunch bag shut."
                 }
-            ],
-            "climb_exits": {
-                "up": "Demo Landing"
-            }
+            ]
         },
         {
             "name": "Blank Chamber",
-            "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+            "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall. There is a greasy pole leading up to a trapdoor in the ceiling.",
             "handle": "blank chamber",
-            "found": false,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
-            "discover_points": 10,
-            "has_water": false,
+            "exits": {
+                "go": {
+                    "west": {
+                        "destination": "Colossal Cave",
+                        "is_visible": false,
+                        "is_passable": false,
+                        "refuse_string": "You can't travel west here"
+                    }
+                },
+                "climb": {
+                    "up": {
+                        "destination": "Tower Cell",
+                        "refuse_string": "The pole is extremely slippery and cannot be climbed."
+                    }
+                }
+            },
             "features": [
                 {
                     "name": "mural",
@@ -311,9 +321,7 @@
                         "djinni mural",
                         "wall mural",
                         "painting"
-                    ],
-                    "adjectives": [],
-                    "found": false
+                    ]
                 }
             ]
         },
@@ -321,11 +329,21 @@
             "name": "Colossal Cave",
             "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west - you can just make out a narrow ledge on the other side.",
             "handle": "colossal cave",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
             "has_water": true,
-            "west_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side.",
+            "exits": {
+                "go": {
+                    "east": {
+                        "destination": "Blank Chamber"
+                    }
+                },
+                "swim": {
+                    "west": {
+                        "destination": "Pool Ledge",
+                        "is_visible": false,
+                        "go_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+                    }
+                }
+            },
             "items": [
                 {
                     "name": "gold",
@@ -341,39 +359,43 @@
                         "solid"
                     ],
                     "is_flamable": false,
-                    "climb_directions": [],
                     "too_heavy_to_swim": true
                 }
-            ],
-            "go_exits": {
-                "east": "Blank Chamber"
-            },
-            "swim_exits": {
-                "west": "Pool Ledge"
-            }
+            ]
         },
         {
             "name": "Pool Ledge",
             "description": "on a narrow ledge across the pool.",
             "handle": "pool ledge",
-            "found": false,
             "is_dark": true,
             "dark_description": "It is pitch dark. You can't see anything.",
-            "discover_points": 10,
             "has_water": true,
-            "east_refuse_string": "There is a large pool of water blocking your way east, although you do see solid ground on the other side.",
+            "exits": {
+                "go": {
+                    "west": {
+                        "destination": "Narnia",
+                        "is_visible": false,
+                        "is_passable": false,
+                        "refuse_string": "You can't travel west here"
+                    }
+                },
+                "swim": {
+                    "east": {
+                        "destination": "Colossal Cave",
+                        "go_refuse_string": "There is a large pool of water blocking your way east, although you do see solid ground on the other side."
+                    }
+                }
+            },
             "items": [
                 {
                     "name": "lantern",
                     "description": "a lit silver lantern",
                     "handle": "lantern",
-                    "synonyms": [],
                     "adjectives": [
                         "silver"
                     ],
-                    "is_flamable": false,
-                    "climb_directions": [],
-                    "is_lit": true
+                    "is_lit": true,
+                    "is_flamable": false
                 }
             ],
             "containers": [
@@ -381,77 +403,79 @@
                     "name": "wardrobe",
                     "description": "a large wooden wardrobe",
                     "handle": "wardrobe",
-                    "synonyms": [],
-                    "adjectives": [],
                     "is_openable": true,
                     "is_open": false,
                     "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
                     "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
                     "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
                     "close_action_description": "You push the wardrobe doors shut.",
-                    "open_exit_direction": "west",
-                    "open_exit_destination": "Narnia",
                     "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable."
                 }
-            ],
-            "swim_exits": {
-                "east": "Colossal Cave"
-            }
+            ]
         },
         {
             "name": "Narnia",
             "description": "in a silent snowy wood lit by old lamppost light and drifting snow.",
             "handle": "narnia",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false
+            "exits": {}
         },
         {
             "name": "Demo Landing",
             "description": "in Demo Land on a floating stone platform. A ladder opening leads down into the tower cell below.",
             "handle": "demo landing",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
+            "exits": {
+                "go": {
+                    "down": {
+                        "destination": "Tower Cell"
+                    },
+                    "north": {
+                        "destination": "Clockwork Court"
+                    },
+                    "east": {
+                        "destination": "Whispering Grove"
+                    },
+                    "west": {
+                        "destination": "Mirror Hall"
+                    },
+                    "south": {
+                        "destination": "Ravine Edge"
+                    }
+                }
+            },
             "items": [
                 {
                     "name": "apple",
                     "description": "a bright red apple",
                     "handle": "apple",
-                    "synonyms": [],
-                    "adjectives": [],
                     "is_edible": true,
                     "eat_refuse_string": null,
-                    "eaten_success_string": null,
-                    "climb_directions": []
+                    "eaten_success_string": null
                 }
-            ],
-            "go_exits": {
-                "down": "Tower Cell",
-                "north": "Clockwork Court",
-                "east": "Whispering Grove",
-                "west": "Mirror Hall",
-                "south": "Ravine Edge"
-            }
+            ]
         },
         {
             "name": "Ravine Edge",
             "description": "at the edge of a steep ravine. A narrow stream glitters faintly at the bottom.",
             "handle": "ravine edge",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
-            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
-            "down_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": "Demo Landing"
+                    }
+                },
+                "climb": {
+                    "down": {
+                        "destination": "Clover Rest",
+                        "refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+                        "go_refuse_string": "You can't go that way - there's a sheer cliff you need to scale."
+                    }
+                }
+            },
             "items": [
                 {
                     "name": "rope",
                     "description": "a sturdy length of rope",
                     "handle": "rope",
-                    "synonyms": [],
                     "adjectives": [
                         "sturdy",
                         "coiled"
@@ -465,15 +489,13 @@
                     "name": "hook",
                     "description": "an iron hook firmly anchored into the rock at the ravine's edge",
                     "handle": "hook",
-                    "synonyms": [],
                     "adjectives": [
                         "iron",
                         "anchored"
                     ],
                     "is_takeable": false,
                     "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
-                    "can_be_tied_to": true,
-                    "climb_directions": []
+                    "can_be_tied_to": true
                 }
             ],
             "features": [
@@ -488,129 +510,123 @@
                     "adjectives": [
                         "steep",
                         "sheer"
-                    ],
-                    "found": false
+                    ]
                 },
                 {
                     "name": "stream",
                     "description": "a narrow ribbon of water glinting far below",
                     "handle": "stream",
-                    "synonyms": [],
                     "adjectives": [
                         "narrow",
                         "glinting"
-                    ],
-                    "found": false
+                    ]
                 }
-            ],
-            "go_exits": {
-                "north": "Demo Landing"
-            },
-            "climb_exits": {
-                "down": "Clover Rest"
-            }
+            ]
         },
         {
             "name": "Clover Rest",
             "description": "beside a pleasant stream that winds gently through a bed of soft clover. Sunlight filters down the ravine walls in shifting ribbons, and the air is cool and peaceful.",
             "handle": "clover rest",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
             "has_water": true,
-            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
-            "up_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
+            "exits": {
+                "climb": {
+                    "up": {
+                        "destination": "Ravine Edge",
+                        "refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+                        "go_refuse_string": "You can't go that way - there's a sheer cliff you need to scale."
+                    }
+                }
+            },
             "features": [
                 {
                     "name": "stream",
                     "description": "a clear, gentle stream flowing over smooth stones",
                     "handle": "stream",
-                    "synonyms": [],
                     "adjectives": [
                         "clear",
                         "gentle",
                         "flowing"
-                    ],
-                    "found": false
+                    ]
                 },
                 {
                     "name": "clover",
                     "description": "a thick bed of soft green clover that looks surprisingly comfortable",
                     "handle": "clover",
-                    "synonyms": [],
                     "adjectives": [
                         "soft",
                         "green"
-                    ],
-                    "found": false
+                    ]
                 },
                 {
                     "name": "ravine walls",
                     "description": "tall stone walls rising steeply above you, too narrow to climb without help",
                     "handle": "ravine walls",
-                    "synonyms": [],
                     "adjectives": [
                         "tall",
                         "steep",
                         "narrow"
-                    ],
-                    "found": false
+                    ]
                 }
-            ],
-            "climb_exits": {
-                "up": "Ravine Edge"
-            }
+            ]
         },
         {
             "name": "Whispering Grove",
             "description": "in a grove where tall silver trees lean close and seem to murmur old secrets whenever the wind shifts.",
             "handle": "whispering grove",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
-            "go_exits": {
-                "west": "Demo Landing",
-                "north": "Lantern Overlook"
+            "exits": {
+                "go": {
+                    "west": {
+                        "destination": "Demo Landing"
+                    },
+                    "north": {
+                        "destination": "Lantern Overlook"
+                    }
+                }
             }
         },
         {
             "name": "Mirror Hall",
             "description": "in a long hall of black glass reflects scenes that do not quite match your movements.",
             "handle": "mirror hall",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
-            "go_exits": {
-                "east": "Demo Landing",
-                "north": "Lantern Overlook"
+            "exits": {
+                "go": {
+                    "east": {
+                        "destination": "Demo Landing"
+                    },
+                    "north": {
+                        "destination": "Lantern Overlook"
+                    }
+                }
             }
         },
         {
             "name": "Clockwork Court",
             "description": "in a court where bronze gears turn beneath crystal floor panels, ticking in perfect rhythm with distant bells.",
             "handle": "clockwork court",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
-            "go_exits": {
-                "south": "Demo Landing",
-                "east": "Lantern Overlook"
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "Demo Landing"
+                    },
+                    "east": {
+                        "destination": "Lantern Overlook"
+                    }
+                }
             }
         },
         {
             "name": "Lantern Overlook",
             "description": "in a place where hundreds of hanging lanterns drift over a sheer drop, painting moving constellations in the mist.",
             "handle": "lantern overlook",
-            "found": false,
-            "is_dark": false,
-            "discover_points": 10,
-            "has_water": false,
-            "go_exits": {
-                "south": "Clockwork Court",
-                "west": "Whispering Grove"
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "Clockwork Court"
+                    },
+                    "west": {
+                        "destination": "Whispering Grove"
+                    }
+                }
             }
         }
     ]

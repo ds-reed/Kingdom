@@ -69,7 +69,7 @@ def take(
 
         # 3. Not gettable / special refusal?
         if not getattr(item, "is_takeable", True) or isinstance(item, Box):
-            refuse = getattr(item, "get_refuse_string", None) or f"You can't take {item.display_name()}."
+            refuse = getattr(item, "take_refuse_string", None) or f"You can't take {item.display_name()}."
             messages.append(refuse)
             continue
 

@@ -196,9 +196,13 @@ def lex() -> Lexicon:
     # -----------------------------
 
     preposition_entries = {
+        "in": PrepositionEntry(
+            canonical="in",
+            synonyms=["inside", "within"],
+        ),
         "into": PrepositionEntry(
             canonical="into",
-            synonyms=["in", "inside", "within"],
+            synonyms=["in to"],
         ),
         "onto": PrepositionEntry(
             canonical="onto",

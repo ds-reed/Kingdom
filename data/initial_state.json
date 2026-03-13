@@ -21,7 +21,7 @@
           "adjectives": ["imposing", "tall"],
           "is_takeable": false,
           "can_be_spoken_to": true,
-          "get_refuse_string": "The 10 foot tall djinni glares at you.",
+          "take_refuse_string": "The 10 foot tall djinni glares at you.",
           "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
         }
       ],
@@ -75,10 +75,10 @@
           "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
           "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
           "unlockable_description": "The trapdoor is locked and you need a key.",
-          "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
-          "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
+          "closed_state_description": "a closed, rusty iron trapdoor in the middle of the floor.",
+          "opened_state_description": "an open trapdoor in the middle of the floor. A slick fireman's pole leads down into darkness.",
           "open_exit_direction": "down",
-          "open_exit_destination": "Blank Chamber"
+          "open_exit_type": "climb"
         },
         {
           "name": "ladder",
@@ -86,11 +86,22 @@
           "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
           "adjectives": ["magic", "glittering", "soft blue"],
           "is_takeable": false,
-          "get_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
           "is_climbable": true,
           "climb_directions": ["up"],
-          "is_hidden": true
-        }
+          "is_visible": false
+        },
+        {
+          "name": "pole",
+          "description": "a greasy pole.",
+          "examine_string": "a firestation-type pole that is slathered in slippery grease.",
+          "adjectives": ["greasy"],
+          "is_takeable": false,
+          "take_refuse_string": "The pole is firmly anchored to the floor and ceiling.",
+          "is_climbable": true,
+          "climb_directions": ["down"],
+          "is_visible": false
+        }    
       ],
       "containers": [
         {
@@ -154,29 +165,29 @@
         }
       ],
       "exits": {
-        "go": {
+        "climb": {
+          "up": {
+            "destination": "Demo Landing",
+            "go_refuse_string": "You can't walk that direction, did you mean to climb the ladder?"
+          },
           "down": {
             "destination": "Blank Chamber",
             "is_visible": false,
             "is_passable": false,
             "refuse_string": "The trapdoor is firmly shut."
           }
-        },
-        "climb": {
-          "up": {
-            "destination": "Demo Landing",
-            "go_refuse_string": "You can't walk that direction, did you mean to climb the ladder?"
-          }
         }
       }
     },
     {
       "name": "Blank Chamber",
-      "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+      "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall. There is a greasy pole leading up to a trapdoor in the ceiling.",
       "discover_points": 10,
       "is_dark": true,
       "dark_description": "It is pitch dark. You can't see anything.",
-      "items": [],
+      "items": [
+    
+      ],
       "features": [
         {
           "name": "mural",
@@ -187,11 +198,19 @@
       "containers": [],
       "exits": {
           "go": {
-            "up": {
-              "destination": "Tower Cell",
+            "west": {
+              "destination": "Colossal Cave",
               "is_visible": false,
               "is_passable": false,
-              "refuse_string": "The trapdoor is firmly shut."
+              "refuse_string": "You can't travel west here"
+            }
+          },
+          "climb": {
+            "up": {
+              "destination": "Tower Cell",
+              "is_visible": true,
+              "is_passable": false,
+              "refuse_string": "The pole is extremely slippery and cannot be climbed."
             }
 
           }
@@ -222,7 +241,7 @@
         "swim": {
           "west": {
             "destination": "Pool Ledge",
-            "visible": false,
+            "is_visible": false,
             "go_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
           }
         }
