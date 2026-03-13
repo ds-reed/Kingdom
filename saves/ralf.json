@@ -39,11 +39,151 @@
     },
     "player": {
         "name": "ralf",
-        "inventory": []
+        "inventory": [
+            {
+                "name": "torch",
+                "description": "an old wooden torch",
+                "handle": "torch",
+                "synonyms": [],
+                "adjectives": [
+                    "old",
+                    "wooden"
+                ],
+                "is_lightable": true,
+                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+                "unlit_state_description": null,
+                "climb_directions": [],
+                "special_handlers": {
+                    "drop": "drop_torch"
+                },
+                "is_lit": true
+            },
+            {
+                "name": "bean",
+                "description": "a single shiny bean",
+                "handle": "bean",
+                "synonyms": [],
+                "adjectives": [
+                    "single",
+                    "shiny"
+                ],
+                "is_openable": true,
+                "opened_state_description": null,
+                "closed_state_description": null,
+                "open_action_description": "You crack open the bean with a satisfying snap.",
+                "close_action_description": null,
+                "open_exit_direction": null,
+                "open_exit_destination": null,
+                "climb_directions": [],
+                "special_handlers": {
+                    "open": "open_bean"
+                }
+            },
+            {
+                "name": "broach",
+                "description": "an ornate broach",
+                "handle": "broach",
+                "synonyms": [],
+                "adjectives": [
+                    "ornate"
+                ],
+                "is_openable": true,
+                "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
+                "closed_state_description": "an ornate broach with a tightly-closed clasp.",
+                "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
+                "close_action_description": null,
+                "open_exit_direction": null,
+                "open_exit_destination": null,
+                "climb_directions": []
+            },
+            {
+                "name": "carrot",
+                "description": "a cheery orange carrot",
+                "handle": "carrot",
+                "synonyms": [],
+                "adjectives": [
+                    "cheery",
+                    "orange"
+                ],
+                "examine_string": "The carrot cheerfully waves hello!",
+                "is_edible": true,
+                "eat_refuse_string": null,
+                "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
+                "climb_directions": [],
+                "can_be_spoken_to": true,
+                "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!"
+            },
+            {
+                "name": "fish",
+                "description": "a suspicious looking fish",
+                "handle": "fish",
+                "synonyms": [],
+                "adjectives": [
+                    "suspicious-looking"
+                ],
+                "is_edible": true,
+                "eat_refuse_string": null,
+                "eaten_success_string": null,
+                "climb_directions": [],
+                "special_handlers": {
+                    "eat": "eat_fish"
+                }
+            },
+            {
+                "name": "key",
+                "description": "a small brass key",
+                "handle": "key",
+                "synonyms": [],
+                "adjectives": [
+                    "small",
+                    "brass"
+                ],
+                "unlock_key": "small brass key",
+                "is_flamable": false,
+                "is_edible": true,
+                "eat_refuse_string": null,
+                "eaten_success_string": null,
+                "climb_directions": []
+            },
+            {
+                "name": "lamp",
+                "description": "a battered and dull brass lamp",
+                "handle": "lamp",
+                "synonyms": [],
+                "adjectives": [
+                    "battered",
+                    "dull",
+                    "brass"
+                ],
+                "is_flamable": false,
+                "is_rubbable": true,
+                "rubbed_state_description": "a battered and shiny brass lamp.",
+                "rub_success_string": "The lamp grows shiny from rubbing.",
+                "climb_directions": [],
+                "trigger_room": "Blank Chamber",
+                "special_handlers": {
+                    "rub": "rub_lamp"
+                }
+            },
+            {
+                "name": "lighter",
+                "description": "a cheap plastic lighter",
+                "handle": "lighter",
+                "synonyms": [],
+                "adjectives": [
+                    "cheap",
+                    "plastic"
+                ],
+                "can_ignite": true,
+                "ignite_success_string": "You flick the lighter and a small flame appears.",
+                "is_flamable": false,
+                "climb_directions": []
+            }
+        ]
     },
     "current_room": "Tower Cell",
     "start_room": "Tower Cell",
-    "score": 0,
+    "score": 10,
     "rooms": [
         {
             "name": "Djinni Lair",
@@ -53,7 +193,6 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "djinni",
@@ -66,16 +205,9 @@
                     ],
                     "is_takeable": false,
                     "get_refuse_string": "The 10 foot tall djinni glares at you.",
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
+                    "climb_directions": [],
                     "can_be_spoken_to": true,
+                    "speak_string": null,
                     "special_handlers": {
                         "say": "speak_djinni",
                         "make": "make_djinni"
@@ -85,81 +217,14 @@
         },
         {
             "name": "Tower Cell",
-            "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder hums with soft blue light.",
+            "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder along the wall hums with soft blue light and leads up into the cloudy distance.",
             "handle": "tower cell",
             "found": false,
             "is_dark": false,
             "discover_points": 0,
             "has_water": false,
-            "has_climbable_direction": false,
+            "up_refuse_string": "You can't walk that way - did you mean to climb the ladder?",
             "items": [
-                {
-                    "name": "torch",
-                    "description": "an old wooden torch",
-                    "handle": "torch",
-                    "synonyms": [],
-                    "adjectives": [],
-                    "is_takeable": true,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": true,
-                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
-                },
-                {
-                    "name": "bean",
-                    "description": "a single shiny bean",
-                    "handle": "bean",
-                    "synonyms": [],
-                    "adjectives": [
-                        "single",
-                        "shiny"
-                    ],
-                    "is_takeable": true,
-                    "is_openable": true,
-                    "open_action_description": "You crack open the bean with a satisfying snap.",
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false,
-                    "special_handlers": {
-                        "open": "open_bean"
-                    }
-                },
-                {
-                    "name": "broach",
-                    "description": "an ornate broach",
-                    "handle": "broach",
-                    "synonyms": [],
-                    "adjectives": [
-                        "ornate"
-                    ],
-                    "is_takeable": true,
-                    "is_openable": true,
-                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
-                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
-                },
                 {
                     "name": "trapdoor",
                     "description": "a rusty iron trapdoor",
@@ -173,6 +238,8 @@
                     "is_openable": true,
                     "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
                     "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
+                    "open_action_description": null,
+                    "close_action_description": null,
                     "open_exit_direction": "down",
                     "open_exit_destination": "Blank Chamber",
                     "is_lockable": true,
@@ -180,14 +247,28 @@
                     "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
                     "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
                     "unlockable_description": "The trapdoor is locked and you need a key.",
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
+                    "is_flamable": false,
+                    "climb_directions": [],
+                    "is_locked": true
+                },
+                {
+                    "name": "ladder",
+                    "description": "a magic ladder hums with soft blue light.",
+                    "handle": "ladder",
+                    "synonyms": [],
+                    "adjectives": [
+                        "magic",
+                        "glittering",
+                        "soft blue"
+                    ],
+                    "is_takeable": false,
+                    "get_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+                    "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "up"
+                    ],
+                    "is_hidden": true
                 }
             ],
             "containers": [
@@ -201,147 +282,14 @@
                         "brown"
                     ],
                     "is_openable": true,
-                    "is_open": false,
+                    "is_open": true,
                     "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
                     "closed_state_description": "a greasy brown lunch bag with its top folded shut.",
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
-                    "close_action_description": "You fold the top of the greasy lunch bag shut.",
-                    "items": [
-                        {
-                            "name": "carrot",
-                            "description": "a cheery orange carrot",
-                            "handle": "carrot",
-                            "synonyms": [],
-                            "adjectives": [
-                                "cheery",
-                                "orange"
-                            ],
-                            "is_takeable": true,
-                            "is_openable": false,
-                            "is_lockable": false,
-                            "is_lightable": false,
-                            "can_ignite": false,
-                            "is_rubbable": false,
-                            "is_edible": true,
-                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
-                            "is_tieable": false,
-                            "can_be_tied_to": false,
-                            "too_heavy_to_swim": false,
-                            "can_be_spoken_to": false
-                        },
-                        {
-                            "name": "fish",
-                            "description": "a suspicious looking fish",
-                            "handle": "fish",
-                            "synonyms": [],
-                            "adjectives": [
-                                "suspicious-looking"
-                            ],
-                            "is_takeable": true,
-                            "is_openable": false,
-                            "is_lockable": false,
-                            "is_lightable": false,
-                            "can_ignite": false,
-                            "is_rubbable": false,
-                            "is_edible": true,
-                            "is_tieable": false,
-                            "can_be_tied_to": false,
-                            "too_heavy_to_swim": false,
-                            "can_be_spoken_to": false,
-                            "special_handlers": {
-                                "eat": "eat_fish"
-                            }
-                        },
-                        {
-                            "name": "key",
-                            "description": "a small brass key",
-                            "handle": "key",
-                            "synonyms": [],
-                            "adjectives": [
-                                "small",
-                                "brass"
-                            ],
-                            "is_takeable": true,
-                            "is_openable": false,
-                            "is_lockable": false,
-                            "unlock_key": "small brass key",
-                            "is_lightable": false,
-                            "can_ignite": false,
-                            "is_rubbable": false,
-                            "is_edible": false,
-                            "is_tieable": false,
-                            "can_be_tied_to": false,
-                            "too_heavy_to_swim": false,
-                            "can_be_spoken_to": false
-                        },
-                        {
-                            "name": "lamp",
-                            "description": "a battered and dull brass lamp",
-                            "handle": "lamp",
-                            "synonyms": [],
-                            "adjectives": [
-                                "battered",
-                                "dull",
-                                "brass"
-                            ],
-                            "is_takeable": true,
-                            "is_openable": false,
-                            "is_lockable": false,
-                            "is_lightable": false,
-                            "can_ignite": false,
-                            "is_rubbable": true,
-                            "rubbed_state_description": "a battered and shiny brass lamp.",
-                            "rub_success_string": "The lamp grows shiny from rubbing.",
-                            "is_edible": false,
-                            "is_tieable": false,
-                            "can_be_tied_to": false,
-                            "too_heavy_to_swim": false,
-                            "can_be_spoken_to": false,
-                            "trigger_room": "Blank Chamber",
-                            "special_handlers": {
-                                "rub": "rub_lamp"
-                            }
-                        },
-                        {
-                            "name": "lighter",
-                            "description": "a cheap plastic lighter",
-                            "handle": "lighter",
-                            "synonyms": [],
-                            "adjectives": [
-                                "cheap",
-                                "plastic"
-                            ],
-                            "is_takeable": true,
-                            "is_openable": false,
-                            "is_lockable": false,
-                            "is_lightable": false,
-                            "can_ignite": true,
-                            "ignite_success_string": "You flick the lighter and a small flame appears.",
-                            "is_rubbable": false,
-                            "is_edible": false,
-                            "is_tieable": false,
-                            "can_be_tied_to": false,
-                            "too_heavy_to_swim": false,
-                            "can_be_spoken_to": false
-                        }
-                    ]
+                    "close_action_description": "You fold the top of the greasy lunch bag shut."
                 }
             ],
-            "features": [
-                {
-                    "name": "ladder",
-                    "description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
-                    "handle": "ladder",
-                    "synonyms": [],
-                    "adjectives": [
-                        "magic",
-                        "glittering",
-                        "soft blue"
-                    ],
-                    "found": false
-                }
-            ],
-            "connections": {
+            "climb_exits": {
                 "up": "Demo Landing"
             }
         },
@@ -354,7 +302,6 @@
             "dark_description": "It is pitch dark. You can't see anything.",
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
             "features": [
                 {
                     "name": "mural",
@@ -372,13 +319,13 @@
         },
         {
             "name": "Colossal Cave",
-            "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the east.",
+            "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west - you can just make out a narrow ledge on the other side.",
             "handle": "colossal cave",
             "found": false,
             "is_dark": false,
             "discover_points": 10,
             "has_water": true,
-            "has_climbable_direction": false,
+            "west_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side.",
             "items": [
                 {
                     "name": "gold",
@@ -393,20 +340,12 @@
                         "heavy",
                         "solid"
                     ],
-                    "is_takeable": true,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": true,
-                    "can_be_spoken_to": false
+                    "is_flamable": false,
+                    "climb_directions": [],
+                    "too_heavy_to_swim": true
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "east": "Blank Chamber"
             },
             "swim_exits": {
@@ -422,7 +361,7 @@
             "dark_description": "It is pitch dark. You can't see anything.",
             "discover_points": 10,
             "has_water": true,
-            "has_climbable_direction": false,
+            "east_refuse_string": "There is a large pool of water blocking your way east, although you do see solid ground on the other side.",
             "items": [
                 {
                     "name": "lantern",
@@ -432,17 +371,9 @@
                     "adjectives": [
                         "silver"
                     ],
-                    "is_takeable": true,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
+                    "is_flamable": false,
+                    "climb_directions": [],
+                    "is_lit": true
                 }
             ],
             "containers": [
@@ -474,8 +405,7 @@
             "found": false,
             "is_dark": false,
             "discover_points": 10,
-            "has_water": false,
-            "has_climbable_direction": false
+            "has_water": false
         },
         {
             "name": "Demo Landing",
@@ -485,7 +415,6 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
             "items": [
                 {
                     "name": "apple",
@@ -493,20 +422,13 @@
                     "handle": "apple",
                     "synonyms": [],
                     "adjectives": [],
-                    "is_takeable": true,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
                     "is_edible": true,
-                    "is_tieable": false,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
+                    "eat_refuse_string": null,
+                    "eaten_success_string": null,
+                    "climb_directions": []
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "down": "Tower Cell",
                 "north": "Clockwork Court",
                 "east": "Whispering Grove",
@@ -522,7 +444,8 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": true,
+            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "down_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "items": [
                 {
                     "name": "rope",
@@ -533,17 +456,10 @@
                         "sturdy",
                         "coiled"
                     ],
-                    "is_takeable": true,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
                     "is_tieable": true,
-                    "can_be_tied_to": false,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
+                    "climb_directions": [
+                        "down"
+                    ]
                 },
                 {
                     "name": "hook",
@@ -555,16 +471,9 @@
                         "anchored"
                     ],
                     "is_takeable": false,
-                    "is_openable": false,
-                    "is_lockable": false,
-                    "is_lightable": false,
-                    "can_ignite": false,
-                    "is_rubbable": false,
-                    "is_edible": false,
-                    "is_tieable": false,
+                    "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
                     "can_be_tied_to": true,
-                    "too_heavy_to_swim": false,
-                    "can_be_spoken_to": false
+                    "climb_directions": []
                 }
             ],
             "features": [
@@ -594,7 +503,7 @@
                     "found": false
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "north": "Demo Landing"
             },
             "climb_exits": {
@@ -609,7 +518,8 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": true,
-            "has_climbable_direction": true,
+            "climb_refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "up_refuse_string": "You can't go that way - there's a sheer cliff you need to scale.",
             "features": [
                 {
                     "name": "stream",
@@ -659,8 +569,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
-            "connections": {
+            "go_exits": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
             }
@@ -673,8 +582,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
-            "connections": {
+            "go_exits": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
             }
@@ -687,8 +595,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
-            "connections": {
+            "go_exits": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
             }
@@ -701,8 +608,7 @@
             "is_dark": false,
             "discover_points": 10,
             "has_water": false,
-            "has_climbable_direction": false,
-            "connections": {
+            "go_exits": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"
             }

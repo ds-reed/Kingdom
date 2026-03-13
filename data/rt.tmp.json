@@ -78,10 +78,10 @@
             ],
             "containers": [],
             "features": [],
-            "connections": {},
+            "go_exits": {},
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Tower Cell",
@@ -261,12 +261,12 @@
                     "found": false
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "up": "Demo Landing"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Blank Chamber",
@@ -296,10 +296,10 @@
                     "found": false
                 }
             ],
-            "connections": {},
+            "go_exits": {},
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Colossal Cave",
@@ -332,14 +332,14 @@
             ],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "east": "Blank Chamber"
             },
             "swim_exits": {
                 "west": "Pool Ledge"
             },
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Pool Ledge",
@@ -384,12 +384,12 @@
                 }
             ],
             "features": [],
-            "connections": {},
+            "go_exits": {},
             "swim_exits": {
                 "east": "Colossal Cave"
             },
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Narnia",
@@ -406,10 +406,10 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {},
+            "go_exits": {},
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Demo Landing",
@@ -435,7 +435,7 @@
             ],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "down": "Tower Cell",
                 "north": "Clockwork Court",
                 "east": "Whispering Grove",
@@ -444,7 +444,7 @@
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Ravine Edge",
@@ -511,14 +511,14 @@
                     "found": false
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "north": "Demo Landing"
             },
             "swim_exits": {},
             "climb_exits": {
                 "down": "Clover Rest"
             },
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Clover Rest",
@@ -571,12 +571,12 @@
                     "found": false
                 }
             ],
-            "connections": {
+            "go_exits": {
                 "up": "Ravine Edge"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Whispering Grove",
@@ -593,13 +593,13 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "west": "Demo Landing",
                 "north": "Lantern Overlook"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Mirror Hall",
@@ -616,13 +616,13 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "east": "Demo Landing",
                 "north": "Lantern Overlook"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Clockwork Court",
@@ -639,13 +639,13 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "south": "Demo Landing",
                 "east": "Lantern Overlook"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "Lantern Overlook",
@@ -662,13 +662,13 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "south": "Clockwork Court",
                 "west": "Whispering Grove"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         },
         {
             "name": "__roundtrip_room__",
@@ -686,12 +686,12 @@
             "items": [],
             "containers": [],
             "features": [],
-            "connections": {
+            "go_exits": {
                 "west": "Djinni Lair"
             },
             "swim_exits": {},
             "climb_exits": {},
-            "hidden_directions": []
+            "hidden_exits": []
         }
     ]
 }

@@ -233,21 +233,12 @@ def _construct_feature_from_spec(spec):
 
 def _construct_rooms(data):
     rooms = []
-    pending_connections = []
 
     # Phase 1: Construct all rooms
     for entry in data:
         room = construct_from_spec(entry, Room)
         rooms.append(room)
 
-        # Save connection info for later
-        pending_connections.append((
-            room,
-            entry.get("connections", {}),
-            entry.get("hidden_directions", entry.get("hidden_exits", [])),
-            entry.get("swim_exits", {}),
-            entry.get("climb_exits", {})
-        ))
 
     # Phase 2: Populate rooms
     for entry, room in zip(data, rooms):
@@ -263,55 +254,28 @@ def _construct_rooms(data):
         for feature_data in entry.get("features", []):
             room.add_feature(_construct_feature_from_spec(feature_data))
 
-    # Phase 3: Resolve connections
+
+    # Phase 3: Resolve unified exits
     room_by_name = {room.name: room for room in rooms}
 
-    for room, raw_connections, hidden_exits, swim_exits, climb_exits in pending_connections:
-        _resolve_standard_connections(room, raw_connections, room_by_name)
-        _resolve_hidden_exits(room, hidden_exits)
-        _resolve_special_exits(room, swim_exits, climb_exits, room_by_name)
+    for entry, room in zip(data, rooms):
+        exits_block = entry.get("exits", {})
+        _resolve_unified_exits(room, exits_block, room_by_name)
 
     return rooms
 
-def _resolve_standard_connections(room, raw_connections, room_by_name):
-    if isinstance(raw_connections, dict):
-        for direction, dest in raw_connections.items():
-            visible = True
-            target = dest
-            if isinstance(dest, dict):
-                target = dest.get("room")
-                visible = bool(dest.get("visible", True))
-            if target in room_by_name:
-                room.connect_room(direction, room_by_name[target], visible=visible)
+def _resolve_unified_exits(room, exits_block, room_by_name):
+    for movement_type, movement_dict in exits_block.items():
+        for direction, exit_obj in movement_dict.items():
+            dest_name = exit_obj.get("destination")
+            dest_room = room_by_name.get(dest_name) if dest_name else None
 
-    elif isinstance(raw_connections, list):
-        for conn in raw_connections:
-            if isinstance(conn, dict):
-                direction = conn.get("direction")
-                target = conn.get("room")
-                visible = bool(conn.get("visible", True))
-                if direction and target in room_by_name:
-                    room.connect_room(direction, room_by_name[target], visible=visible)
-            elif isinstance(conn, str):
-                if conn in room_by_name:
-                    room.connect_room(conn, room_by_name[conn])
-
-def _resolve_hidden_exits(room, hidden_exits):
-    if isinstance(hidden_exits, list):
-        for direction in hidden_exits:
-            if isinstance(direction, str):
-                room.set_exit_visibility(direction, visible=False)
-
-def _resolve_special_exits(room, swim_exits, climb_exits, room_by_name):
-    room.swim_exits = {
-        direction: room_by_name[name]
-        for direction, name in swim_exits.items()
-        if name in room_by_name
-    }
-
-    room.climb_exits = {
-        direction: room_by_name[name]
-        for direction, name in climb_exits.items()
-        if name in room_by_name
-    }
+            room.add_exit(
+                movement_type=movement_type,
+                direction=direction,
+                destination=dest_room,
+                visible=exit_obj.get("visible", True),
+                refuse_string=exit_obj.get("refuse_string"),
+                go_refuse_string=exit_obj.get("go_refuse_string")
+            )
 

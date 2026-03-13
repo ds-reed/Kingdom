@@ -289,13 +289,13 @@ def _djinni_scripted_action(item, verb, words):
     # ------------------------------------------------------------
     # 1. Add a west exit (Room object, not string)
     # ------------------------------------------------------------
-    if "west" not in room.connections:
+    if "west" not in room.go_exits:
         dest_name = getattr(item, "wish_exit_destination", "Colossal Cave")
         destination = world.rooms.get(dest_name) if world else None
         if destination is None:
             print(f"DEBUG: Could not find destination room '{dest_name}'")
         else:
-            room.connections["west"] = destination
+            room.go_exits["west"] = destination
 
     # ------------------------------------------------------------
     # 2. Remove the Djinni from the current room

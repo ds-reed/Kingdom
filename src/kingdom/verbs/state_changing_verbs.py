@@ -116,9 +116,9 @@ class ChangeStateVerbHandler(VerbHandler):
             destination_room = world.rooms.get(destination)
 
             if room and destination_room:
-                room.connections[direction] = destination_room
+                room.go_exits[direction] = destination_room
                 reverse = self.get_reverse_of(direction)
-                destination_room.connections[reverse] = room
+                destination_room.go_exits[reverse] = room
 
                 side_effect_msg = f"You notice a passage leading {direction}."
 
@@ -209,10 +209,10 @@ class ChangeStateVerbHandler(VerbHandler):
             destination_room = world.rooms.get(destination)
 
             if room and destination_room:
-                room.connections.pop(direction, None)   # should use room_remove_exit function when we have it
+                room.go_exits.pop(direction, None)   # should use room_remove_exit function when we have it
 
                 reverse = self.get_reverse_of(direction)
-                destination_room.connections.pop(reverse, None)   # should use room_remove_exit function when we have it
+                destination_room.go_exits.pop(reverse, None)   # should use room_remove_exit function when we have it
 
                 side_effect_msg = f"You seal off the passage leading {direction}."
 

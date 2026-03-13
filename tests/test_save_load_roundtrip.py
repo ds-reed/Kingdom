@@ -128,8 +128,8 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         found=True,
         discover_points=77,
     )
-    sentinel_room.connections["west"] = anchor
-    sentinel_room.hidden_directions.add("west")
+    sentinel_room.go_exits["west"] = anchor
+    sentinel_room.hidden_exits.add("west")
     sentinel_room.swim_exits["east"] = anchor
     sentinel_room.climb_exits["down"] = anchor
     game.rooms[sentinel_room.name] = sentinel_room
@@ -245,11 +245,11 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     mismatches.extend(_compare_fields("Container", sentinel_container, loaded_container, CONTAINER_FIELDS))
     mismatches.extend(_compare_fields("Item", sentinel_item, loaded_item, ITEM_FIELDS))
 
-    before_connections = {k: v.name for k, v in sentinel_room.connections.items()}
-    after_connections = {k: v.name for k, v in loaded_room.connections.items()}
-    if before_connections != after_connections:
+    before_go_exits = {k: v.name for k, v in sentinel_room.go_exits.items()}
+    after_go_exits = {k: v.name for k, v in loaded_room.go_exits.items()}
+    if before_go_exits != after_go_exits:
         mismatches.append(
-            f"Room.connections: before={before_connections!r} after={after_connections!r}"
+            f"Room.go_exits: before={before_go_exits!r} after={after_go_exits!r}"
         )
 
     before_swim = {k: v.name for k, v in sentinel_room.swim_exits.items()}
@@ -266,11 +266,11 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
             f"Room.climb_exits: before={before_climb!r} after={after_climb!r}"
         )
 
-    if sorted(sentinel_room.hidden_directions) != sorted(loaded_room.hidden_directions):
+    if sorted(sentinel_room.hidden_exits) != sorted(loaded_room.hidden_exits):
         mismatches.append(
-            "Room.hidden_directions: "
-            f"before={sorted(sentinel_room.hidden_directions)!r} "
-            f"after={sorted(loaded_room.hidden_directions)!r}"
+            "Room.hidden_exits: "
+            f"before={sorted(sentinel_room.hidden_exits)!r} "
+            f"after={sorted(loaded_room.hidden_exits)!r}"
         )
 
     assert not mismatches, "save/load roundtrip mismatches detected:\n" + "\n".join(

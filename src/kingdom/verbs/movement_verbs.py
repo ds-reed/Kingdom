@@ -5,6 +5,9 @@ Handlers for verbs related to movement (e.g., GO, CLIMB, SWIM, EXIT, JUMP, RUN, 
 This module centralizes movement verb logic for clarity and maintainability.
 """
 
+import cmd
+from unittest import result
+
 from kingdom.model.noun_model import Noun, Room
 from kingdom.model.game_init import GameOver
 from kingdom.model.verb_model import Verb
@@ -18,32 +21,35 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
-    def perform_movement(self, canonical_direction, exit_dict, verb_phrase, success_verb_phrase):
-        """
-        Shared movement engine.
-
-        exit_dict: dict[str, Room] (e.g., room.connections or room.swim_exits)
-        verb_phrase: str ("go", "swim") for error messages
-        success_verb_phrase: str ("go", "swim") for success messages
-        """
+    def perform_movement(self, movement_type, direction, verb_phrase, success_verb_phrase):
         state = self.state()
         room = self.room()
-    
 
-        next_room = exit_dict.get(canonical_direction)
-        if next_room is None:
+        # 1. Try the correct movement type
+        exit_obj = room.get_exit(movement_type, direction)
 
-            refuse_string = None
-            other_exits = list(room.swim_exits.keys()) + list(room.climb_exits.keys())
+        if exit_obj is None:
 
-            if canonical_direction in other_exits:
-                # Player is trying to use the wrong movement verb for an existing exit
-                field_name = f"{canonical_direction}_refuse_string"
-                refuse_string = getattr(room, field_name, None)
+            # Check other movement types for go_refuse_string
+            for other_type, exits in room.exits.items():
+                if other_type == movement_type:
+                    continue
 
-            if refuse_string:
-                return refuse_string
-            return f"You can't {verb_phrase} {canonical_direction} from here."
+                other_exit = exits.get(direction)
+                if other_exit:
+                    # Wrong verb for an existing exit
+                    if other_exit.go_refuse_string:
+                        return other_exit.go_refuse_string
+                    return f"You can't {verb_phrase} {direction} from here."
+
+            # No exit of any kind
+            return f"You can't {verb_phrase} {direction} from here."
+
+        # 4. Exit exists for this movement type
+        if exit_obj.refuse_string:
+            return exit_obj.refuse_string
+
+        next_room = exit_obj.destination
 
         # Move
         state.current_room = next_room
@@ -51,30 +57,34 @@ class MovementVerbHandler(VerbHandler):
         # Scoring
         if not next_room.found:
             state.score += getattr(next_room, "discover_points", 0)
+            next_room.found = True
 
         # Render
-        lines = [f"You {success_verb_phrase} {canonical_direction}."]
+        lines = [f"You {success_verb_phrase} {direction}."]
         lines.extend(render_current_room(state))
-
         return lines
-
 
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, target, words, cmd:ExecuteCommand):
-
+    def go(self, target, words, cmd: ExecuteCommand):
         direction = cmd.direction if cmd and cmd.direction else None
 
         if direction is None:
             return self.build_message("Go where?")
 
-        result_msg= self.perform_movement(direction, self.room().connections, "go", "go")
+        result = self.perform_movement(
+            movement_type="go",
+            direction=direction,
+            verb_phrase="go",
+            success_verb_phrase="go"
+        )
 
-        return self.build_message(result_msg)
+        return self.build_message(result)
 
 
-    def swim(self, target: Noun, words: list[str], cmd:ExecuteCommand):
+
+    def swim(self, target, words, cmd:ExecuteCommand):
         room = self.room()
 
         def check_swim_constraints():
@@ -109,27 +119,26 @@ class MovementVerbHandler(VerbHandler):
 
         # 4. Perform swim movement using swim_exits
         result_msg = self.perform_movement(
-            direction,
-            room.swim_exits,
+            movement_type="swim",
+            direction=direction,
             verb_phrase="swim",
             success_verb_phrase="swim"
         )
 
         return self.build_message(result_msg)
     
-
-    def climb(self, target: Noun, words: list[str], cmd:ExecuteCommand):
+    def climb(self, target: Noun, words: list[str], cmd: ExecuteCommand):
         room = self.room()
 
         target = cmd.direct_object if cmd and cmd.direct_object else None
         direction = cmd.direction if cmd and cmd.direction else None
-        
-        # 1. Room must allow climbing 
 
-        if not getattr(room, "climb_exits", False):
+        # 1. Room must have climb exits
+        climb_exits = room.exits.get("climb", {})
+        if not climb_exits:
             return self.build_message("There is nowhere to climb here.")
-        
-        # 2. If a direction is given, look for climbable items and set climbable flag if found
+
+        # 2. If a direction is given, check if any climbable item is present
         climbable = False
         if direction is not None:
             for item in room.items:
@@ -137,46 +146,43 @@ class MovementVerbHandler(VerbHandler):
                     climbable = True
                     break
 
-        # 3. If no direction is given, check if target is a climbable item and room has climb_exits
+        # 3. If no direction is given, but a climbable target is provided
         target_direction = None
         if direction is None and target is not None:
             if getattr(target, "is_climbable", False):
-                climb_directions = getattr(target, "climb_directions", [])      # check climbable objects supported climb_directions
+                climbable = True
+                climb_directions = getattr(target, "climb_directions", [])
                 for d in climb_directions:
-                    for e in room.climb_exits:
-                       if d == e:
-                        target_direction = d           # if room has a climbable exit that climable object supports, we have a match
-                        break
-                    if target_direction is not None:
+                    if d in climb_exits:
+                        target_direction = d
                         break
                 else:
-                    # if target is climbable but doesn't support any of the room's climb exits, we can't climb it 
-                    return self.build_message(f"You can't climb the {target.display_name()}.")    
-        if  not (direction or target_direction):
-            return self.build_message("Climb where?")    # if room has no climb directions and no direction was given, we have no clue.
+                    return self.build_message(f"You can't climb the {target.display_name()}.")
+
+        # If neither a direction nor a target-derived direction exists
+        if not (direction or target_direction):
+            return self.build_message("Climb where?")
+
+        # Resolve final direction
+        final_direction = direction or target_direction
 
         # 4. Climbing constraint logic
-
-        if direction in room.climb_exits and not climbable:
-
-            # Climb refusal
-            climb_refusal = getattr(room, "climb_refuse_string", None)
-
-            # Default fallback
+        exit_obj = room.get_exit("climb", final_direction)
+        if exit_obj and not climbable:
+            refusal = exit_obj.refuse_string
             default = "You try to climb, but it's too difficult from here."
+            return self.build_message(refusal or default)
 
-            return self.build_message(climb_refusal or default)
-    
-
-        # 5. Perform climb movement using climb_exits
+        # 5. Perform climb movement
         result_msg = self.perform_movement(
-            direction or target_direction,
-            room.climb_exits,
+            movement_type="climb",
+            direction=final_direction,
             verb_phrase="climb",
             success_verb_phrase="climb"
         )
 
         return self.build_message(result_msg)
+
     
 
     def teleport(self, target: Noun, words: list[str], cmd: "ExecuteCommand"):

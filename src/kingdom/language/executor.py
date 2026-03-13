@@ -3,7 +3,7 @@ import token
 from typing import List, Any, Optional
 
 from kingdom.language.interpreter import InterpretedCommand
-from kingdom.model.noun_model import DirectionNoun, World
+from kingdom.model.noun_model import World
 from kingdom.model.verb_model import Verb
 from kingdom.verbs.verb_handler import ExecuteCommand
 
@@ -24,8 +24,6 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
         def _iter_local_target_candidates(world: World):
             state = world.state
             if state.current_room is not None:
-                for direction_noun in DirectionNoun.get_direction_nouns_for_available_exits(state.current_room):
-                    yield direction_noun
 
                 yield state.current_room
                 for item in state.current_room.items:

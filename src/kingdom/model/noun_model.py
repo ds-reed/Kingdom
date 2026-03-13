@@ -68,8 +68,14 @@ def serialize_non_default(obj):
             payload[f.name] = value
     return payload
 
-
-
+@dataclass
+class Exit:
+    movement_type: str
+    direction: str
+    destination: Optional["Room"] = None
+    visible: bool = True
+    refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
 
 @dataclass(init=False)
@@ -297,13 +303,13 @@ class DirectionNoun(Noun):
         token = token.lower().strip()
         return DirectionNoun._direction_nouns_by_reference.get(token)
 
-    def get_direction_nouns_for_available_exits(room) -> list["DirectionNoun"]:
+    def get_direction_nouns_for_available_go_exits(room) -> list["DirectionNoun"]:
         DirectionNoun.ensure_direction_nouns()
         if room is None:
             return []
 
         nouns: list[DirectionNoun] = []
-        for canonical in room.available_directions(visible_only=True):
+        for canonical in room.available_go_exits(visible_only=True):
             canonical = canonical.lower().strip()
             nouns.extend(DirectionNoun._direction_nouns_by_canonical.get(canonical, []))
 
@@ -313,87 +319,151 @@ class DirectionNoun(Noun):
 @dataclass
 class Item(Noun):
     # ------------------------------------------------------------
-    # Static persistent fields (from world JSON)
+    # Persistent fields (world-defined capabilities & properties)
     # ------------------------------------------------------------
+    # These come from world JSON and do not change during gameplay.
+    # Metadata controls how they appear in world JSON. Save files
+    # always store the current value, regardless of metadata.
+
+    # Identity & lexicon
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
     handle: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
 
-    is_takeable: bool = field(default=True, metadata={"persist": "if_set"})
+    # Basic interaction
+    is_takeable: bool = field(default=True, metadata={"persist": "non_default"})
     get_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
 
     # Open/close mechanics
-    is_openable: bool = field(default=False, metadata={"persist": "if_set"})
-    opened_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    closed_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    open_action_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    close_action_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    is_openable: bool = field(default=False, metadata={"persist": "non_default"})
+    opened_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
+    closed_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
+    open_action_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
+    close_action_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
     examine_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    open_exit_direction: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    open_exit_destination: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    open_exit_direction: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
+    open_exit_destination: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_openable"}
+    )
 
     # Lock/unlock mechanics
-    is_lockable: bool = field(default=False, metadata={"persist": "if_set"})
-    unlock_key: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    locked_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    unlocked_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    unlockable_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    is_lockable: bool = field(default=False, metadata={"persist": "non_default"})
+    unlock_key: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
+    )
+    locked_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
+    )
+    unlocked_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
+    )
+    unlockable_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lockable"}
+    )
 
     # Light/extinguish mechanics
-    is_lightable: bool = field(default=False, metadata={"persist": "if_set"})
-    lit_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    unlit_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    can_ignite: bool = field(default=False, metadata={"persist": "if_set"})
-    ignite_success_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    is_flamable: bool = field(default=True, metadata={"persist": "if_non_default"})
+    is_lightable: bool = field(default=False, metadata={"persist": "non_default"})
+    lit_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lightable"}
+    )
+    unlit_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_lightable"}
+    )
+    can_ignite: bool = field(default=False, metadata={"persist": "non_default"})
+    ignite_success_string: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "can_ignite"}
+    )
+    is_flamable: bool = field(default=True, metadata={"persist": "non_default"})
 
     # Rub mechanics
-    is_rubbable: bool = field(default=False, metadata={"persist": "if_set"})
-    rubbed_state_description: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    rub_success_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    is_rubbable: bool = field(default=False, metadata={"persist": "non_default"})
+    rubbed_state_description: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_rubbable"}
+    )
+    rub_success_string: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_rubbable"}
+    )
 
     # Eating
-    is_edible: bool = field(default=False, metadata={"persist": "if_set"})
-    eat_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    eaten_success_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    is_edible: bool = field(default=False, metadata={"persist": "non_default"})
+    eat_refuse_string: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_edible"}
+    )
+    eaten_success_string: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "is_edible"}
+    )
 
     # Tieing
-    is_tieable: bool = field(default=False, metadata={"persist": "if_set"})
-    can_be_tied_to: bool = field(default=False, metadata={"persist": "if_set"})
-    is_tied: bool = field(default=False, metadata={"persist": "if_set"})
+    is_tieable: bool = field(default=False, metadata={"persist": "non_default"})
+    can_be_tied_to: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Climbing
-    is_climbable: bool = field(default=False, metadata={"persist": "if_set"})  
-    climb_directions: list[str] = field(default_factory=list, metadata={"persist": "if_set"})
+    is_climbable: bool = field(default=False, metadata={"persist": "non_default"})
+    climb_directions: list[str] = field(
+        default_factory=list,
+        metadata={"persist": "if_set", "persist_if_parent": "is_climbable"}
+    )
 
     # Swimming
-    too_heavy_to_swim: bool = field(default=False, metadata={"persist": "if_set"})
+    too_heavy_to_swim: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Speaking
-    can_be_spoken_to: bool = field(default=False, metadata={"persist": "if_set"})
-    speak_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    can_be_spoken_to: bool = field(default=False, metadata={"persist": "non_default"})
+    speak_string: Optional[str] = field(
+        default=None,
+        metadata={"persist": "if_set", "persist_if_parent": "can_be_spoken_to"}
+    )
 
-    # Special handling (verb overides registered in item_behaviors.py)
+    # Special handling
     trigger_room: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "if_set"})
 
     # ------------------------------------------------------------
-    # Dynamic persistent fields (runtime -> saved in save files)
+    # Mutable state (persistent runtime state)
     # ------------------------------------------------------------
+    # These booleans change during gameplay and must always be saved.
+    # They intentionally have no metadata.
     is_open: bool = False
     is_locked: bool = False
     is_lit: bool = False
     is_rubbed: bool = False
-
-    # Runtime-only fields (not currently serialized)
-    is_broken: bool = field(default=False, init=False)
-    is_tied: bool = field(default=False, init=False)
+    is_hidden: bool = False
+    is_tied: bool = False
+    is_broken: bool = False
 
     # ------------------------------------------------------------
     # Runtime-only fields (never saved)
     # ------------------------------------------------------------
+    # These are pointers or ephemeral state reconstructed automatically.
     current_container: "Container | None" = field(default=None, init=False)
 
     def __post_init__(self):
@@ -623,38 +693,30 @@ class Room(Noun):
     discover_points: int = field(default=10, metadata={"persist": "if_set"})
     has_water: bool = field(default=False, metadata={"persist": "if_set"})
 
-        # Refuse strings for blocked exits
-    climb_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    up_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    down_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    east_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    west_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    north_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
-    south_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})    
+    # Refuse strings for blocked exits
+    refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+    go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+ 
 
     # --- Runtime-constructed fields (not in JSON) ---
-    swim_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
-    climb_exits: Dict[str, "Room"] = field(default_factory=dict, init=False)
     items: List["Item"] = field(default_factory=list, init=False)
     containers: List["Container"] = field(default_factory=list, init=False)
     features: List["Feature"] = field(default_factory=list, init=False)
-    connections: Dict[str, "Room"] = field(default_factory=dict, init=False)
-    hidden_directions: set[str] = field(default_factory=set, init=False)
+    exits: Dict[str, Dict[str, Exit]] = field(default_factory=lambda: {"go": {}, "swim": {}, "climb": {}})
 
 
     def __post_init__(self):
         self.handle = normalize_key(self.handle or self.name)
         super().__init__()
 
-
     def __repr__(self):
         items_str = [it.name for it in self.items if it is not None]
         containers_str = [c.display_name() for c in self.containers]
         features_str = [f.display_name() for f in self.features]
-        connections_str = {direction: room.name for direction, room in self.connections.items()}
+        exits = [{mtype: list(exits.keys()) for mtype, exits in self.exits.items()}]
         return (
             f"Room({self.name}, desc='{self.description}', found={self.found}, is_dark={self.is_dark}, has_water={self.has_water}, items={items_str}, "
-            f"containers={containers_str}, features={features_str}, connections={connections_str}, hidden_directions={sorted(self.hidden_directions)})"
+            f"containers={containers_str}, features={features_str}, exits={exits})"
         )
 
     def add_item(self, item):
@@ -707,49 +769,70 @@ class Room(Noun):
                 return container
         return None
 
-    def add_direction(self, direction):
+
+# ---------- connection functions ------------------------
+
+    def normalize_direction(self, direction):
+        
         if not isinstance(direction, str):
             raise TypeError("direction must be a string")
         if direction == "":
             raise ValueError("direction cannot be empty")
-        if direction not in Room.DIRECTIONS:
-            Room.DIRECTIONS.append(direction)
-        return direction
 
-    def connect_room(self, direction, room, visible=True):
-        if not isinstance(room, Room):
-            raise TypeError("connect_room expects a Room instance")
-        registered_direction = self.add_direction(direction)
-        self.connections[registered_direction] = room
-        if visible:
-            self.hidden_directions.discard(registered_direction)
-        else:
-            self.hidden_directions.add(registered_direction)
+        direction = direction.lower()
 
-    def get_connection(self, direction):
-        return self.connections.get(direction)
+        # Ask the global direction registry for canonical form
+        canonical =  DIRECTIONS.to_canonical(direction)
 
-    def is_exit_visible(self, direction):
-        canonical_direction = self.add_direction(direction)
-        if canonical_direction not in self.connections:
-            return False
-        return canonical_direction not in self.hidden_directions
+        if canonical is None:
+            raise ValueError(f"Unknown direction '{direction}' in room '{self.name}'")
+        return canonical
 
-    def set_exit_visibility(self, direction, visible=True):
-        canonical_direction = self.add_direction(direction)
-        if canonical_direction not in self.connections:
-            return 
+    def add_exit(self, movement_type, direction, destination=None, visible=True,
+                refuse_string=None, go_refuse_string=None):
 
-        if visible:
-            self.hidden_directions.discard(canonical_direction)
-        else:
-            self.hidden_directions.add(canonical_direction)
+        canonical = self.normalize_direction(direction)
 
-    def available_directions(self, visible_only=False):
-        directions = sorted(self.connections.keys())
+        if movement_type not in self.exits:
+            self.exits[movement_type] = {}
+
+        self.exits[movement_type][canonical] = Exit(
+            movement_type=movement_type,
+            direction=canonical,
+            destination=destination,
+            visible=visible,
+            refuse_string=refuse_string,
+            go_refuse_string=go_refuse_string
+        )
+
+    def get_exit(self, movement_type, direction) -> Optional[Exit]:
+        return self.exits.get(movement_type, {}).get(direction)
+
+    def get_all_exits(self, movement_type="all", visible_only=False):
+        # Validate movement_type
+        if movement_type != "all" and movement_type not in self.exits:
+            raise ValueError(f"Unknown movement type '{movement_type}' in room '{self.name}'")
+
+        # Collect exits
+        if movement_type == "all":
+            # Flatten all movement types
+            all_exits = []
+            for mtype, exits in self.exits.items():
+                for direction, exit_obj in exits.items():
+                    if not visible_only or exit_obj.visible:
+                        all_exits.append((mtype, direction, exit_obj))
+            return all_exits
+
+        # Single movement type
+        exits = self.exits.get(movement_type, {})
         if not visible_only:
-            return directions
-        return [direction for direction in directions if direction not in self.hidden_directions]
+            return list(exits.items())
+
+        return [(direction, exit_obj)
+                for direction, exit_obj in exits.items()
+                if exit_obj.visible]
+
+# ---------------- end of connection functions -------------
 
     def has_lit_is_lightable(self) -> bool:
         for item in self.items:
@@ -767,19 +850,15 @@ class Room(Noun):
 
 
     def to_dict(self) -> dict:
-        """
-        Serialize Room using metadata rules + custom handling for nested objects & connections.
-        Empty collections are omitted.
-        """
         payload = serialize_non_default(self)
 
-        # Persistent collections — omit if empty (overrides serializer adding []) - somewhat hackish/better solution is to handle non-empty in serialize_non_default
+        # Remove empty persistent collections
         if not self.synonyms:
             payload.pop("synonyms", None)
         if not self.adjectives:
             payload.pop("adjectives", None)
 
-        # Runtime collections — only include if non-empty
+        # Runtime collections
         if self.items:
             payload["items"] = [Item._serialize_item(item) for item in self.items]
 
@@ -789,31 +868,32 @@ class Room(Noun):
         if self.features:
             payload["features"] = [f.to_dict() for f in self.features]
 
-        if self.connections:
-            payload["connections"] = {
-                direction: dest.name
-                for direction, dest in self.connections.items()
-            }
+        # Unified exits
+        if any(self.exits[m] for m in self.exits):
+            payload["exits"] = {}
 
-        if self.swim_exits:
-            payload["swim_exits"] = {
-                direction: dest.name
-                for direction, dest in self.swim_exits.items()
-            }
+            for movement_type, exits in self.exits.items():
+                if not exits:
+                    continue
 
-        if self.climb_exits:
-            payload["climb_exits"] = {
-                direction: dest.name
-                for direction, dest in self.climb_exits.items()
-            }
+                payload["exits"][movement_type] = {}
 
-        if self.hidden_directions:
-            payload["hidden_directions"] = list(self.hidden_directions)
+                for direction, exit_obj in exits.items():
+                    entry = {
+                        "destination": exit_obj.destination.name if exit_obj.destination else None,
+                        "visible": exit_obj.visible,
+                    }
+
+                    if exit_obj.refuse_string is not None:
+                        entry["refuse_string"] = exit_obj.refuse_string
+
+                    if exit_obj.go_refuse_string is not None:
+                        entry["go_refuse_string"] = exit_obj.go_refuse_string
+
+                    payload["exits"][movement_type][direction] = entry
 
         return payload
 
-    def _serialize_room(self) -> dict:
-        return self.to_dict()
 
 
 @dataclass

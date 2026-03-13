@@ -6,7 +6,7 @@ from typing import Any, Optional, Iterable, Callable
 from enum import Enum, auto
 from dataclasses import dataclass, field
 
-from kingdom.model.noun_model import Noun, Item, Room, Container, World, DirectionNoun, DIRECTIONS
+from kingdom.model.noun_model import Noun, Item, Room, Container, World,  DIRECTIONS
 from kingdom.model.game_init import get_action_state
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 
@@ -82,47 +82,12 @@ class VerbHandler:
     # ------------------------------------------------------------
     # preposition/noun resolution helpers
     # ------------------------------------------------------------
-    def extract_indirect_from_prep_phrases(self, prep_phrases:list[dict], prep: list[str]) -> tuple[Optional[Noun], str]:
-        prep= next((pp["object"] for pp in prep_phrases if pp["prep"] in prep), None)
-        return (prep.noun_object if prep else None, prep.token_head if prep else "")
+    def extract_indirect_from_prep_phrases(self, prep_phrases: list[dict], preps: list[str]) -> tuple[Optional[Noun], str]:
+        match = next((pp["object"] for pp in prep_phrases if pp["prep"] in preps), None)
+        return (match.noun_object if match else None,
+                match.token_head if match else "")
 
 
-    # ------------------------------------------------------------
-    # Noun / word resolution - remove when new parser is fully wired in
-    # ------------------------------------------------------------
-    def resolve_noun_or_word(
-        self,
-        words: Iterable[str],
-        interest: list[str] = [],
-    ) -> dict:
-        """
-        This internal resolution system is in place until we upgrade the parser.
-        """
-
-        result = {
-            "noun": None,
-            "direction": None,
-            "keywords": set(),
-            "raw": tuple(words),
-        }
-        
-        interest_set = {w.lower() for w in interest}
-        
-        for w in words:
-            lw = w.lower().strip()
-            matching_nouns = [noun for noun in Noun.all_nouns if noun.canonical_name() == lw]
-            if matching_nouns and result["noun"] is None:  # take the first match if multiple - can only handle one right now
-                result["noun"] = matching_nouns[0]            
-            if self.is_direction(lw):
-                canon = self.canonical_direction(lw)
-                if canon and result["direction"] is None:  # take the first match if multiple - can only handle one right now
-                    result["direction"] = canon
-            if lw in interest_set and lw not in result["keywords"]:
-                result["keywords"].add(lw)                  # supports multiple keywords, but order is not preserved (use a list if order matters)
-
-
-        return result
-    
     # ------------------------------------------------------------
     # Basic checks - used by multiple verbs 
     # ------------------------------------------------------------
@@ -200,6 +165,44 @@ class VerbHandler:
         if not self.is_direction(direction):
             return None
         return DIRECTIONS.reverse_of(direction)
+    
+    
+    # ------------------------------------------------------------
+    # Noun / word resolution - remove when new parser is fully wired in
+    # ------------------------------------------------------------
+    def resolve_noun_or_word(
+        self,
+        words: Iterable[str],
+        interest: list[str] = [],
+    ) -> dict:
+        """
+        This internal resolution system is in place until we upgrade the parser.
+        """
+
+        result = {
+            "noun": None,
+            "direction": None,
+            "keywords": set(),
+            "raw": tuple(words),
+        }
+        
+        interest_set = {w.lower() for w in interest}
+        
+        for w in words:
+            lw = w.lower().strip()
+            matching_nouns = [noun for noun in Noun.all_nouns if noun.canonical_name() == lw]
+            if matching_nouns and result["noun"] is None:  # take the first match if multiple - can only handle one right now
+                result["noun"] = matching_nouns[0]            
+            if self.is_direction(lw):
+                canon = self.canonical_direction(lw)
+                if canon and result["direction"] is None:  # take the first match if multiple - can only handle one right now
+                    result["direction"] = canon
+            if lw in interest_set and lw not in result["keywords"]:
+                result["keywords"].add(lw)                  # supports multiple keywords, but order is not preserved (use a list if order matters)
+
+
+        return result
+    
 
     # ------------------------------------------------------------
     # Message assembly - remove when new rendering system is developed

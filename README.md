@@ -186,7 +186,7 @@ python main.py --mode trs80
 
 The world JSON defines:
 
-- rooms and connections
+- rooms and go_exits
 - swim and climb exits
 - items, containers, and features
 - item attributes such as openable, lockable, lightable, edible, climbable, and custom special handlers

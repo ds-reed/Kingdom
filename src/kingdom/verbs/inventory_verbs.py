@@ -41,7 +41,7 @@ class InventoryVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object
 
-        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("from", "in"))
+        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("from", "in"))
 
         if target:
             if target.get_class_name() == "Item":
@@ -105,7 +105,7 @@ class InventoryVerbHandler(VerbHandler):
         words = []
         dest_handle = None
 
-        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, prep=("into"))
+        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into"))
 
         if target and target.get_class_name() == "Item" and player.has_item(target):
             inventory_items = [target] 

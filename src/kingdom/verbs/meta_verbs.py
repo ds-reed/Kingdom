@@ -65,7 +65,7 @@ class MetaVerbHandler(VerbHandler):
                         continue
 
                     # Summaries for exit dictionaries
-                    if field in ("connections", "swim_exits", "climb_exits"):
+                    if field in ("go_exits", "swim_exits", "climb_exits"):
                         exits = {d: r.name for d, r in value.items()}
                         if exits:
                             lines.append(f"{field}:")

@@ -28,7 +28,7 @@ class RoomRenderer:
         else:            
             desc = f"You are {room.description}"
 
-        exits = room.available_directions(visible_only=True)
+        exits = room.get_all_exits(movement_type="all", visible_only=True)
         exits_text = self.build_visible_exits_text(exits)
 
         # Items and containers (display text)
@@ -68,7 +68,7 @@ class RoomRenderer:
             lines.append(f"There is {names} here.")
 
         # Exits
-        exits = room.available_directions(visible_only=True)
+        exits = room.get_all_exits(movement_type="all", visible_only=True)
         exits_text = self.build_visible_exits_text(exits)
         if exits_text:
             lines.append(exits_text)
@@ -159,8 +159,13 @@ class RoomRenderer:
             return self._VERTICAL_LABELS[direction]
         return f"to the {direction}"
 
-    def build_visible_exits_text(self, directions: Sequence[str]) -> str:
-        ordered = self.order_directions(directions)
+    def build_visible_exits_text(self, exits: Sequence[tuple[str, str, object]]) -> str:
+        directions: list[str] = []
+        for movement_type, direction, exit_obj in exits:
+            if isinstance(direction, str):
+                directions.append(direction)
+
+        ordered = self.order_directions(sorted(set(directions)))
         if not ordered:
             return "There are no visible exits."
 

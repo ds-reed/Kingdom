@@ -10,7 +10,7 @@ Checks performed:
 - Valid JSON and expected top-level structure
 - Room naming quality (missing/duplicate names)
 - Connection integrity (destination rooms exist)
-- hidden_exits integrity (directions reference declared room connections)
+- hidden_exits integrity (directions reference declared room go_exits)
 - Optional score field sanity (integer-compatible, non-negative)
 - Loadability with current Game model implementation
 """
@@ -120,11 +120,11 @@ def _validate_rooms(payload: dict[str, Any], result: ValidationResult) -> None:
 
         room_name = room.get("name") if _is_nonempty_string(room.get("name")) else room_label
 
-        connections = room.get("connections", {})
+        go_exits = room.get("go_exits", {})
         connection_dirs: set[str] = set()
 
-        if isinstance(connections, dict):
-            for direction, destination in connections.items():
+        if isinstance(go_exits, dict):
+            for direction, destination in go_exits.items():
                 if not _is_nonempty_string(direction):
                     result.errors.append(f"{room_name}: connection direction keys must be non-empty strings.")
                     continue
@@ -146,38 +146,38 @@ def _validate_rooms(payload: dict[str, Any], result: ValidationResult) -> None:
                         f"{room_name}: connection '{direction_name}' points to missing room '{destination_name}'."
                     )
 
-        elif isinstance(connections, list):
-            for item_index, entry in enumerate(connections):
+        elif isinstance(go_exits, list):
+            for item_index, entry in enumerate(go_exits):
                 direction_name, destination_name = _extract_destination(entry)
 
                 if isinstance(entry, dict):
                     if not direction_name:
                         result.errors.append(
-                            f"{room_name}: connections[{item_index}].direction must be a non-empty string."
+                            f"{room_name}: go_exits[{item_index}].direction must be a non-empty string."
                         )
                     else:
                         connection_dirs.add(direction_name)
 
                     if not destination_name:
                         result.errors.append(
-                            f"{room_name}: connections[{item_index}].room must be a non-empty string."
+                            f"{room_name}: go_exits[{item_index}].room must be a non-empty string."
                         )
                     elif destination_name not in room_name_set:
                         result.errors.append(
-                            f"{room_name}: connections[{item_index}] points to missing room '{destination_name}'."
+                            f"{room_name}: go_exits[{item_index}] points to missing room '{destination_name}'."
                         )
 
                 elif isinstance(entry, str):
                     if entry not in room_name_set:
                         result.errors.append(
-                            f"{room_name}: connections[{item_index}] points to missing room '{entry}'."
+                            f"{room_name}: go_exits[{item_index}] points to missing room '{entry}'."
                         )
                 else:
                     result.errors.append(
-                        f"{room_name}: connections[{item_index}] must be an object or room-name string."
+                        f"{room_name}: go_exits[{item_index}] must be an object or room-name string."
                     )
         else:
-            result.errors.append(f"{room_name}: 'connections' must be an object or list.")
+            result.errors.append(f"{room_name}: 'go_exits' must be an object or list.")
 
         hidden_exits = room.get("hidden_exits", [])
         if hidden_exits is None:
