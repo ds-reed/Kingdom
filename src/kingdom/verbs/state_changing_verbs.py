@@ -566,8 +566,7 @@ class ChangeStateVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object if cmd.direct_object else None  
 
-        preposition = ["to", "onto"]
-        indirect, indirect_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
+        indirect, indirect_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("to", "onto"))
       
         # ------------------------------------------------------------
         # 1. Verb modifier checks

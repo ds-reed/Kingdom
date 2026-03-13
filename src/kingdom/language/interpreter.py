@@ -114,15 +114,13 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             )
 
             
-
-            
         def _resolve_prep_phrases(action: ParsedAction) -> list[dict]:
             resolved = []
 
             for pp in action.prep_phrases:
                 prep = pp["prep"]          # canonical preposition
                 head = pp["object"]        # surface noun token
-
+                
                 # Resolve surface noun → NounEntry
                 noun_entry = lexicon.token_to_noun.get(head)
 

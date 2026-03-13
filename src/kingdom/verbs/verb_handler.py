@@ -82,10 +82,23 @@ class VerbHandler:
     # ------------------------------------------------------------
     # preposition/noun resolution helpers
     # ------------------------------------------------------------
-    def extract_indirect_from_prep_phrases(self, prep_phrases: list[dict], preps: list[str]) -> tuple[Optional[Noun], str]:
-        match = next((pp["object"] for pp in prep_phrases if pp["prep"] in preps), None)
-        return (match.noun_object if match else None,
-                match.token_head if match else "")
+    def extract_indirect_from_prep_phrases(
+        self,
+        prep_phrases: list[dict],
+        preps: list[str]
+    ) -> tuple[Optional[Noun], str, str]:
+
+        pp = next((pp for pp in prep_phrases if pp["prep"] in preps), None)
+
+        if not pp:
+            return None, "", ""
+
+        obj = pp["object"]
+        return (
+            obj.noun_object,
+            obj.token_head,
+            pp["prep"],
+        )
 
 
     # ------------------------------------------------------------

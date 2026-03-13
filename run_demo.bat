@@ -1,1 +1,1 @@
-pytest tests/demo.py -k batch1 -vv -rA
+pytest tests/demo.py -vv -rA

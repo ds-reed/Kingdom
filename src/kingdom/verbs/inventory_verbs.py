@@ -41,7 +41,7 @@ class InventoryVerbHandler(VerbHandler):
         keywords = cmd.modifiers
         target = cmd.direct_object
 
-        source, source_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
+        source, source_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
 
         if target:
             if target.get_class_name() == "Item":
@@ -106,10 +106,11 @@ class InventoryVerbHandler(VerbHandler):
 
         keywords = cmd.modifiers
         target = cmd.direct_object
+        target_token = cmd.direct_object_token
         words = []
         dest_handle = None
 
-        dest, dest_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into", "in"))
+        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into", "in"))
 
         if target and target.get_class_name() == "Item" and player.has_item(target):
             inventory_items = [target] 
@@ -126,6 +127,8 @@ class InventoryVerbHandler(VerbHandler):
         if dest is None and dest_name != "room":
             if dest_name:
                 return self.build_message(f"You don't see any {dest_name} here.")
+            else:
+                return self.build_message(self.missing_target(f"{cmd.verb_token} {target_token} {prep}"))
         
         if dest:
             if dest.get_class_name() != "Container":

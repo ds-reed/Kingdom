@@ -311,7 +311,14 @@ def test_demo_smoke(smoke_context):
     run("open trapdoor")
     assert trapdoor is not None and getattr(trapdoor, "is_open", False)
 
+    run("climb ladder")
+    assert action_state.current_room.name == "Demo Landing"
     run("go down")
+    assert action_state.current_room.name == "Tower Cell"
+
+    run("slide down")
+    if action_state.current_room.name != "Blank Chamber":
+        run("climb down")
     assert action_state.current_room.name == "Blank Chamber"
 
     _expect_any(run("rub lamp"), "djinni", "shinier")
@@ -324,6 +331,24 @@ def test_demo_smoke(smoke_context):
     assert action_state.current_room.name == "Pool Ledge"
 
     run("teleport Demo Landing")
+    assert action_state.current_room.name == "Demo Landing"
+
+    run("south")
+    assert action_state.current_room.name == "Ravine Edge"
+
+    run("take rope")
+    assert "rope" in _inventory_handles(action_state)
+
+    tie_result = run("tie rope to hook")
+    _expect_any(tie_result, "you tie", "dangles down")
+    rope = _room_item(action_state, "rope")
+    assert rope is not None and getattr(rope, "is_tied", False)
+
+    run("climb rope")
+    assert action_state.current_room.name == "Clover Rest"
+    run("climb up")
+    assert action_state.current_room.name == "Ravine Edge"
+    run("north")
     assert action_state.current_room.name == "Demo Landing"
 
     save_result = run("save")
@@ -345,8 +370,8 @@ def test_demo_smoke(smoke_context):
     assert run("quit") == "QUIT"
 
     expected_canonical_verbs = {
-        "go", "swim", "teleport",
-        "light", "extinguish", "open", "close", "unlock", "eat", "rub", "say", "make", "look",
+        "go", "swim", "climb", "teleport",
+        "light", "extinguish", "open", "close", "unlock", "tie", "eat", "rub", "say", "make", "look",
         "help", "score", "load", "save", "quit", "die", "debug",
             "inventory", "take", "drop",
     }
@@ -535,3 +560,101 @@ def test_demo_phrase_batch1_regressions(smoke_context):
             failures.append("conjunction phrase failed: 'unlock and open trapdoor' did not open trapdoor")
 
     assert not failures, "Batch-1 phrase regressions detected:\n" + "\n".join(f" - {failure}" for failure in failures)
+
+
+def test_demo_phrase_batch2_regressions(smoke_context):
+    run = smoke_context["run"]
+    game: World = smoke_context["game"]
+    action_state: GameActionState = smoke_context["action_state"]
+
+    failures: list[str] = []
+
+    def container_handles(container) -> set[str]:
+        return {item.obj_handle() for item in container.contents}
+
+    def safe_run(command: str):
+        try:
+            return run(command)
+        except Exception as exc:  # Keep collecting failures instead of aborting on first runtime exception.
+            failures.append(f"command {command!r} raised {type(exc).__name__}: {exc}")
+            return None
+
+    # ------------------------------------------------------------------
+    # Phrase group 1: direction normalization and movement parity
+    # ------------------------------------------------------------------
+    safe_run("teleport Demo Landing")
+    if action_state.current_room is None or action_state.current_room.name != "Demo Landing":
+        failures.append("setup failed: teleport Demo Landing did not land in Demo Landing")
+    else:
+        safe_run("GO south!!")
+        room_name = action_state.current_room.name if action_state.current_room else None
+        if room_name != "Ravine Edge":
+            failures.append(f"direction normalization failed: 'GO south!!' should move to Ravine Edge (actual={room_name!r})")
+
+        safe_run("N")
+        room_name = action_state.current_room.name if action_state.current_room else None
+        if room_name != "Demo Landing":
+            failures.append(f"abbreviation parity failed: 'N' should return to Demo Landing (actual={room_name!r})")
+
+        safe_run("S")
+        room_name = action_state.current_room.name if action_state.current_room else None
+        if room_name != "Ravine Edge":
+            failures.append(f"uppercase abbreviation failed: 'S' should move to Ravine Edge (actual={room_name!r})")
+
+    # ------------------------------------------------------------------
+    # Phrase group 2: preposition synonyms for put/get without multi-noun
+    # ------------------------------------------------------------------
+    action_state.current_room = game.rooms.get("Tower Cell")
+    room = action_state.current_room
+    if room is None:
+        failures.append("setup failed: Tower Cell is not available")
+    else:
+        bag = _room_container(action_state, "bag")
+        if bag is None:
+            failures.append("setup failed: expected bag in Tower Cell")
+        else:
+            safe_run("open lunch bag")
+            safe_run("get key from lunch bag")
+            if "key" not in _inventory_handles(action_state):
+                failures.append("setup failed: could not retrieve key from lunch bag")
+            else:
+                safe_run("put key within bag")
+                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                    failures.append("preposition synonym failed: 'put key within bag' did not place key in bag")
+
+                safe_run("get key out bag")
+                if "key" not in _inventory_handles(action_state):
+                    failures.append("preposition synonym failed: 'get key out bag' did not retrieve key")
+
+                safe_run("put key into bag")
+                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                    failures.append("control failed: 'put key into bag' did not place key in bag")
+
+                safe_run("get key off bag")
+                if "key" not in _inventory_handles(action_state):
+                    failures.append("preposition synonym failed: 'get key off bag' did not retrieve key")
+
+    # ------------------------------------------------------------------
+    # Phrase group 3: unsupported prepositions should not mutate inventory
+    # ------------------------------------------------------------------
+    room = action_state.current_room
+    bag = _room_container(action_state, "bag") if room is not None else None
+    if bag is None:
+        failures.append("setup failed: bag unavailable for malformed preposition checks")
+    else:
+        if "key" not in _inventory_handles(action_state):
+            safe_run("open lunch bag")
+            safe_run("get key from lunch bag")
+
+        if "key" not in _inventory_handles(action_state):
+            failures.append("setup failed: key unavailable for malformed preposition checks")
+        else:
+            safe_run("put key under bag")
+            if "key" not in _inventory_handles(action_state):
+                failures.append("unsupported-preposition violation: 'put key under bag' consumed key")
+
+            safe_run("put key with bag")
+            if "key" not in _inventory_handles(action_state):
+                failures.append("unsupported-preposition violation: 'put key with bag' consumed key")
+
+    assert not failures, "Batch-2 phrase regressions detected:\n" + "\n".join(f" - {failure}" for failure in failures)

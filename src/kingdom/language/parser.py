@@ -40,7 +40,7 @@ class ParsedAction:
         prep_phrases={self.prep_phrases}, conjunction_groups={self.conjunction_groups}, \n \
         direction_tokens={self.direction_tokens}, \n \
         modifier_tokens={self.modifier_tokens}, \n \
-        unknown_tokens={self.unknown_tokens}, \n \ "
+        unknown_tokens={self.unknown_tokens}, \n"
 
 
 def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
@@ -266,16 +266,23 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
 
                 i += 1
                 np, i2 = consume_noun_phrase(i)
+
+                # Always record the preposition, even if no object follows
+                prep_phrases.append({
+                    "preposition": prep,
+                    "object": np,
+                })
+
+                # Only advance past the noun phrase if one was found
                 if np:
-                    prep_phrases.append({
-                        "preposition": prep,
-                        "object": np,
-                    })
                     object_phrases.append(np)
                     i = i2
-                    continue
                 else:
-                    continue
+                    # No NP → just move past the preposition
+                    # (i already incremented by 1 above)
+                    pass
+
+                continue
 
 
             # -------------------------
@@ -306,7 +313,9 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
             # Everything else → skip
             # -------------------------
             i += 1
+            
 
+        ps.prep_phrases = prep_phrases
         ps.object_phrases = object_phrases
         ps.conjunction_groups = conjunction_groups 
 
@@ -365,14 +374,27 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
             t = tokens[i]
             next_i = i + 1
 
-            if is_preposition(t):
-                canonical_list = lexicon.token_to_preposition.get(t, [])
-                canonical = canonical_list[0] if canonical_list else t
+            # Canonicalize prep phrases from phase 2
+            prep_phrases = []
+            for pp in ps.prep_phrases:
+                prep = pp["preposition"]
+                np = pp["object"]
 
-                head, j = consume_noun_phrase(i + 1)
-                if head is not None:
-                    prep_phrases.append({"prep": canonical, "object": head})
-                    next_i = j
+                # Canonicalize the preposition
+                canonical_list = lexicon.token_to_preposition.get(prep, [])
+                canonical = canonical_list[0] if canonical_list else prep
+
+                # Extract the head noun string (Stage 2 NP dict → string)
+                if np is None:
+                    head = None
+                else:
+                    head = np["head"]  
+
+                prep_phrases.append({
+                    "prep": canonical,
+                    "object": head,
+                })
+
 
             if is_direction(t):
                 direction_tokens.append(t)
