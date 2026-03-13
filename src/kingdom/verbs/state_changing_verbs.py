@@ -4,7 +4,7 @@ from typing import Callable, Optional, Iterable
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import ExecuteCommand, VerbHandler
 
-from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature
+from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature, Room
 from kingdom.renderer import RoomRenderer, render_current_room
 
 
@@ -107,20 +107,30 @@ class ChangeStateVerbHandler(VerbHandler):
             desired_state=True,
         )
 
+
+################# broken by new exits restructure #################
+
         # Post-change side effect: reveal exit if configured
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
-        destination = getattr(target, "open_exit_destination", None)
+    
+        if direction is not None:  #opening has a side effect of opening an exit in the room
+            reverse_direction = self.get_reverse_of(direction)
 
-        if direction and destination:
-            destination_room = world.rooms.get(destination)
-
-            if room and destination_room:
-                room.go_exits[direction] = destination_room
-                reverse = self.get_reverse_of(direction)
-                destination_room.go_exits[reverse] = room
-
+            forward_exit = room.get_exit("go", direction)
+            if forward_exit:
+                forward_exit.set_existing("is_visible", True)
+                forward_exit.set_existing("is_passable", True)
                 side_effect_msg = f"You notice a passage leading {direction}."
+
+            
+            destination = Room.get_by_name(getattr(target, "open_exit_destination", None))
+
+            reverse_exit = destination.get_exit("go", reverse_direction)
+            if reverse_exit:
+                reverse_exit.set_existing("is_visible", True)
+                reverse_exit.set_existing("is_passable", True)
+
 
         # ------------- Build the final return string ----------------
         parts: list[str] = []
@@ -552,10 +562,12 @@ class ChangeStateVerbHandler(VerbHandler):
         cmd: ExecuteCommand = None
     ) -> str:
         
+        player=self.player()
+        current_room=self.room()
         keywords = cmd.modifiers
         target = cmd.direct_object if cmd.direct_object else None  
 
-        preposition = ("to")
+        preposition = ["to", "onto"]
         indirect, indirect_name = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preposition)
       
         # ------------------------------------------------------------
@@ -606,12 +618,15 @@ class ChangeStateVerbHandler(VerbHandler):
             state_attr="is_tied",
             desired_state=True,
             indirect=indirect,
-            preposition=preposition
+            preposition="to"
         )
 
         # Post-change side effect: enable item for climbing
-        target.is_climbable = True
+
         side_effect_msg =  f"The {target.canonical_name()} is now tied to the {indirect.canonical_name()} and dangles down the cliff face below."
+        player.drop_item_to_room(target, current_room)  # remove the item from inventory since it's now tied to a feature in the room and can be climbed on. This is a bit of a hack and should be handled more elegantly when we have a better item/feature system in place.
+        target.set_existing("is_climbable", True)
+        target.set_existing("is_takeable", False)
 
         # ------------- Build the final return string ----------------
         parts: list[str] = []

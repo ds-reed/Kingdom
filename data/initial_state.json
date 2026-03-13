@@ -76,7 +76,9 @@
           "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
           "unlockable_description": "The trapdoor is locked and you need a key.",
           "closed_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed.",
-          "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open."
+          "opened_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is open.",
+          "open_exit_direction": "down",
+          "open_exit_destination": "Blank Chamber"
         },
         {
           "name": "ladder",
@@ -155,7 +157,9 @@
         "go": {
           "down": {
             "destination": "Blank Chamber",
-            "visible": false
+            "is_visible": false,
+            "is_passable": false,
+            "refuse_string": "The trapdoor is firmly shut."
           }
         },
         "climb": {
@@ -181,7 +185,17 @@
         }
       ],
       "containers": [],
-      "exits": {}
+      "exits": {
+          "go": {
+            "up": {
+              "destination": "Tower Cell",
+              "is_visible": false,
+              "is_passable": false,
+              "refuse_string": "The trapdoor is firmly shut."
+            }
+
+          }
+      }
     },
     {
       "name": "Colossal Cave",
@@ -249,7 +263,9 @@
         "go": {
           "west": {
             "destination": "Narnia",
-            "visible": false
+            "is_visible": false,
+            "is_passable": false,
+            "refuse_string": "You can't travel west here"
           }
         },
         "swim": {

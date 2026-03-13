@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
+from os import name
 from typing import Any, Optional, List, Dict, ClassVar, Iterator
 from kingdom.utilities import normalize_key
 
@@ -73,9 +74,16 @@ class Exit:
     movement_type: str
     direction: str
     destination: Optional["Room"] = None
-    visible: bool = True
+    is_visible: bool = True
+    is_passable: bool = True
     refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
     go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "if_set"})
+
+    def set_existing(self, name, value):
+        if not hasattr(self, name):
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
+        setattr(self, name, value)
+
 
 
 @dataclass(init=False)
@@ -107,6 +115,13 @@ class Noun:
             " ".join(_normalize_tokens(self.display_name())),
             " ".join(_normalize_tokens(self.obj_handle())),
         ]
+    
+
+    def set_existing(self, name, value):
+        if not hasattr(self, name):
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
+        setattr(self, name, value)
+
 
 
     # ───────────────────────────────────────────────
@@ -212,6 +227,11 @@ class Noun:
                 if noun.matches_reference(name):
                     return noun
         return None
+    
+    def set_existing(self, name, value):
+        if not hasattr(self, name):
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
+        setattr(self, name, value)
 
 
 class DirectionRegistry:
@@ -788,49 +808,78 @@ class Room(Noun):
             raise ValueError(f"Unknown direction '{direction}' in room '{self.name}'")
         return canonical
 
-    def add_exit(self, movement_type, direction, destination=None, visible=True,
-                refuse_string=None, go_refuse_string=None):
-
+    def add_exit(
+        self,
+        movement_type,
+        direction,
+        destination=None,
+        **overrides
+    ):
         canonical = self.normalize_direction(direction)
 
+        # Ensure movement type exists
         if movement_type not in self.exits:
             self.exits[movement_type] = {}
 
-        self.exits[movement_type][canonical] = Exit(
+        # Build Exit with defaults
+        exit_obj = Exit(
             movement_type=movement_type,
             direction=canonical,
-            destination=destination,
-            visible=visible,
-            refuse_string=refuse_string,
-            go_refuse_string=go_refuse_string
+            destination=destination
         )
 
+        # Apply overrides safely
+        for key, value in overrides.items():
+            if hasattr(exit_obj, key):
+                setattr(exit_obj, key, value)
+            else:
+                raise AttributeError(f"Unknown Exit attribute '{key}'")
+
+        # Store it
+        self.exits[movement_type][canonical] = exit_obj
+
+        return exit_obj
+    
+
     def get_exit(self, movement_type, direction) -> Optional[Exit]:
+    
         return self.exits.get(movement_type, {}).get(direction)
 
-    def get_all_exits(self, movement_type="all", visible_only=False):
+    def get_all_exits(
+        self,
+        movement_type="all",
+        visible_only=False,
+        passable_only=False
+    ) -> list[tuple[str, str, Exit] | tuple[str, Exit]]:
+
         # Validate movement_type
         if movement_type != "all" and movement_type not in self.exits:
             raise ValueError(f"Unknown movement type '{movement_type}' in room '{self.name}'")
 
-        # Collect exits
+        def include(exit_obj):
+            if visible_only and not exit_obj.is_visible:
+                return False
+            if passable_only and not exit_obj.is_passable:
+                return False
+            return True
+
+        # Collect exits across all movement types
         if movement_type == "all":
-            # Flatten all movement types
             all_exits = []
             for mtype, exits in self.exits.items():
                 for direction, exit_obj in exits.items():
-                    if not visible_only or exit_obj.visible:
+                    if include(exit_obj):
                         all_exits.append((mtype, direction, exit_obj))
             return all_exits
 
         # Single movement type
         exits = self.exits.get(movement_type, {})
-        if not visible_only:
-            return list(exits.items())
+        return [
+            (direction, exit_obj)
+            for direction, exit_obj in exits.items()
+            if include(exit_obj)
+        ]
 
-        return [(direction, exit_obj)
-                for direction, exit_obj in exits.items()
-                if exit_obj.visible]
 
 # ---------------- end of connection functions -------------
 
@@ -881,8 +930,11 @@ class Room(Noun):
                 for direction, exit_obj in exits.items():
                     entry = {
                         "destination": exit_obj.destination.name if exit_obj.destination else None,
-                        "visible": exit_obj.visible,
                     }
+                    if not exit_obj.is_visible:
+                        entry["is_visible"] = False
+                    if not exit_obj.is_passable:
+                        entry["is_passable"] = False
 
                     if exit_obj.refuse_string is not None:
                         entry["refuse_string"] = exit_obj.refuse_string
@@ -893,6 +945,7 @@ class Room(Noun):
                     payload["exits"][movement_type][direction] = entry
 
         return payload
+
 
 
 
