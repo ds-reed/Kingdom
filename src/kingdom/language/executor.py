@@ -58,9 +58,9 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
             verb = command.verb
 
         elif command.verb_source == "implicit":
-            # Implicit verb (direction or noun continuation)
-            # For now, default to GO; later you can add last-explicit-verb continuation
-            verb = Verb.get_by_name("go")  
+            # Implicit verb - look for noun continuation when supported by verb handler
+            if not command.direction:        # if we have a direction, then interpreter has handled as implicit "go"
+                pass # will need to handle noun continuation here
 
         elif command.verb_source == "unknown":
             # User typed something in the verb slot that is not a verb

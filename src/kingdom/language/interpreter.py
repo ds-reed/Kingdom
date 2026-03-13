@@ -141,20 +141,11 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             return resolved
 
 
-        # ----------------------------------------------------------------------
-        # Direction resolution
-        # ----------------------------------------------------------------------
-
         def _resolve_direction(action: ParsedAction, uses_directions: bool) -> Optional[str]:
             """Interpret direction tokens into canonical directions."""
             if not action.direction_tokens or not uses_directions:
                 return None
             return action.direction_tokens[0]
-
-
-        # ----------------------------------------------------------------------
-        # Modifiers
-        # ----------------------------------------------------------------------
 
         def _resolve_modifiers(action: ParsedAction): 
             """Interpret modifiers (including 'all')."""
@@ -167,6 +158,18 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         def _handle_ambiguity(action: ParsedAction, direct, prep_phrases, location) -> List[InterpretedCommand]:
             """Handle ambiguity by generating multiple InterpretedCommands or adding diagnostics."""    
             return []  # Placeholder    
+        
+        def _handle_no_verb_case(cmd: InterpretedCommand):
+            """Handle cases where no verb was identified (e.g., just a noun or direction)."""
+            if base_cmd.direct_object_token:
+                return  # may be a follow-up response. Pass the noun with no verb
+            for word in base_cmd.all_tokens:
+                if word in lexicon.token_to_direction:
+                    base_cmd.verb = Verb.get_by_name("go")
+                    base_cmd.verb_source = "implicit"
+                    base_cmd.direction = lexicon.token_to_direction[word].canonical
+                    return  
+            return  
     
 
     # ----------------------------------------------------------------------
@@ -189,7 +192,13 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
 
         # Handle ambiguity (may return zero commands)
         if _is_ambiguous(base_cmd.direct, base_cmd.prep_phrases):
-            return _handle_ambiguity(action, base_cmd.direct, base_cmd.prep_phrases, location=None)
+            _handle_ambiguity(action, base_cmd.direct, base_cmd.prep_phrases, location=None)
+
+        #handle no verb case after everythingn is resolved - will populate InterpretedCommand with implicit verb and direction if found
+        if base_cmd.verb is None:
+            _handle_no_verb_case(base_cmd)
+
+
 
         # Normal case: one command
         return [base_cmd]
