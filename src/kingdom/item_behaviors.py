@@ -12,7 +12,9 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
+from kingdom.model.game_init import get_game
 from kingdom.model.noun_model import Noun
+
 
 class VerbControl(Enum):
     CONTINUE = auto()  # fall through to default behavior
@@ -38,16 +40,6 @@ ItemBehaviorHandler = Callable[
 ]
 
 _ITEM_BEHAVIORS: dict[str, ItemBehaviorHandler] = {}
-
-
-def _active_state():
-    from kingdom.model.game_init import get_action_state
-
-    try:
-        return get_action_state()
-    except RuntimeError:
-        return None
-
 
 def register_item_behavior(name: str):
     """Decorator to register an item-specific behavior by name."""
@@ -100,7 +92,7 @@ def try_item_special_handler(
 # ------------------------------------------------------------
 
 def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_string: str) -> None:
-    state = _active_state()
+    state = get_game().action_state
     if state is None:
         return
 
@@ -147,7 +139,7 @@ def open_bean(item, verb_name, words):
 @register_item_behavior("eat_fish")
 def eat_fish(item, verb, words):
 
-    state = _active_state()
+    state = get_game().action_state
     world = getattr(state, "world", None)
     player = getattr(state, "current_player", None)
     if player is None:
@@ -195,7 +187,7 @@ def eat_fish(item, verb, words):
 @register_item_behavior("rub_lamp")
 def rub_lamp(item, verb, words):
 
-    state = _active_state()
+    state = get_game().action_state
     world = state.world if state else None
     player = getattr(state, "current_player", None)
     if player is None:
@@ -274,7 +266,7 @@ def _djinni_scripted_action(item, verb, words):
     triggers his pre-ordained magical action.
     """
 
-    state = _active_state()
+    state = get_game().action_state
     room = getattr(state, "current_room", None)
     world = state.world if state else None
 
@@ -327,7 +319,7 @@ def _djinni_scripted_action(item, verb, words):
 
 @register_item_behavior("drop_torch")
 def put_torch(item, verb_name, indirect_obj):
-    active_state = _active_state()
+    active_state = get_game().action_state
     room = getattr(active_state, "current_room", None)
 
     message = []

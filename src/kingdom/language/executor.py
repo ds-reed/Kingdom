@@ -6,7 +6,7 @@ from kingdom.language.interpreter import InterpretedCommand
 from kingdom.model.noun_model import World
 from kingdom.model.verb_model import Verb
 from kingdom.verbs.verb_handler import ExecuteCommand
-
+from kingdom.model.game_init import get_game
 
 
 
@@ -22,7 +22,7 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
     def execute_with_old_contract():             #compatability layer - remove when all verbs are ported!
 
         def _iter_local_target_candidates(world: World):
-            state = world.state
+            state = get_game().action_state
             if state.current_room is not None:
 
                 yield state.current_room

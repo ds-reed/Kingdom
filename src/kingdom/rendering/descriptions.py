@@ -5,7 +5,7 @@ import re
 
 from kingdom.model.noun_model import Room, Item, Container
 from kingdom.model.direction_model import DIRECTIONS
-from kingdom.model.game_init import get_action_state
+from kingdom.model.game_init import get_game
 import kingdom.rendering.textutils as tu
 
 
@@ -152,7 +152,7 @@ class RoomRenderer:
     def is_dark_room(self, room: Room) -> bool:
         """Return True if the room is effectively dark."""
         try:
-            player = get_action_state().current_player
+            player = get_game().action_state.current_player
         except RuntimeError:
             player = None
 

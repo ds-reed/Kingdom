@@ -10,7 +10,7 @@ from kingdom.language.executor import execute
 from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
-from kingdom.model.game_init import get_action_state, init_session, reset_all_state, setup_world
+from kingdom.model.game_init import get_game, init_session, reset_all_state, setup_world
 from kingdom.model.noun_model import Player, World
 from kingdom.verbs.verb_registration import register_verbs
 
@@ -47,7 +47,7 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     )
     register_verbs()
 
-    state = get_action_state()
+    state = get_game().action_state
     room = state.current_room
 
     bag = next((container for container in room.containers if container.obj_handle() == "bag"), None)

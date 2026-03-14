@@ -19,6 +19,58 @@ from kingdom.model.noun_model import (
 )
 
 
+class Game:
+    def __init__(self):
+        self.action_state: GameActionState | None = None
+        self.prefs: SessionPrefs | None = None
+
+    def init_session(self, world=None, current_player=None, initial_room=None,
+                     player_name=None, save_path=None):
+
+        resolved_player = current_player
+        resolved_player_name = player_name or getattr(resolved_player, "name", None)
+
+        self.action_state = GameActionState(
+            world=world,
+            current_player=resolved_player,
+            current_room=initial_room,
+            player_name=resolved_player_name,
+            lexicon=None,
+            score=0,
+        )
+
+        self.prefs = SessionPrefs(
+            save_directory=save_path.parent if save_path else Path("saves"),
+            last_save_filename=save_path.name if save_path else "quicksave.json",
+            player_name=resolved_player_name,
+        )
+
+    def get_action_state(self):
+        if self.action_state is None:
+            raise RuntimeError("Action state not initialized")
+        return self.action_state
+
+    def set_action_state(self, new_state):
+        self.action_state = new_state
+
+    def get_prefs(self):
+        if self.prefs is None:
+            raise RuntimeError("Session preferences not initialized")
+        return self.prefs
+
+    def set_prefs(self, new_prefs):
+        self.prefs = new_prefs
+
+    def reset_all_state(self):
+        self.action_state = None
+        self.prefs = None
+
+        Container.all_containers.clear()
+        Noun.all_nouns.clear()
+        Noun._by_name = {}
+
+
+
 @dataclass
 class GameActionState:
     world: World | None = None
@@ -42,8 +94,8 @@ class SessionPrefs:
         self.last_save_filename = path.name
 
 
-_action_state: GameActionState | None = None
-_prefs: SessionPrefs | None = None
+def get_game() -> Game:
+    return _game
 
 
 def init_session(
@@ -53,66 +105,48 @@ def init_session(
     player_name: str | None = None,
     save_path: Path | None = None,
 ) -> None:
-    global _action_state, _prefs
+    global _game
 
     resolved_player = current_player
-
     resolved_player_name = player_name or getattr(resolved_player, "name", None)
-    
-    _action_state = GameActionState(
+
+    _game.action_state = GameActionState(
         world=world,
         current_player=resolved_player,
         current_room=initial_room,
         player_name=resolved_player_name,
-        lexicon=None,  # will be set after verb registration
+        lexicon=None,
         score=0,
     )
 
-    if world is not None:
-        world.state = _action_state
-
-    _prefs = SessionPrefs(
+    _game.prefs = SessionPrefs(
         save_directory=save_path.parent if save_path else Path("saves"),
         last_save_filename=save_path.name if save_path else "quicksave.json",
         player_name=resolved_player_name,
     )
 
 
-def get_action_state() -> GameActionState:
-    if _action_state is None:
-        raise RuntimeError("Action state not initialized")
-    return _action_state
 
+_game = Game()
 
-def set_action_state(new_state: GameActionState) -> None:
-    global _action_state
-    _action_state = new_state
+def init_session(*args, **kwargs):
+    return _game.init_session(*args, **kwargs)
 
-    world = getattr(new_state, "world", None)
-    if world is not None:
-        world.state = new_state
+#def get_action_state():
+#    return _game.get_action_state()
 
+def set_action_state(new_state):
+    return _game.set_action_state(new_state)
 
-def set_prefs(new_prefs: SessionPrefs) -> None:
-    global _prefs
-    _prefs = new_prefs
+def get_prefs():
+    return _game.get_prefs()
 
+def set_prefs(new_prefs):
+    return _game.set_prefs(new_prefs)
 
-def get_prefs() -> SessionPrefs:
-    if _prefs is None:
-        raise RuntimeError("Session preferences not initialized")
-    return _prefs
+def reset_all_state():
+    return _game.reset_all_state()
 
-
-def reset_all_state() -> None:
-    global _action_state, _prefs
-    _action_state = None
-    _prefs = None
-
-    # Keep noun registries clean across hard session resets.
-    Container.all_containers.clear()
-    Noun.all_nouns.clear()
-    Noun._by_name = {}
 
 
 class GameOver(Exception):

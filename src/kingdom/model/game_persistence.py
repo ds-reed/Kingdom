@@ -44,7 +44,7 @@ def load_game(world, filepath) -> Path:
     current_room_name = data.get("current_room")
     player_name = player_data.get("name", "Hero") if player_data else "Hero"
 
-    action_state = model_api.get_action_state()
+    action_state = model_api.get_game().action_state
     action_state.player_name = player_name
 
     if action_state.current_player is None:
@@ -62,9 +62,9 @@ def load_game(world, filepath) -> Path:
             player.sack.add_item(item)
 
     if current_room_name and current_room_name in world.rooms:
-        model_api.get_action_state().current_room = world.rooms[current_room_name]
+        model_api.get_game().action_state.current_room = world.rooms[current_room_name]
 
-    model_api.get_action_state().score = int(data.get("score", 0))
+    model_api.get_game().action_state.score = int(data.get("score", 0))
 
     return target
 
@@ -77,7 +77,7 @@ def save_game(world, filepath) -> Path:
         raise RuntimeError("Refusing to overwrite initial_state.json")
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    action_state = model_api.get_action_state()
+    action_state = model_api.get_game().action_state
     player = action_state.current_player
 
     payload = {

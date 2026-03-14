@@ -18,7 +18,7 @@ from kingdom.model.game_init import (
     LoadGame,
     QuitGame,
     SaveGame,
-    get_action_state,
+    get_game,
     init_session,
     reset_all_state,
     setup_world,
@@ -159,7 +159,7 @@ def smoke_context(tmp_path: Path):
         player_name="DemoHero",
         save_path=demo_save_path,
     )
-    action_state = get_action_state()
+    action_state = get_game().action_state
     register_verbs()
     verbs = Verb._by_name
     lexicon = lex()

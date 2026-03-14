@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import get_action_state, init_session, reset_all_state, setup_world
+from kingdom.model.game_init import get_game, init_session, reset_all_state, setup_world
 from kingdom.model.game_persistence import load_game, save_game
 from kingdom.model.noun_model import Container, Item, Player, Room, World
 
@@ -135,7 +135,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         player_name=player.name,
         save_path=save_path,
     )
-    get_action_state().score = 123
+    get_game().action_state.score = 123
 
     anchor = next(iter(game.rooms.values()))
 

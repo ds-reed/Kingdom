@@ -7,7 +7,7 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, World 
-from kingdom.model.game_init import get_action_state
+from kingdom.model.game_init import get_game
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 from kingdom.model.direction_model import DIRECTIONS
 
@@ -44,19 +44,19 @@ class VerbHandler:
     # Context accessors
     # ------------------------------------------------------------
     def world(self):
-        return get_action_state().world          #need to fix attribute name in GameActionState at some point
+        return get_game().action_state.world          #need to fix attribute name in GameActionState at some point
     
     def state(self):
-        return get_action_state()
+        return get_game().action_state
 
     def room(self) -> Optional[Room]:
-        return get_action_state().current_room
+        return get_game().action_state.current_room
 
     def player(self):
-        return get_action_state().current_player
+        return get_game().action_state.current_player
     
     def lexicon(self):
-        return get_action_state().lexicon
+        return get_game().action_state.lexicon
 
     # ------------------------------------------------------------
     # Standard refusal helpers
