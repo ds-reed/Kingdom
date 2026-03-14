@@ -93,7 +93,7 @@ class UI:
         return False
 
     
-    def render_room(self, lines: list[str], clear: bool = True):
+    def render_room(self, lines: list[str], clear: bool = False):
         tty_show_room(lines, clear=clear)
 
 ui = UI()

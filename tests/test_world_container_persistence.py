@@ -5,8 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import get_game, setup_world
-from kingdom.model.game_persistence import load_game, save_game
+from kingdom.model.game_init import get_game
 from kingdom.model.noun_model import Feature, Player, World
 
 
@@ -24,20 +23,20 @@ def _find_container(room, container_name: str):
 
 
 def _bootstrap_world(save_path: Path) -> World:                    #used in multiple tests
-    get_game().reset_all_state()
+    game = get_game()
+    game.reset_all_state()
     world = World()
-    setup_world(world, "data/initial_state.json")
+    game.world = world
+    game.setup_world("data/initial_state.json")
 
-    start_room = _find_room(world, world.start_room_name)
     player = Player("TestHero")
-    get_game().init_session(
+    game.init_session(
         world=world,
         current_player=player,
-        initial_room=start_room,
         player_name=player.name,
         save_path=save_path,
     )
-    return world
+    return game.world
 
 
 def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path: Path) -> None:
@@ -58,8 +57,10 @@ def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path:
     assert removed_name not in [item.name for item in lunch_bag.contents]
     assert len(lunch_bag.contents) == len(initial_names) - 1
 
-    save_game(world, save_path)
-    load_game(world, save_path)
+    game = get_game()
+    game.save_game(save_path)
+    game.load_game(save_path)
+    world = game.world
 
     tower_cell_after_first_load = _find_room(world, "Tower Cell")
     lunch_bag_after_first_load = _find_container(tower_cell_after_first_load, "bag")
@@ -71,8 +72,9 @@ def test_removed_items_do_not_reappear_and_empty_container_stays_empty(tmp_path:
 
     assert lunch_bag_after_first_load.contents == []
 
-    save_game(world, save_path)
-    load_game(world, save_path)
+    game.save_game(save_path)
+    game.load_game(save_path)
+    world = game.world
 
     tower_cell_after_second_load = _find_room(world, "Tower Cell")
     lunch_bag_after_second_load = _find_container(tower_cell_after_second_load, "bag")
@@ -90,8 +92,10 @@ def test_initially_empty_container_stays_empty_after_save_load(tmp_path: Path) -
 
     assert wardrobe.contents == []
 
-    save_game(world, save_path)
-    load_game(world, save_path)
+    game = get_game()
+    game.save_game(save_path)
+    game.load_game(save_path)
+    world = game.world
 
     pool_ledge_after_load = _find_room(world, "Pool Ledge")
     wardrobe_after_load = _find_container(pool_ledge_after_load, "wardrobe")
@@ -113,8 +117,10 @@ def test_room_features_roundtrip_save_load(tmp_path: Path) -> None:
     )
     tower_cell.add_feature(feature)
 
-    save_game(world, save_path)
-    load_game(world, save_path)
+    game = get_game()
+    game.save_game(save_path)
+    game.load_game(save_path)
+    world = game.world
 
     tower_cell_after_load = _find_room(world, "Tower Cell")
     loaded = next((f for f in tower_cell_after_load.features if f.name == "mural"), None)

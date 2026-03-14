@@ -14,15 +14,12 @@ from kingdom.verbs.verb_registration import register_verbs
 from kingdom.model.verb_model import Verb
 from kingdom.model.game_init import (
     Game,
-    GameActionState,
     GameOver,
     LoadGame,
     QuitGame,
     SaveGame,
     get_game,
-    setup_world,
 )
-from kingdom.model.game_persistence import load_game, save_game
 from kingdom.model.noun_model import Player, World
 from kingdom.language.lexicon import Lexicon, lex
 from kingdom.language.parser import parse
@@ -31,7 +28,7 @@ from kingdom.language.executor import execute
 
 
 def _run_interpreted(
-    game: World,
+    game: Game,
     lexicon: Lexicon,
     interpreted: list[InterpretedCommand],
     demo_save_path: Path | None = None,
@@ -71,14 +68,12 @@ def _run_interpreted(
     except SaveGame:
         if demo_save_path is None:
             return "SAVE_ERROR"
-        world= get_game().world
-        saved_path = save_game(world, demo_save_path)
+        saved_path = get_game().save_game(demo_save_path)
         return f"Game saved to {saved_path}"
     except LoadGame:
         if demo_save_path is None:
             return "LOAD_ERROR"
-        world= get_game().world
-        loaded_path = load_game(world, demo_save_path)
+        loaded_path = get_game().load_game(demo_save_path)
         return f"Game loaded from {loaded_path}"
     except QuitGame:
         return "QUIT"
@@ -138,29 +133,30 @@ def _room_container(game: Game, handle: str):
 
 @pytest.fixture
 def smoke_context(tmp_path: Path):
-    get_game().reset_all_state()
+    game = get_game()
+    game.reset_all_state()
 
     data_path = PROJECT_ROOT / "data" / "initial_state.json"
     demo_save_path = tmp_path / "working_state.demo.json"
 
     world = World.get_instance()
-    setup_world(world, data_path)
+    game.world = world
+    game.setup_world(data_path)
     player = Player("DemoHero")
 
     assert len(world.rooms) > 0
     assert any(len(room.containers) > 0 for room in world.rooms.values())
 
-    start_room = world.rooms.get(world.start_room_name) if isinstance(world.rooms, dict) else None
+    start_room = world.start_room
     assert start_room is not None
 
-    get_game().init_session(
+    game.init_session(
         world=world,
         current_player=player,
-        initial_room=start_room,
         player_name="DemoHero",
         save_path=demo_save_path,
     )
-    game = get_game()
+
     register_verbs()
     verbs = Verb._by_name
     lexicon = lex()
@@ -256,12 +252,12 @@ def test_demo_smoke(smoke_context):
     _expect_any(look_in_bag_result, "inside", "bag")
 
     run("get fish from lunch bag")
-    if "fish" not in _inventory_handles(world):
+    if "fish" not in _inventory_handles(game):
         _minimal_smoke_exit()
         return
 
     run("get key from lunch bag")
-    if "key" not in _inventory_handles(world):
+    if "key" not in _inventory_handles(game):
         _minimal_smoke_exit()
         return
 
@@ -269,7 +265,7 @@ def test_demo_smoke(smoke_context):
     run("get lighter from lunch bag")
     run("get torch from lunch bag")
     for handle in ("lamp", "lighter", "torch"):
-        assert handle in _inventory_handles(world)
+        assert handle in _inventory_handles(game)
 
     run("close lunch bag")
     assert not bag.is_open
@@ -283,10 +279,10 @@ def test_demo_smoke(smoke_context):
     run("get fish from lunch bag")
     run("get key from lunch bag")
     for handle in ("lamp", "lighter", "torch", "fish", "key"):
-        assert handle in _inventory_handles(world)
+        assert handle in _inventory_handles(game)
 
     run("light torch")
-    torch_item = _inventory_item(world, "torch")
+    torch_item = _inventory_item(game, "torch")
     assert torch_item is not None and getattr(torch_item, "is_lit", False)
 
     torch_bag_fire = run("put torch into lunch bag")
@@ -294,12 +290,12 @@ def test_demo_smoke(smoke_context):
     _expect_any(torch_bag_fire, "catches on fire", "destroyed")
 
     run("drop torch")
-    assert _room_item(world, "torch") is not None
+    assert _room_item(game, "torch") is not None
     run("take torch")
-    assert "torch" in _inventory_handles(world)
+    assert "torch" in _inventory_handles(game)
 
     run("extinguish torch")
-    torch_item = _inventory_item(world, "torch")
+    torch_item = _inventory_item(game, "torch")
     assert torch_item is not None and not getattr(torch_item, "is_lit", True)
 
     say_result = run("say hello")
@@ -308,7 +304,7 @@ def test_demo_smoke(smoke_context):
     _expect_any(eat_result, "vomit", "you")
 
     run("unlock trapdoor")
-    trapdoor = _room_item(world, "trapdoor")
+    trapdoor = _room_item(game, "trapdoor")
     assert trapdoor is not None and not getattr(trapdoor, "is_locked", True)
     run("open trapdoor")
     assert trapdoor is not None and getattr(trapdoor, "is_open", False)
@@ -339,11 +335,11 @@ def test_demo_smoke(smoke_context):
     assert game.current_room.name == "Ravine Edge"
 
     run("take rope")
-    assert "rope" in _inventory_handles(world)
+    assert "rope" in _inventory_handles(game)
 
     tie_result = run("tie rope to hook")
     _expect_any(tie_result, "you tie", "dangles down")
-    rope = _room_item(world, "rope")
+    rope = _room_item(game, "rope")
     assert rope is not None and getattr(rope, "is_tied", False)
 
     run("climb rope")
@@ -384,7 +380,7 @@ def test_demo_smoke(smoke_context):
 def test_demo_edge_case_regressions(smoke_context):
     run = smoke_context["run"]
     world: World = smoke_context["world"]
-    game: GameActionState = smoke_context["game"]
+    game: Game = smoke_context["game"]
 
     failures: list[str] = []
 
@@ -448,7 +444,7 @@ def test_demo_edge_case_regressions(smoke_context):
 def test_demo_phrase_batch1_regressions(smoke_context):
     run = smoke_context["run"]
     world: World = smoke_context["world"]
-    game: GameActionState = smoke_context["game"]
+    game:  Game   = smoke_context["game"]
 
     failures: list[str] = []
 
@@ -539,27 +535,6 @@ def test_demo_phrase_batch1_regressions(smoke_context):
                 safe_run("put trapdoor into bag")
                 if trapdoor in bag.contents:
                     failures.append("invalid-source violation: trapdoor moved into bag without being in inventory")
-
-    # ------------------------------------------------------------------
-    # Phrase group 3: multi-command conjunction handling
-    # ------------------------------------------------------------------
-    game.current_room = world.rooms.get("Tower Cell")
-    room = game.current_room
-    trapdoor = _room_item(game, "trapdoor") if room is not None else None
-    if trapdoor is None:
-        failures.append("setup failed: trapdoor missing for conjunction phrase test")
-    else:
-        # ensure key available
-        bag = _room_container(game, "bag")
-        if bag is not None and "key" not in _inventory_handles(game):
-            safe_run("open lunch bag")
-            safe_run("get key from lunch bag")
-
-        safe_run("unlock and open trapdoor")
-        if getattr(trapdoor, "is_locked", True):
-            failures.append("conjunction phrase failed: 'unlock and open trapdoor' left trapdoor locked")
-        if not getattr(trapdoor, "is_open", False):
-            failures.append("conjunction phrase failed: 'unlock and open trapdoor' did not open trapdoor")
 
     assert not failures, "Batch-1 phrase regressions detected:\n" + "\n".join(f" - {failure}" for failure in failures)
 

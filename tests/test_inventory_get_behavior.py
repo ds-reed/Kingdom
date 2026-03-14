@@ -10,12 +10,12 @@ from kingdom.language.executor import execute
 from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
-from kingdom.model.game_init import get_game, setup_world, get_game
+from kingdom.model.game_init import Game, get_game
 from kingdom.model.noun_model import Player, World
 from kingdom.verbs.verb_registration import register_verbs
 
 
-def _run_command(game: World, command: str) -> str:
+def _run_command(game: Game, command: str) -> str:
     lexicon = lex()
     parsed = parse(command, lexicon)
     interpreted = interpret(parsed, game, lexicon)
@@ -32,31 +32,30 @@ def _run_command(game: World, command: str) -> str:
 
 
 def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_container() -> None:
-    get_game().reset_all_state()
+    game = get_game()
+    game.reset_all_state()
 
     world = World()
-    setup_world(world, PROJECT_ROOT / "data" / "initial_state.json")
+    game.world = world
+    game.setup_world(PROJECT_ROOT / "data" / "initial_state.json")
 
     player = Player("InventoryHero")
-    start_room = world.rooms.get(world.start_room_name)
-    get_game().init_session(
+    game.init_session(
         world=world,
         current_player=player,
-        initial_room=start_room,
         player_name=player.name,
     )
     register_verbs()
-    game = get_game()
     room = game.current_room
 
     bag = next((container for container in room.containers if container.obj_handle() == "bag"), None)
     assert bag is not None
 
-    open_result = _run_command(world, "open lunch bag")
+    open_result = _run_command(game, "open lunch bag")
     assert "open" in open_result.lower()
     assert bag.is_open
 
-    get_all_result = _run_command(world, "get all")
+    get_all_result = _run_command(game, "get all")
     assert "you get" in get_all_result.lower()
 
     inventory_handles_after_get_all = {item.obj_handle() for item in player.get_inventory_items()}
@@ -68,7 +67,7 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     assert "fish" not in inventory_handles_after_get_all
     assert "fish" in bag_handles_after_get_all
 
-    get_fish_result = _run_command(world, "get fish")
+    get_fish_result = _run_command(game, "get fish")
     assert "you get" in get_fish_result.lower() and "fish" in get_fish_result.lower()
 
     inventory_handles_after_get_fish = {item.obj_handle() for item in player.get_inventory_items()}

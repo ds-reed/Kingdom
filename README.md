@@ -206,12 +206,18 @@ Windows helper:
 
 ### Pytest
 
-Default pytest discovery is configured in `pyproject.toml` for `tests/` and `src/kingdom/tests` with `test_*.py` naming.
+Default pytest discovery is configured in `pyproject.toml` for `tests/` and `src/kingdom/tests` with `test_*.py` naming plus the smoke-test file `tests/demo.py`.
 
 Run the current non-language suite:
 
 ```bash
 pytest --ignore=src/kingdom/language/tests
+```
+
+Run the smoke test directly:
+
+```bash
+pytest tests/demo.py
 ```
 
 Run the parser/language tests separately when needed:

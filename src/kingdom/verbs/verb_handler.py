@@ -44,10 +44,10 @@ class VerbHandler:
     # Context accessors
     # ------------------------------------------------------------
     def world(self):
-        return get_game().world          #need to fix attribute name in GameActionState at some point
+        return get_game().world         
     
-    def state(self):
-        return get_game()     #stub to keep state access consistent while we transition from GameActionState to Game
+    def game(self):
+        return get_game()     
 
     def room(self) -> Optional[Room]:
         return get_game().current_room

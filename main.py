@@ -17,73 +17,61 @@ from kingdom.utilities import SessionLogger, ensure_terminal_session
 from kingdom.UI import ui
 
 #  model modules
-from kingdom.model.noun_model import Noun, World, Player, Room
-from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
-from kingdom.model.game_persistence import save_game, load_game
-from kingdom.model.game_init import GameActionState, get_game, setup_world
-from kingdom.model.verb_model import Verb
+from kingdom.model.noun_model import World, Player, Room
+from kingdom.model.game_init import Game, QuitGame, GameOver, SaveGame, LoadGame, get_game
 
 from kingdom.rendering.descriptions import render_current_room
 
 from kingdom.verbs.verb_registration import register_verbs
 
-
 # language modules
-from kingdom.language.lexicon import Lexicon, lex
+from kingdom.language.lexicon import Lexicon
 from kingdom.language.parser import parse
 from kingdom.language.interpreter import interpret
 from kingdom.language.executor import execute  
 
 
-
 #------------------ Design Note: Main Refactor (v2) ------------------
-def init_game_state() -> tuple[World | None, Lexicon | None]:
+def init_game_state() -> Game | None:
     """
     Welcome player and initialize game world.
     """
+
+    ui.print("Welcome to Kingdom.","\n", bold=True)
+    player_name = ui.prompt("Player name> ").strip() or "ralf"
+    ui.print(f"Welcome {player_name}!","\n")
+    
+    base_dir = Path(__file__).resolve().parent
+    save_path = base_dir / "saves" / f"{player_name}.json"
+    data_path = base_dir / "data" / "initial_state.json"
     
     try:
 
-        base_dir = Path(__file__).resolve().parent
-        data_path = base_dir / "data" / "initial_state.json"
+        #-----------------------setup a new game ---------------------
 
-        # Initialize world and game state
-        world = World.get_instance()
-        setup_world(world, data_path)
-
-        if world.rooms: current_room = world.rooms[world.start_room_name]
-        else: raise ValueError("No rooms found in game data.")    
-
-
-        ui.print("Welcome to Kingdom.","\n", bold=True)
-
-        player_name = ui.prompt("Player name> ").strip() or "ralf"
-        player = Player(player_name)
-
-        ui.print(f"Welcome {player_name}!","\n")
-        
-        save_path = base_dir / "saves" / f"{player_name}.json"
-        game = get_game()
-        game.init_session(world=world, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
-
-         
-        #------------------------------------------------------------
-
-        # Build verbs for parser access
         register_verbs()
         
-        lexicon = lex()  # build lexicon for parser access
-        game.lexicon = lexicon  # store lexicon in action state for access during game
+        game = get_game()                   # create fresh game instance (resets all state)
+        game.world = World.get_instance()   # ensure world is initialized before setup_world
+        game.setup_world(data_path)         # populate world with initial state from JSON file
+        player = Player(player_name)        # create player instance
 
-
-        lines = render_current_room(game.current_room)
-        ui.render_room(lines, clear=False)
+        game.init_session(                  # initialize the global game state and prefs  
+                world= game.world, 
+                current_player=player, 
+                player_name=player_name, 
+                save_path=save_path
+                )
+          
+        #------------------------------------------------------------
 
     except Exception as e:
         print(f"Critical error during game initialization: {e}")
-        return None, None
+        return None
     
-    return world, lexicon   # initialization successful
+    ui.render_room(render_current_room(game.current_room))
+    
+    return game   # initialization successful
 
 def handle_game_over(
     game_over: GameOver,
@@ -247,7 +235,7 @@ def main() -> None:
 
     try:
         
-        world, lexicon = init_game_state()
+        game =init_game_state()
         
         recovery_mode = False
 
@@ -258,8 +246,8 @@ def main() -> None:
 
             should_quit, recovery_mode, output = process_command(
                 raw_command=command,
-                world=world,
-                lexicon=lexicon,
+                world=game.world,
+                lexicon=game.lexicon,
                 recovery_mode=recovery_mode,
             )
 

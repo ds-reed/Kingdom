@@ -60,6 +60,22 @@ class DirectionRegistry:
         ordered = [d for d in self.data.keys() if d in canon]
 
         return ordered
+    
+    def _serialize_directions(self) -> dict[str, dict[str, object]]:
+        payload: dict[str, dict[str, object]] = {}
+
+        for canonical in sorted(self.get_all_directions()):
+            synonyms = sorted(self.get_synonyms(canonical))
+
+            entry: dict[str, object] = {}
+            reverse = self.get_reverse(canonical)
+            if reverse is not None:
+                entry["reverse"] = reverse
+            if synonyms:
+                entry["synonyms"] = synonyms
+            payload[canonical] = entry
+
+        return payload
 
 
 DIRECTIONS = DirectionRegistry()

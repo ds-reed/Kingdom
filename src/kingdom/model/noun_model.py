@@ -889,27 +889,15 @@ class World:
     rooms: dict | list = field(default_factory=dict)
     start_room_name: Optional[str] = None
     start_room: "Room | None" = None
-    state: object | None = None
+
 
     def __post_init__(self):
         World._instance = self
-
-    @property
-    def current_player(self):
-        if self.state is None:
-            return None
-        return self.state.current_player
-
-    @current_player.setter
-    def current_player(self, player):
-        if self.state is not None:
-            self.state.current_player = player
 
     def __repr__(self):
         return (
             f"World(\n"
             f"  rooms={list(self.rooms.keys())},\n"
-            f"  current_player={self.current_player!r},\n"
             f"  start_room={self.start_room_name!r},\n"
             f")"
         )
@@ -924,18 +912,6 @@ class World:
         self.containers = containers
         self.rooms = rooms
 
-    def set_current_player(self, player):
-        self.current_player = player
-
-    def require_player(self, missing_message: str = "No hero is active yet.", return_error: bool = False) -> "Player | str":
-        player = self.current_player
-        if player is not None:
-            return player
-
-        if return_error:
-            return missing_message
-
-        raise RuntimeError(missing_message)
 
     def find_item_in_game(self, name: str) -> tuple["Room | None", "Item | None"]:
         for room in self.rooms.values():

@@ -22,14 +22,14 @@ class MovementVerbHandler(VerbHandler):
     # Generic movement engine for GO, SWIM, CLIMB, etc.
     # ------------------------------------------------------------
     def perform_movement(self, exit_obj, direction, success_verb_phrase, destination=None):
-        state = self.state()
+        game = self.game()
         if destination is None:
             destination = getattr(exit_obj, "destination", None)
         if destination is None:
             return f"ERROR - MISSING DESTINATION."
 
         # Move
-        state.current_room = destination
+        game.current_room = destination
 
         # Render
         lines = [f"You {success_verb_phrase} {direction}."]
@@ -37,7 +37,7 @@ class MovementVerbHandler(VerbHandler):
 
         # Scoring
         if not destination.found:
-            state.score += getattr(destination, "discover_points", 0)
+            game.score += getattr(destination, "discover_points", 0)
             destination.found = True
 
         return lines
@@ -198,7 +198,7 @@ class MovementVerbHandler(VerbHandler):
 
     def teleport(self, target: Noun, words: list[str], cmd: "ExecuteCommand"):
         """Teleport to any room by name or number. No target → list rooms."""
-        state = self.state()
+        game = self.game()
         world = self.world()
         room = self.room()
 
@@ -248,7 +248,7 @@ class MovementVerbHandler(VerbHandler):
 
         # Perform the teleport
         old_room_name = room.canonical_name()
-        state.current_room = desired_room
+        game.current_room = desired_room
         new_room_name = desired_room.canonical_name()
 
         return(self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)))

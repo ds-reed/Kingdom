@@ -243,7 +243,7 @@ class MetaVerbHandler(VerbHandler):
         words: tuple[str, ...] = (),
         **kwargs    
     ) -> str:
-        state = self.state()
-        return self.build_message(f"Your current score is: {state.score}")
+        game = self.game()
+        return self.build_message(f"Your current score is: {game.score}")
 
 

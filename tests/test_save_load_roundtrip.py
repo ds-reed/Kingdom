@@ -6,8 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import get_game, setup_world
-from kingdom.model.game_persistence import load_game, save_game
+from kingdom.model.game_init import get_game
 from kingdom.model.noun_model import Container, Item, Player, Room, World
 
 
@@ -116,26 +115,26 @@ def _exit_snapshot(room: Room) -> dict[str, dict[str, dict[str, object]]]:
 
 
 def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_path: Path) -> None:
-    get_game().reset_all_state()
+    game = get_game()
+    game.reset_all_state()
 
     base_dir = Path(__file__).resolve().parents[1]
     data_path = base_dir / "data" / "initial_state.json"
     save_path = tmp_path / "roundtrip_validation.tmp.json"
 
     world = World()
-    setup_world(world, data_path)
+    game.world = world
+    game.setup_world(data_path)
 
     player = Player("RoundtripHero")
 
-    start_room = world.rooms.get(world.start_room_name)
-    get_game().init_session(
+    game.init_session(
         world=world,
         current_player=player,
-        initial_room=start_room,
         player_name=player.name,
         save_path=save_path,
     )
-    get_game().score = 123
+    game.score = 123
 
     anchor = next(iter(world.rooms.values()))
 
@@ -217,7 +216,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         for room_name, room in world.rooms.items()
     }
 
-    save_game(world, save_path)
+    game.save_game(save_path)
 
     # Loader currently expects lowercase room collection keys.
     with save_path.open("r", encoding="utf-8") as saved_file:
@@ -232,7 +231,8 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         "saved room payload should omit empty 'features' lists"
     )
 
-    load_game(world, save_path)
+    game.load_game(save_path)
+    world = game.world
 
     invariant_snapshot_after = {
         room_name: (room.is_dark, room.has_water, room.dark_description)

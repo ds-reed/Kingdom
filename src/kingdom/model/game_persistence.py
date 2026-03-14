@@ -4,7 +4,7 @@ import json
 from pathlib import Path 
 
 from . import game_init as model_api
-from .game_init import GameActionState, get_game
+from .game_init import get_game
 from .noun_model import Player, Item, World
 from .direction_model import DIRECTIONS
 

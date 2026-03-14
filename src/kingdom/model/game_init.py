@@ -4,10 +4,13 @@ Handles world loading, serialization, and runtime entity management.
 """
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from collections import deque
 import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
+if TYPE_CHECKING:
+    from kingdom.language.lexicon import Lexicon
 from kingdom.model.direction_model import DIRECTIONS 
 from kingdom.model.noun_model import (
     Noun,
@@ -20,6 +23,31 @@ from kingdom.model.noun_model import (
 )
 
 
+class GameOver(Exception):
+    pass
+
+class QuitGame(Exception):
+    pass
+
+class SaveGame(Exception):
+    pass
+
+class LoadGame(Exception):
+    pass
+
+@dataclass
+class SessionPrefs:
+    save_directory: Path = Path("saves")
+    last_save_filename: str = "quicksave.json"
+    player_name: str | None = None
+    default_filename_template: str = "{name}.json"
+
+    def remember_save(self, path: Path | str):
+        path = Path(path)
+        self.save_directory = path.parent
+        self.last_save_filename = path.name
+
+
 class Game:
     def __init__(self):
 
@@ -30,7 +58,7 @@ class Game:
         self.current_room: Room | None = None
 
         # game data fields
-        self.lexicon: "Lexicon" | None = None
+
         self.prefs: SessionPrefs | None = None
 
         # Persistent metrics (saved/loaded)
@@ -39,6 +67,7 @@ class Game:
         self.score: int = 0
 
         # Ephemeral metrics (reset on load)
+        self.lexicon: Lexicon | None = None
         self.rooms_found_since_load: int = 0
         self.items_found_since_load: int = 0
         self.score_since_load: int = 0
@@ -50,14 +79,13 @@ class Game:
         world=None,
         current_player=None,
         player_name=None,
-        initial_room=None,
         save_path=None,
     ):
         # Core session state
         self.world = world
         self.current_player = current_player
         self.player_name = player_name
-        self.current_room = initial_room
+        self.current_room = world.start_room
         self.score = 0
 
         # Preferences
@@ -80,10 +108,134 @@ class Game:
         self.recent_commands.clear()
 
 
-        # Rebuild noun layer for this world
-    #   if self.world:
-    #       self.lexicon.reset_nouns(self.world)
+    def setup_world(self, source):
+        if isinstance(source, (str, Path)):
+            with open(source, "r") as file:
+                data = json.load(file)
+        elif isinstance(source, dict):
+            data = source
+        else:
+            raise TypeError("setup_world expects a filepath or a dict")
 
+        # Clear all registries before reconstructing world entities.
+        Container.all_containers.clear()
+        Noun.all_nouns.clear()
+        Noun._by_name = {}
+
+        _load_directions(data)
+
+        if isinstance(data, dict):
+            containers = _construct_containers(data.get("containers", []))
+            rooms = _construct_rooms(data.get("rooms", []))
+        else:
+            containers = []
+            rooms = []
+
+        self.world.set_world(containers, rooms)
+        self.world.rooms = {room.name: room for room in rooms}
+        start_room_name = data.get("start_room")
+        self.world.start_room_name = start_room_name
+        self.world.start_room = self.world.rooms[start_room_name]
+        self.current_room = self.world.start_room
+
+        # init lexicon after world is set up, since many entries depend on the world contents
+        from kingdom.language.lexicon import lex
+        self.lexicon = lex()
+
+        return 
+    
+
+    def load_game(self, filepath) -> Path:
+        target = Path(filepath).expanduser()
+        if not target.suffix:
+            target = target.with_suffix(".json")
+        if not target.is_file():
+            raise RuntimeError(f"Save file not found: {target}")
+
+        try:
+            with target.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(f"Invalid save file format: {target} ({error})") from error
+        except OSError as error:
+            raise RuntimeError(f"Unable to read save file: {target} ({error})") from error
+
+        # --- 1. Reset all global + session state ---
+        self.reset_all_state()    # reset state of last game and other globals
+
+
+        # --- 2. Extract save data ---
+        player_data = data.pop("player", None)
+        current_room_name = data.get("current_room")
+        self.player_name = player_data.get("name", "Hero") if player_data else "Hero"
+
+
+        # --- 3. Build fresh world ---
+        self.world = World.get_instance()
+        self.setup_world(data)
+
+        # --- 4. Build fresh player ---
+        self.current_player = Player(self.player_name)
+
+        # --- 5. Restore inventory ---
+        if player_data:
+            for item_json in player_data.get("inventory", []):
+                item = _construct_item_from_spec(item_json)
+                self.current_player.sack.add_item(item)
+
+        # --- 6. Restore room + score ---
+        if current_room_name and current_room_name in self.world.rooms:
+            self.current_room = self.world.rooms[current_room_name]
+
+        self.score = int(data.get("score", 0))
+
+        self.prefs = SessionPrefs(
+            save_directory=target.parent,
+            last_save_filename=target.name,
+            player_name=self.player_name,
+            )   
+
+        return target
+
+
+    def save_game(self, filepath) -> Path:
+        target = Path(filepath).expanduser()
+        if not target.suffix:
+            target = target.with_suffix(".json")
+        if target.name == "initial_state.json":
+            raise RuntimeError("Refusing to overwrite initial_state.json")
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        player = self.current_player
+
+        payload = {
+            "directions": DIRECTIONS._serialize_directions(),
+            "player": {
+                "name": player.name,
+                "inventory": [Item._serialize_item(item) for item in player.sack.contents],
+            } if player else None,
+            "current_room": self.current_room.name if self.current_room else None,
+            "start_room": (
+                self.world.start_room_name
+                if self.world and self.world.start_room_name is not None
+                else (self.world.start_room.name if self.world and self.world.start_room is not None else None)
+            ),
+            "score": int(self.score),
+            "rooms": [room.to_dict() for room in self.world.rooms.values()],
+            "prefs": {
+                "save_directory": str(self.prefs.save_directory) if self.prefs else None,
+                "last_save_filename": self.prefs.last_save_filename if self.prefs else None,
+                "player_name": self.prefs.player_name if self.prefs else None,
+            },
+        }
+
+        try:
+            with target.open("w", encoding="utf-8") as file:
+                json.dump(payload, file, indent=4)
+        except OSError as error:
+            raise RuntimeError(f"Unable to write save file: {target} ({error})") from error
+
+        return target
 
 
 
@@ -118,73 +270,16 @@ class Game:
         Noun.all_nouns.clear()
         Noun._by_name = {}
 
-
-
-@dataclass
-class SessionPrefs:
-    save_directory: Path = Path("saves")
-    last_save_filename: str = "quicksave.json"
-    player_name: str | None = None
-    default_filename_template: str = "{name}.json"
-
-    def remember_save(self, path: Path | str):
-        path = Path(path)
-        self.save_directory = path.parent
-        self.last_save_filename = path.name
-
-
+# Global game instance
+_game = Game()
 def get_game() -> Game:
     return _game
 
 
 
-# Global game instance
-_game = Game()
 
 
-class GameOver(Exception):
-    pass
-
-class QuitGame(Exception):
-    pass
-
-class SaveGame(Exception):
-    pass
-
-class LoadGame(Exception):
-    pass
-
-
-def setup_world(world: World, source):
-    if isinstance(source, (str, Path)):
-        with open(source, "r") as file:
-            data = json.load(file)
-    elif isinstance(source, dict):
-        data = source
-    else:
-        raise TypeError("setup_world expects a filepath or a dict")
-
-    # Clear all registries before reconstructing world entities.
-    Container.all_containers.clear()
-    Noun.all_nouns.clear()
-    Noun._by_name = {}
-
-
-    _load_directions(data)
-
-    if isinstance(data, dict):
-        containers = _construct_containers(data.get("containers", []))
-        rooms = _construct_rooms(data.get("rooms", []))
-    else:
-        containers = []
-        rooms = []
-
-    world.set_world(containers, rooms)
-    world.rooms = {room.name: room for room in rooms}
-    world.start_room_name = data.get("start_room")
-
-    return containers, world.rooms
-
+#----- function for constructing directions from JSON data -----
 
 def _load_directions(json_data):
     directions = json_data.get("directions", {})
@@ -242,7 +337,7 @@ def _construct_containers(data):                  #  construct each container an
 
 def _construct_feature_from_spec(spec):
     return construct_from_spec(spec, Feature)
- 
+
 
 def _construct_rooms(data):
     rooms = []
