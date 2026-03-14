@@ -177,7 +177,7 @@ def eat_fish(item, verb, words):
         
     # spawn vomit if it doesn't already exist
     vomit = _spawn_room_item(world, 
-        name="There is vomit on a nearby wall.",
+        name="it looks like someone has been violently ill on a nearby wall",
         handle="vomit",
         is_takeable=False,      
         take_refuse_string="EW! The nasty vomit just makes your hands dirty."
@@ -250,10 +250,10 @@ def rub_lamp(item, verb, words):
         )
 
     # Default case: lamp gets shinier
-    item.name = "a battered but shiny brass lamp"
+    item.description = "a battered but shiny brass lamp"
     return VerbOutcome(
         message="You have a feeling of accomplishment as you rub the lamp. It looks shinier now.",
-        control=VerbControl.SKIP
+        control=VerbControl.CONTINUE
     )
 
 # ----------------- the Djinni ---------------------------------

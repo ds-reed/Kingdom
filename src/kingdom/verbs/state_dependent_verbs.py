@@ -5,7 +5,7 @@ from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbCo
 from kingdom.verbs.verb_handler import VerbHandler
 
 from kingdom.model.noun_model import Noun, Container, Feature
-from kingdom.renderer import render_current_room, render_item, render_container, render_container_contents
+from kingdom.rendering.descriptions import render_current_room, render_item, render_container, render_container_contents
 
 
 

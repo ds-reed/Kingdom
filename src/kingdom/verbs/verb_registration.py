@@ -166,12 +166,12 @@ def register_verbs():
 
           Verb("take", inventory.take,
                synonyms=["get", "remove"],
-               modifiers=["all", "everything", "in", "from"],
+               modifiers=["all", "everything", "room"],
                uses_directions=False),
 
           Verb("drop", inventory.drop,
                synonyms=["put"],
-               modifiers=["all", "everything"],
+               modifiers=["all", "everything", "room"],
                uses_directions=False),
 
      ]

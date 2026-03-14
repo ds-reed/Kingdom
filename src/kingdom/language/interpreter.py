@@ -55,8 +55,6 @@ class InterpretedCommand:
         direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
 
 
-
-
 def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> List[InterpretedCommand]:
     """Entry point: interpret a list of ParsedActions into InterpretedCommands.
 

@@ -39,7 +39,7 @@
           "adjectives": ["old", "wooden"],
           "is_lightable": true,
           "is_lit": false,
-          "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
+          "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
           "special_handlers": { "drop": "drop_torch" }
         },
         {
@@ -58,8 +58,8 @@
           "is_openable": true,
           "is_open": false,
           "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
-          "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-          "closed_state_description": "an ornate broach with a tightly-closed clasp."
+          "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish inside",
+          "closed_state_description": "an ornate broach with a tightly-closed clasp"
         },
         {
           "name": "trapdoor",
@@ -72,21 +72,21 @@
           "is_locked": true,
           "is_flamable": false,
           "unlock_key": "small brass key",
-          "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
-          "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
-          "unlockable_description": "The trapdoor is locked and you need a key.",
-          "closed_state_description": "a closed, rusty iron trapdoor in the middle of the floor.",
-          "opened_state_description": "an open trapdoor in the middle of the floor. A slick fireman's pole leads down into darkness.",
+          "locked_state_description": "A closed and locked rusty iron trap door",
+          "unlocked_state_description": "A closed but unlocked rusty iron trap door",
+          "unlockable_description": "The trapdoor is locked and you need a key",
+          "closed_state_description": "A closed, rusty iron trapdoor",
+          "opened_state_description": "An open trapdoor. A slick fireman's pole leads from it down into darkness below",
           "open_exit_direction": "down",
           "open_exit_type": "climb"
         },
         {
           "name": "ladder",
           "description": "a magic ladder hums with soft blue light.",
-          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
           "adjectives": ["magic", "glittering", "soft blue"],
           "is_takeable": false,
-          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["up"],
           "is_visible": false
@@ -94,10 +94,10 @@
         {
           "name": "pole",
           "description": "a greasy pole.",
-          "examine_string": "a firestation-type pole that is slathered in slippery grease.",
+          "examine_string": "a firestation-type pole that is slathered in slippery grease",
           "adjectives": ["greasy"],
           "is_takeable": false,
-          "take_refuse_string": "The pole is firmly anchored to the floor and ceiling.",
+          "take_refuse_string": "The pole is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["down"],
           "is_visible": false
@@ -113,8 +113,8 @@
           "is_flamable": true,
           "open_action_description": "You unfold the top of the greasy lunch bag.",
           "close_action_description": "You fold the top of the greasy lunch bag shut.",
-          "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
-          "closed_state_description": "a greasy brown lunch bag with its top folded shut.",
+          "opened_state_description": "a greasy brown lunch bag with its top unfolded open",
+          "closed_state_description": "a greasy brown lunch bag with its top folded shut",
           "items": [
             {
               "name": "carrot",
@@ -149,7 +149,7 @@
               "is_rubbed": false,
               "is_flamable": false,
               "rub_success_string": "The lamp grows shiny from rubbing.",
-              "rubbed_state_description": "a battered and shiny brass lamp.",
+              "rubbed_state_description": "a battered and shiny brass lamp",
               "special_handlers": { "rub": "rub_lamp" },
               "trigger_room": "Blank Chamber"
             },
@@ -191,7 +191,7 @@
       "features": [
         {
           "name": "mural",
-          "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements.",
+          "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements",
           "synonyms": ["djinni mural", "wall mural", "painting"]
         }
       ],
@@ -272,9 +272,9 @@
           "is_open": false,
           "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
           "close_action_description": "You push the wardrobe doors shut.",
-          "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
-          "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
-          "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable.",
+          "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them",
+          "closed_state_description": "a large wooden wardrobe with its heavy doors closed",
+          "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable",
           "items": []
         }
       ],
@@ -316,10 +316,10 @@
        {
           "name": "ladder",
           "description": "a magic ladder hums with soft blue light.",
-          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
           "adjectives": ["magic", "glittering", "soft blue"],
           "is_takeable": false,
-          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["down"],
           "is_visible": false
@@ -366,12 +366,12 @@
         },
         {
           "name": "hook",
-          "description": "an iron hook firmly anchored into the rock at the ravine's edge",
+          "description": "an iron hook is firmly anchored into the rock at the ravine's edge",
           "adjectives": ["iron", "anchored"],
           "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
           "is_takeable": false,
           "is_tied_to": false,
-          "is_tied_to_string": "a long sturdy rope is tied securly to the hook and dangles down over the edge of the ravine",
+          "is_tied_to_description": "a long sturdy rope is tied securly to the hook and dangles down over the edge of the ravine",
           "can_be_tied_to": true
         }
       ],

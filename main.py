@@ -11,8 +11,8 @@ import random
 import sys
 sys.path.append("./src")
 
-from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN
-from kingdom.utilities import SessionLogger, init_terminal_mode, ensure_terminal_session
+from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN, set_terminal_mode
+from kingdom.utilities import SessionLogger, ensure_terminal_session
 
 from kingdom.UI import ui
 
@@ -23,7 +23,7 @@ from kingdom.model.game_persistence import save_game, load_game
 from kingdom.model.game_init import GameActionState, init_session , get_action_state, get_prefs, setup_world
 from kingdom.model.verb_model import Verb
 
-from kingdom.renderer import render_current_room
+from kingdom.rendering.descriptions import render_current_room
 
 from kingdom.verbs.verb_registration import register_verbs
 
@@ -57,7 +57,7 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
 
         ui.print("Welcome to Kingdom.","\n", bold=True)
 
-        player_name = ui.prompt("Enter hero name: ").strip() or "Hero"
+        player_name = ui.prompt("Player name? > ").strip() or "ralf"
         player = Player(player_name)
 
         ui.print(f"Welcome {player_name}!","\n")
@@ -238,7 +238,7 @@ def main() -> None:
     if not ensure_terminal_session():
         return
 
-    init_terminal_mode(args)
+    set_terminal_mode(args.mode)
 
     base_dir = Path(__file__).parent
     logger = SessionLogger(base_dir)
@@ -254,7 +254,7 @@ def main() -> None:
         while True:
 
             ui.print("\n") 
-            command = ui.prompt("Enter command: ")
+            command = ui.prompt("> ")
             ui.print("\n")
 
             should_quit, recovery_mode, output = process_command(

@@ -135,7 +135,6 @@ class Noun:
     # Noun interface methods
     # ───────────────────────────────────────────────
 
-
     def canonical_name(self) -> str:
         return self.name
 
@@ -147,6 +146,45 @@ class Noun:
     
     def synonym_names(self) -> list[str]:
         return self.synonyms  
+    
+    def stateful_name(self):
+        # Start with the base description
+        desc = self.description or self.display_name()
+
+        # Lit/unlit
+        if getattr(self, "is_lit", False) and getattr(self, "lit_state_description", None):
+            desc = self.lit_state_description
+
+        # Open/closed
+        if getattr(self, "is_openable", False):
+            if getattr(self, "is_open", False) and getattr(self, "opened_state_description", None):
+                desc = self.opened_state_description
+            elif not getattr(self, "is_open", False) and getattr(self, "closed_state_description", None):
+                desc = self.closed_state_description
+
+        # Locked/unlocked
+        if getattr(self, "is_lockable", False):
+            if getattr(self, "is_locked", False) and getattr(self, "locked_state_description", None):
+                desc = self.locked_state_description
+            elif not getattr(self, "is_locked", False) and getattr(self, "unlocked_state_description", None):
+                desc = self.unlocked_state_description
+
+        # Rubbed
+        if getattr(self, "is_rubbed", False) and getattr(self, "rubbed_state_description", None):
+            desc = self.rubbed_state_description
+
+        # Tied/attached
+        if getattr(self, "is_tied_to_description", None):
+            desc = f"{desc}, {self.is_tied_to_description}"
+
+        # Normalize (lowercase, remove trailing period)
+        desc = desc.strip()
+        if desc.endswith("."):
+            desc = desc[:-1]
+        desc = desc.lower()
+
+        return desc
+
 
     @classmethod
     def get_by_name(cls, name: str) -> "Noun | None":

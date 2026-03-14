@@ -141,11 +141,6 @@ def _relaunch_in_terminal() -> None:
     )
 
 
-def init_terminal_mode(args):
-    if args is None:
-        args = parse_args()
-    terminal_style.ACTIVE_TERMINAL_MODE = args.mode
-
 # ───────────────────────────────────────────────────────────────────────────────
 # Gene utilities for Kingdom functions and classes.
 # ───────────────────────────────────────────────────────────────────────────────

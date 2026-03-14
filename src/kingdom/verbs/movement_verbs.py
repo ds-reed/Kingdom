@@ -11,7 +11,7 @@ from unittest import result
 from kingdom.model.noun_model import Noun, Room
 from kingdom.model.game_init import GameOver
 from kingdom.model.verb_model import Verb
-from kingdom.renderer import render_current_room
+from kingdom.rendering.descriptions import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 
 

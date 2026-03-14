@@ -43,6 +43,9 @@ class InventoryVerbHandler(VerbHandler):
 
         source, source_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
 
+        if prep and not source_name:
+            return self.build_message(self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"))
+        
         if target:
             if target.get_class_name() == "Item":
                 if player.has_item(target):
@@ -106,12 +109,29 @@ class InventoryVerbHandler(VerbHandler):
 
         keywords = cmd.modifiers
         target = cmd.direct_object
-        target_token = cmd.direct_object_token
-        words = []
+        prep_phrases = cmd.prep_phrases
+        
         dest_handle = None
+        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("into", "in"))
 
-        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("into", "in"))
+        # check constraints for drop with a preposition, e.g. "drop lamp into chest"
+        # will return if destination is invalid in any way
+        if prep_phrases:
+            if not prep:    # preposition found with unrecognized application to drop (eg. "drop lamp beneath fish")
+                return self.build_message(f"I don't understand how to {cmd.verb_token} {next(iter(prep_phrases))['prep']} things.")
+            if "room" not in keywords:   # accept room as a destination if explicitly given. fix this logic when we have lexical nouns like "room" for now, use keywords
+                if not dest:    # no resolved desination noun object
+                    if not dest_name:
+                        return self.build_message(self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"))
+                
+                if dest.get_class_name() != "Container":    #can't drop torch into fish
+                    return self.build_message(f"You can't put things into {dest.display_name()}.")
 
+                if getattr(dest, "is_openable", False) and not getattr(dest, "is_open", False):
+                    return self.build_message(f"{dest.display_name().capitalize()} is closed.")
+                dest_handle = [dest.handle]
+                
+        # check constraints for drop without a preposition, e.g. "drop lamp"
         if target and target.get_class_name() == "Item" and player.has_item(target):
             inventory_items = [target] 
         elif "all" in keywords or "everything" in keywords:
@@ -123,32 +143,20 @@ class InventoryVerbHandler(VerbHandler):
                 return self.build_message(self.missing_target(cmd.verb_token))
             return self.build_message(f"You have no {cmd.direct_object_token}.")
         
-
-        if dest is None and dest_name != "room":
-            if dest_name:
-                return self.build_message(f"You don't see any {dest_name} here.")
-            else:
-                return self.build_message(self.missing_target(f"{cmd.verb_token} {target_token} {prep}"))
         
-        if dest:
-            if dest.get_class_name() != "Container":
-                return self.build_message(f"You can't put things into {dest.display_name()}.")
-
-            if getattr(dest, "is_openable", False) and not getattr(dest, "is_open", False):
-                return self.build_message(f"{dest.display_name().capitalize()} is closed.")
-            dest_handle = [dest.handle]
-
-
+        # loop on all resolved inventory items to drop
         msgs = []
         for item in inventory_items:
-            outcome = try_item_special_handler(item, "drop", dest_handle)   # for drop with a destination, we pass the destination handle as context to the special handler
+            # check special handlers for each item being dropped. This allows items to have custom drop behavior
+            outcome = try_item_special_handler(item, "drop", dest_handle)  # Pass the destination handle as context for the special handler
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
                     return self.build_message(msgs)
                 if outcome.control == VerbControl.SKIP:
                     continue
-
+        
+            # perform the drop action into destination (room or into container)
             if dest:
                 container_full_msg = player.put_item_into_container(item, dest)
                 if container_full_msg:

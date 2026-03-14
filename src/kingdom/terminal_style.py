@@ -5,6 +5,7 @@
 
 import os
 import sys
+import msvcrt
 from typing import Sequence
 
 
@@ -27,6 +28,82 @@ SHOW_STATUS_BANNER = False
 TERMINAL_MODE_TRS80 = "trs80"
 TERMINAL_MODE_MODERN = "modern"
 ACTIVE_TERMINAL_MODE = TERMINAL_MODE_MODERN
+
+
+import time
+
+BAUD_DELAY = 0.0001  #  9600 baud
+
+TRS80_ALLOWED = set(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?;:'\"()[]/-+*=<> "
+    "█▓▒░▀▄▌▐─│┌┐└┘┬┴┤├┼♥♦♣♠╱╲╳"
+)
+
+def set_terminal_mode(mode):
+    global ACTIVE_TERMINAL_MODE
+    ACTIVE_TERMINAL_MODE = mode
+
+
+def _trs80_sanitize(text: str) -> str:
+    return "".join(ch if ch in TRS80_ALLOWED else " " for ch in text)
+
+def _wrap_64(text: str) -> list[str]:
+    words = text.split()
+    lines = []
+    current = ""
+
+    for w in words:
+        # If adding the next word would exceed 64 chars, start a new line
+        if len(current) + len(w) + (1 if current else 0) > 64:
+            lines.append(current)
+            current = w
+        else:
+            current = w if not current else current + " " + w
+
+    if current:
+        lines.append(current)
+
+    return lines
+
+def tty_input_trs80(prompt="> "):
+    # Print the prompt using TRS-80 styling
+    tty_print(prompt, end="")
+
+    buffer = []
+
+    _show_cursor()
+
+    import msvcrt
+    while True:
+        ch = msvcrt.getwch()
+
+        if ch in ("\r", "\n"):
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(buffer)
+
+        if ch == "\x08":  # backspace
+            if buffer:
+                buffer.pop()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+            continue
+
+        # Normal character
+        up = ch.upper()
+        buffer.append(up)
+        sys.stdout.write(up)
+        sys.stdout.flush()
+
+
+def _slow_print(text: str):
+    for ch in text:
+        sys.stdout.write(ch)
+        sys.stdout.flush()
+        time.sleep(BAUD_DELAY)
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
@@ -63,6 +140,8 @@ HALF_BOTTOM = "▄"
 HALF_LEFT = "▌"
 HALF_RIGHT = "▐"
 
+CURSOR_BLOCK = "█"
+
 
 def _apply_mode_case(text) -> str:
     rendered = str(text)
@@ -74,6 +153,24 @@ def tty_clear_screen():
     clear_screen()  
 
 def tty_print(*args, style=TRS80_WHITE, bold=False, dim=False, inverse=False, end="\n", **kwargs):
+    text = " ".join(str(arg) for arg in args)
+
+    if ACTIVE_TERMINAL_MODE == TERMINAL_MODE_TRS80:
+        # 1. ALL CAPS
+        text = text.upper()
+
+        # 2. TRS-80 character palette
+        text = _trs80_sanitize(text)
+
+        # 3. Wrap to 64 columns
+        segments = _wrap_64(text)
+
+        # 4. Slow-print each segment   (not working right now)
+        for seg in segments:
+            _slow_print(seg)
+        return
+
+    # Modern mode (unchanged)
     codes = []
     if bold:
         codes.append(BOLD)
@@ -82,9 +179,9 @@ def tty_print(*args, style=TRS80_WHITE, bold=False, dim=False, inverse=False, en
     if inverse:
         codes.append(INVERSE)
     codes.append(style)
+
     prefix = "".join(codes)
-    text = " ".join(str(arg) for arg in args)
-    print(f"{prefix}{_apply_mode_case(text)}{RESET}", end=end, flush=True, **kwargs)
+    print(f"{prefix}{text}{RESET}", end=end, flush=True, **kwargs)
 
 
 def trs80_status_line(room_name, score=0, moves=0, light_on=True, width=64, hero_name=None):
@@ -113,7 +210,60 @@ def trs80_box(title, content_lines, width=60, style=TRS80_WHITE):
     tty_print(bottom, style=style)
 
 
+def _show_cursor():
+    sys.stdout.write(CURSOR_BLOCK)
+    sys.stdout.flush()
+
+def _erase_cursor():
+    sys.stdout.write("\b \b")
+    sys.stdout.flush()
+
+def tty_input_trs80(prompt="> "):
+    # Print prompt in TRS-80 style
+    sys.stdout.write(f"{TRS80_WHITE}{prompt.upper()}{RESET}")
+    sys.stdout.flush()
+
+    buffer = []
+
+    # Show initial cursor
+    _show_cursor()
+
+
+    while True:
+        ch = msvcrt.getwch()
+
+        # ENTER
+        if ch in ("\r", "\n"):
+            _erase_cursor()
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(buffer)
+
+        # BACKSPACE
+        if ch == "\x08":
+            if buffer:
+                buffer.pop()
+                _erase_cursor()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+                _show_cursor()
+            continue
+
+        # Normal character
+        up = ch.upper()
+        buffer.append(up)
+
+        _erase_cursor()
+        sys.stdout.write(up)
+        sys.stdout.flush()
+        _show_cursor()
+
+
+
 def tty_prompt(prompt_text="> "):
+    if ACTIVE_TERMINAL_MODE == TERMINAL_MODE_TRS80:
+        return tty_input_trs80(prompt_text)
+
     prompt = f"{TRS80_WHITE}{_apply_mode_case(prompt_text)}{RESET}"
     return input(prompt)
 
