@@ -6,9 +6,10 @@ from typing import Any, Optional, Iterable, Callable
 from enum import Enum, auto
 from dataclasses import dataclass, field
 
-from kingdom.model.noun_model import Noun, Item, Room, Container, World,  DIRECTIONS
+from kingdom.model.noun_model import Noun, Item, Room, Container, World 
 from kingdom.model.game_init import get_action_state
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
+from kingdom.model.direction_model import DIRECTIONS
 
 
 @dataclass
@@ -160,7 +161,7 @@ class VerbHandler:
             return None
         if not DIRECTIONS.is_direction(token):
             return None
-        return DIRECTIONS.to_canonical(token)
+        return DIRECTIONS.get_canonical(token)
 
     def extract_direction_from_words(self, words: Iterable[str]) -> str | None:
         """
@@ -168,7 +169,7 @@ class VerbHandler:
         """
         for w in words:
             if DIRECTIONS.is_direction(w):
-                return DIRECTIONS.to_canonical(w)
+                return DIRECTIONS.get_canonical(w)
         return None
 
     def get_reverse_of(self, direction: str) -> Optional[str]:
@@ -177,7 +178,7 @@ class VerbHandler:
         """
         if not self.is_direction(direction):
             return None
-        return DIRECTIONS.reverse_of(direction)
+        return DIRECTIONS.get_reverse(direction)
     
     
     # ------------------------------------------------------------

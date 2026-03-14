@@ -3,8 +3,8 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Callable, Optional
 
-from kingdom.model.direction_model import NewDIRECTIONS
-from kingdom.model.noun_model import Noun, DirectionRegistry, DIRECTIONS
+from kingdom.model.direction_model import DIRECTIONS
+from kingdom.model.noun_model import Noun
 from kingdom.model.verb_model import Verb
 
 @dataclass(frozen=True)
@@ -135,11 +135,7 @@ def lex() -> Lexicon:
     # Build NOUN entries
     # -----------------------------
 
-    all_tokens = [
-    token
-    for token, noun in Noun._by_name.items()
-    if noun.get_class_name() != "DirectionNoun"
-]
+    all_tokens = [token for token in Noun._by_name.keys()]
     noun_entries = []
 
     for token in all_tokens:
@@ -169,10 +165,10 @@ def lex() -> Lexicon:
     # Build DIRECTION entries
     # -----------------------------
 
-    all_directions = NewDIRECTIONS.get_all_directions()
+    all_directions = DIRECTIONS.get_all_directions()
     direction_entries = []
     for canonical in all_directions:
-        info = NewDIRECTIONS.data[canonical]
+        info = DIRECTIONS.data[canonical]
         direction_entries.append(DirectionEntry(
             handle=canonical,
             canonical=canonical,

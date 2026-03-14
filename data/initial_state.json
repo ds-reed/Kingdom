@@ -312,14 +312,22 @@
           "name": "apple",
           "description": "a bright red apple",
           "is_edible": true
+        },
+       {
+          "name": "ladder",
+          "description": "a magic ladder hums with soft blue light.",
+          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+          "adjectives": ["magic", "glittering", "soft blue"],
+          "is_takeable": false,
+          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
+          "is_climbable": true,
+          "climb_directions": ["down"],
+          "is_visible": false
         }
       ],
       "containers": [],
       "exits": {
         "go": {
-          "down": {
-            "destination": "Tower Cell"
-          },
           "north": {
             "destination": "Clockwork Court"
           },
@@ -331,6 +339,12 @@
           },
           "south": {
             "destination": "Ravine Edge"
+          }
+        },
+        "climb": {
+          "down": {
+            "destination": "Tower Cell",
+            "go_refuse_string": "You can't walk that direction, did you mean to climb down the ladder?"
           }
         }
       }

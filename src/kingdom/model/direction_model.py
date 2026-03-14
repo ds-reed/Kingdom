@@ -1,4 +1,4 @@
-class NewDirectionRegistry:
+class DirectionRegistry:
     def __init__(self):
         # The nested data (Canonical -> Details)
         self.data = {}
@@ -37,6 +37,9 @@ class NewDirectionRegistry:
             return self.data[canonical]["reverse"]
         return None
     
+    def get_synonyms(self, canonical):
+        return list(self.data.get(canonical, {}).get("synonyms", []))
+    
     def is_direction(self, name) -> bool:
         """Checks if the input is a valid direction (synonym or canonical)"""
         return self.get_canonical(name) is not None
@@ -45,4 +48,4 @@ class NewDirectionRegistry:
         """Returns a list of all canonical directions"""
         return sorted(self.data.keys())
 
-NewDIRECTIONS = NewDirectionRegistry()
+DIRECTIONS = DirectionRegistry()

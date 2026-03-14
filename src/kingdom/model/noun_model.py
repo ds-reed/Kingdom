@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, fields
 from os import name
 from typing import Any, Optional, List, Dict, ClassVar, Iterator
 from kingdom.utilities import normalize_key
+from kingdom.model.direction_model import DIRECTIONS
 
 def _normalize_tokens(text: str) -> list[str]:
     return [token for token in str(text).strip().lower().split() if token]
@@ -239,107 +240,6 @@ class Noun:
             raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
         setattr(self, name, value)
 
-
-class DirectionRegistry:
-    def __init__(self):
-        self.canonical = []
-        self.synonyms = {}
-        self.reverse = {}
-
-    def register(self, canonical: str, *, synonyms=None, reverse=None):
-        canonical = canonical.lower().strip()
-        self.canonical.append(canonical)
-
-        if synonyms:
-            for synonym in synonyms:
-                self.synonyms[synonym.lower().strip()] = canonical
-
-        if reverse:
-            reverse = reverse.lower().strip()
-            self.reverse[canonical] = reverse
-            self.reverse[reverse] = canonical
-            self.canonical.append(reverse)
-
-    def to_canonical(self, token: str) -> str:
-        token = token.lower().strip()
-        return self.synonyms.get(token, token)
-
-    def reverse_of(self, canonical: str) -> str | None:
-        canonical = canonical.lower().strip()
-        return self.reverse.get(canonical)
-
-    def is_direction(self, token: str) -> bool:
-        return self.to_canonical(token) in self.canonical
-
-    def all_directions(self):
-        return sorted(self.canonical)
-    
-    def all_synonyms(self):
-        return sorted(self.synonyms.keys())
-    
-    def __repr__(self):
-        return f"DirectionRegistry(canonical={self.canonical}, synonyms={self.synonyms}, reverse={self.reverse})"
-    
-DIRECTIONS = DirectionRegistry()
-
-
-
-@dataclass
-class DirectionNoun(Noun):
-    name: str
-    canonical_direction: str
-    description: Optional[str] = None
-    handle: Optional[str] = None
-
-    _direction_nouns_by_reference: ClassVar[Dict[str, "DirectionNoun"]] = {}
-    _direction_nouns_by_canonical: ClassVar[Dict[str, list["DirectionNoun"]]] = {}
-
-    def __post_init__(self):
-        self.name = str(self.name).strip().lower()
-        self.canonical_direction = DIRECTIONS.to_canonical(str(self.canonical_direction).strip().lower())
-        self.handle = normalize_key(self.handle or self.name)
-        self.description = self.description or self.name
-
-        super().__init__()
-
-    def matches_reference(self, reference: str) -> bool:
-        ref = reference.lower().strip()
-        canon = DIRECTIONS.to_canonical(ref)
-        return canon == self.canonical_direction
-
-    def canonical_name(self):
-        return self.canonical_direction
-
-    def ensure_direction_nouns():
-        if DirectionNoun._direction_nouns_by_reference:
-            return
-
-        for canonical in DIRECTIONS.canonical:
-            direction_noun = DirectionNoun(canonical, canonical)
-            DirectionNoun._direction_nouns_by_reference[canonical] = direction_noun
-            DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
-
-        for synonym, canonical in DIRECTIONS.synonyms.items():
-            direction_noun = DirectionNoun(synonym, canonical)
-            DirectionNoun._direction_nouns_by_reference[synonym] = direction_noun
-            DirectionNoun._direction_nouns_by_canonical.setdefault(canonical, []).append(direction_noun)
-
-    def get_direction_noun(token: str) -> "DirectionNoun | None":
-        DirectionNoun.ensure_direction_nouns()
-        token = token.lower().strip()
-        return DirectionNoun._direction_nouns_by_reference.get(token)
-
-    def get_direction_nouns_for_available_go_exits(room) -> list["DirectionNoun"]:
-        DirectionNoun.ensure_direction_nouns()
-        if room is None:
-            return []
-
-        nouns: list[DirectionNoun] = []
-        for canonical in room.available_go_exits(visible_only=True):
-            canonical = canonical.lower().strip()
-            nouns.extend(DirectionNoun._direction_nouns_by_canonical.get(canonical, []))
-
-        return nouns
 
 
 @dataclass
@@ -651,7 +551,6 @@ class Player:
 
 @dataclass
 class Room(Noun):
-    DIRECTIONS: ClassVar[list[str] | set[str]] = []
 
     # --- Persistent fields (from JSON) ---
     name: str = field(metadata={"persist": "always"})
@@ -754,7 +653,7 @@ class Room(Noun):
         direction = direction.lower()
 
         # Ask the global direction registry for canonical form
-        canonical =  DIRECTIONS.to_canonical(direction)
+        canonical =  DIRECTIONS.get_canonical(direction)
 
         if canonical is None:
             raise ValueError(f"Unknown direction '{direction}' in room '{self.name}'")

@@ -1,11 +1,10 @@
 from __future__ import annotations
-from typing import Callable, Optional, Iterable
+from typing import  Optional
 
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.verbs.verb_handler import ExecuteCommand, VerbHandler
 
-from kingdom.model.noun_model import Noun, Item, Container, DirectionRegistry, Feature, Room
-from kingdom.renderer import RoomRenderer, render_current_room
+from kingdom.model.noun_model import Noun
 
 
 
@@ -619,12 +618,20 @@ class ChangeStateVerbHandler(VerbHandler):
             preposition="to"
         )
 
-        # Post-change side effect: enable item for climbing
+        # Post-change side effect: enable item for climbing - this is hardcoded for a rope dangling down a cliff at the moment.
+        # should make this a special_handler
+        #-------- this is all ugly
 
         side_effect_msg =  f"The {target.canonical_name()} is now tied to the {indirect.canonical_name()} and dangles down the cliff face below."
         player.drop_item_to_room(target, current_room)  # remove the item from inventory since it's now tied to a feature in the room and can be climbed on. This is a bit of a hack and should be handled more elegantly when we have a better item/feature system in place.
         target.set_existing("is_climbable", True)
         target.set_existing("is_takeable", False)
+        connected_room = current_room.get_exit("climb", "down").destination if current_room.get_exit("climb", "down") else None
+        if connected_room:
+            connected_room.get_exit("climb", "up").set_existing("is_passable", True)
+            connected_room.get_exit("climb", "up").set_existing("is_visible", True)
+            connected_room.add_item(target)  # add the item to the room so it can be interacted with there - it will be in two rooms
+
 
         # ------------- Build the final return string ----------------
         parts: list[str] = []

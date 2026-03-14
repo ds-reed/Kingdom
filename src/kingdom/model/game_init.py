@@ -7,11 +7,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
-from kingdom.model.direction_model import NewDirectionRegistry, NewDIRECTIONS
+from kingdom.model.direction_model import DIRECTIONS 
 from kingdom.model.noun_model import (
     Noun,
-    DIRECTIONS,
-    DirectionNoun,
     Item,
     Feature,
     Container,
@@ -115,8 +113,6 @@ def reset_all_state() -> None:
     Container.all_containers.clear()
     Noun.all_nouns.clear()
     Noun._by_name = {}
-    DirectionNoun._direction_nouns_by_reference = {}
-    DirectionNoun._direction_nouns_by_canonical = {}
 
 
 class GameOver(Exception):
@@ -145,13 +141,10 @@ def setup_world(world: World, source):
     Container.all_containers.clear()
     Noun.all_nouns.clear()
     Noun._by_name = {}
-    DirectionNoun._direction_nouns_by_reference = {}
-    DirectionNoun._direction_nouns_by_canonical = {}
+
 
 
     _load_directions(data)
-    DirectionNoun.ensure_direction_nouns()
-    Room.DIRECTIONS = DIRECTIONS.canonical
 
     if isinstance(data, dict):
         containers = _construct_containers(data.get("containers", []))
@@ -170,17 +163,11 @@ def setup_world(world: World, source):
 def _load_directions(json_data):
     directions = json_data.get("directions", {})
     for canonical, info in directions.items():
-        DIRECTIONS.register(
-            canonical,
-            synonyms=info.get("synonyms", []),
-            reverse=info.get("reverse"),
-        )
-        NewDIRECTIONS.register(         #only used for new parser right now, but will replace OLD DIRECTIONS later
+        DIRECTIONS.register(        
             canonical,
             synonyms=info.get("synonyms", []),
             reverse=info.get("reverse"),  
         )
-
 
 
 #----- functions for constructing objects from JSON data -----

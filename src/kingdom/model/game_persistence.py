@@ -4,20 +4,18 @@ import json
 from pathlib import Path 
 
 from . import game_init as model_api
-from .noun_model import Player, Item, DIRECTIONS
+from .noun_model import Player, Item
+from .direction_model import DIRECTIONS
 
 
 def _serialize_directions() -> dict[str, dict[str, object]]:
     payload: dict[str, dict[str, object]] = {}
 
-    for canonical in sorted(DIRECTIONS.canonical):
-        synonyms = sorted(
-            synonym
-            for synonym, target in DIRECTIONS.synonyms.items()
-            if target == canonical
-        )
+    for canonical in sorted(DIRECTIONS.get_all_directions()):
+        synonyms = sorted(DIRECTIONS.get_synonyms(canonical))
+
         entry: dict[str, object] = {}
-        reverse = DIRECTIONS.reverse_of(canonical)
+        reverse = DIRECTIONS.get_reverse(canonical)
         if reverse is not None:
             entry["reverse"] = reverse
         if synonyms:

@@ -313,7 +313,7 @@ def test_demo_smoke(smoke_context):
 
     run("climb ladder")
     assert action_state.current_room.name == "Demo Landing"
-    run("go down")
+    run("climb down")
     assert action_state.current_room.name == "Tower Cell"
 
     run("slide down")
