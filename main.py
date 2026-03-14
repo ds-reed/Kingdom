@@ -20,7 +20,7 @@ from kingdom.UI import ui
 from kingdom.model.noun_model import Noun, World, Player, Room
 from kingdom.model.game_init import QuitGame, GameOver, SaveGame, LoadGame
 from kingdom.model.game_persistence import save_game, load_game
-from kingdom.model.game_init import GameActionState, init_session, get_game, get_prefs, setup_world
+from kingdom.model.game_init import GameActionState, get_game, setup_world
 from kingdom.model.verb_model import Verb
 
 from kingdom.rendering.descriptions import render_current_room
@@ -63,9 +63,9 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
         ui.print(f"Welcome {player_name}!","\n")
         
         save_path = base_dir / "saves" / f"{player_name}.json"
+        game = get_game()
+        game.init_session(world=world, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
 
-        init_session(world=world, current_player=player, initial_room=current_room, player_name=player_name, save_path=save_path)  # initialize the global action state and prefs
-        action_state = get_game().action_state  # retrieve the initialized action state
          
         #------------------------------------------------------------
 
@@ -73,10 +73,10 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
         register_verbs()
         
         lexicon = lex()  # build lexicon for parser access
-        action_state.lexicon = lexicon  # store lexicon in action state for access during game
+        game.lexicon = lexicon  # store lexicon in action state for access during game
 
 
-        lines = render_current_room(action_state.current_room)
+        lines = render_current_room(game.current_room)
         ui.render_room(lines, clear=False)
 
     except Exception as e:
@@ -115,15 +115,15 @@ def handle_game_over(
 
     ui.print("Well I'll be darned, it worked!!","\n")
 
-    action_state = get_game().action_state
-    action_state.current_room = start_room
+    game = get_game()
+    game.current_room = start_room
     
     # Apply penalty for being cloned
     penalty = 20
-    action_state.score = max(0, int(action_state.score) - int(penalty)) 
+    game.score = max(0, int(game.score) - int(penalty)) 
 
-    if action_state.current_room is not None:
-        lines = render_current_room(action_state.current_room, look=True)
+    if game.current_room is not None:
+        lines = render_current_room(game.current_room, look=True)
         ui.render_room(lines, clear=False)
         print() 
     
@@ -147,7 +147,7 @@ def process_command(
     if not raw_command:
         return False, recovery_mode, "What would you like to do? (type help for assistance)"
 
-    current_room_before_command = get_game().action_state.current_room  # capture current room before command execution for potential use in recovery mode logic
+    current_room_before_command = get_game().current_room  # capture current room before command execution for potential use in recovery mode logic
 
     parsed = parse(raw_command, lexicon)
 
@@ -173,11 +173,11 @@ def process_command(
         except RuntimeError as e:
             return False, recovery_mode, f"Load failed: {e}"
 
-        get_prefs().remember_save(loaded_path)
+        get_game().prefs.remember_save(loaded_path)
         ui.print(f"Game loaded from {loaded_path}.")
         ui.clear_screen()
-        ui.print(f"Welcome back {get_game().action_state.player_name}!","\n")
-        ui.render_room(render_current_room(get_game().action_state.current_room), clear=False)
+        ui.print(f"Welcome back {get_game().player_name}!","\n")
+        ui.render_room(render_current_room(get_game().current_room), clear=False)
         return False, recovery_mode, None  # no custom message on load, just rely on room render" 
     
     except SaveGame:
@@ -190,7 +190,7 @@ def process_command(
         except RuntimeError as e:
             return False, recovery_mode, f"Save failed: {e}"
 
-        get_prefs().remember_save(saved_path)
+        get_game().prefs.remember_save(saved_path)
         return False, recovery_mode, f"Game saved to {saved_path}"
     
     except QuitGame:

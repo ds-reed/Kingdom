@@ -4,6 +4,7 @@ Handles world loading, serialization, and runtime entity management.
 """
 
 from __future__ import annotations
+from collections import deque
 import json
 from pathlib import Path
 from dataclasses import dataclass, fields as dataclass_fields
@@ -21,37 +22,70 @@ from kingdom.model.noun_model import (
 
 class Game:
     def __init__(self):
-        self.action_state: GameActionState | None = None
+
+        # Core session state
+        self.world: World | None = None
+        self.current_player: Player | None = None
+        self.player_name: str | None = None
+        self.current_room: Room | None = None
+
+        # game data fields
+        self.lexicon: "Lexicon" | None = None
         self.prefs: SessionPrefs | None = None
 
-    def init_session(self, world=None, current_player=None, initial_room=None,
-                     player_name=None, save_path=None):
+        # Persistent metrics (saved/loaded)
+        self.rooms_found: int = 0
+        self.items_found: int = 0
+        self.score: int = 0
 
-        resolved_player = current_player
-        resolved_player_name = player_name or getattr(resolved_player, "name", None)
+        # Ephemeral metrics (reset on load)
+        self.rooms_found_since_load: int = 0
+        self.items_found_since_load: int = 0
+        self.score_since_load: int = 0
+        self.recent_commands: deque[str] = deque(maxlen=10)
 
-        self.action_state = GameActionState(
-            world=world,
-            current_player=resolved_player,
-            current_room=initial_room,
-            player_name=resolved_player_name,
-            lexicon=None,
-            score=0,
-        )
 
+    def init_session(
+        self,
+        world=None,
+        current_player=None,
+        player_name=None,
+        initial_room=None,
+        save_path=None,
+    ):
+        # Core session state
+        self.world = world
+        self.current_player = current_player
+        self.player_name = player_name
+        self.current_room = initial_room
+        self.score = 0
+
+        # Preferences
         self.prefs = SessionPrefs(
             save_directory=save_path.parent if save_path else Path("saves"),
             last_save_filename=save_path.name if save_path else "quicksave.json",
-            player_name=resolved_player_name,
+            player_name=self.player_name,
         )
 
-    def get_action_state(self):
-        if self.action_state is None:
-            raise RuntimeError("Action state not initialized")
-        return self.action_state
+        # Persistent metrics (new playthrough starts fresh)
+        self.rooms_found = 0
+        self.items_found = 0
+        self.score = 0
 
-    def set_action_state(self, new_state):
-        self.action_state = new_state
+        # Ephemeral metrics (reset on new session)
+        self.rooms_found_since_load = 0
+        self.items_found_since_load = 0
+        self.score_since_load = 0
+
+        self.recent_commands.clear()
+
+
+        # Rebuild noun layer for this world
+    #   if self.world:
+    #       self.lexicon.reset_nouns(self.world)
+
+
+
 
     def get_prefs(self):
         if self.prefs is None:
@@ -98,55 +132,9 @@ def get_game() -> Game:
     return _game
 
 
-def init_session(
-    world: World | None = None,
-    current_player: Player | None = None,
-    initial_room: Room | None = None,
-    player_name: str | None = None,
-    save_path: Path | None = None,
-) -> None:
-    global _game
 
-    resolved_player = current_player
-    resolved_player_name = player_name or getattr(resolved_player, "name", None)
-
-    _game.action_state = GameActionState(
-        world=world,
-        current_player=resolved_player,
-        current_room=initial_room,
-        player_name=resolved_player_name,
-        lexicon=None,
-        score=0,
-    )
-
-    _game.prefs = SessionPrefs(
-        save_directory=save_path.parent if save_path else Path("saves"),
-        last_save_filename=save_path.name if save_path else "quicksave.json",
-        player_name=resolved_player_name,
-    )
-
-
-
+# Global game instance
 _game = Game()
-
-def init_session(*args, **kwargs):
-    return _game.init_session(*args, **kwargs)
-
-#def get_action_state():
-#    return _game.get_action_state()
-
-def set_action_state(new_state):
-    return _game.set_action_state(new_state)
-
-def get_prefs():
-    return _game.get_prefs()
-
-def set_prefs(new_prefs):
-    return _game.set_prefs(new_prefs)
-
-def reset_all_state():
-    return _game.reset_all_state()
-
 
 
 class GameOver(Exception):
@@ -175,7 +163,6 @@ def setup_world(world: World, source):
     Container.all_containers.clear()
     Noun.all_nouns.clear()
     Noun._by_name = {}
-
 
 
     _load_directions(data)

@@ -13,14 +13,13 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 from kingdom.verbs.verb_registration import register_verbs
 from kingdom.model.verb_model import Verb
 from kingdom.model.game_init import (
+    Game,
     GameActionState,
     GameOver,
     LoadGame,
     QuitGame,
     SaveGame,
     get_game,
-    init_session,
-    reset_all_state,
     setup_world,
 )
 from kingdom.model.game_persistence import load_game, save_game
@@ -72,12 +71,14 @@ def _run_interpreted(
     except SaveGame:
         if demo_save_path is None:
             return "SAVE_ERROR"
-        saved_path = save_game(game, demo_save_path)
+        world= get_game().world
+        saved_path = save_game(world, demo_save_path)
         return f"Game saved to {saved_path}"
     except LoadGame:
         if demo_save_path is None:
             return "LOAD_ERROR"
-        loaded_path = load_game(game, demo_save_path)
+        world= get_game().world
+        loaded_path = load_game(world, demo_save_path)
         return f"Game loaded from {loaded_path}"
     except QuitGame:
         return "QUIT"
@@ -107,29 +108,29 @@ def _expect_any(result: object, *needles: str):
     assert _has_any(result, needles), f"Expected one of {needles!r} in result={result!r}"
 
 
-def _inventory_handles(action_state: GameActionState) -> set[str]:
-    player = action_state.current_player
+def _inventory_handles(game: Game) -> set[str]:
+    player = game.current_player
     if player is None:
         return set()
     return {item.obj_handle() for item in player.get_inventory_items()}
 
 
-def _inventory_item(action_state: GameActionState, handle: str):
-    player = action_state.current_player
+def _inventory_item(game: Game, handle: str):
+    player = game.current_player
     if player is None:
         return None
     return next((item for item in player.get_inventory_items() if item.obj_handle() == handle), None)
 
 
-def _room_item(action_state: GameActionState, handle: str):
-    room = action_state.current_room
+def _room_item(game: Game, handle: str):
+    room = game.current_room
     if room is None:
         return None
     return next((item for item in room.items if item.obj_handle() == handle), None)
 
 
-def _room_container(action_state: GameActionState, handle: str):
-    room = action_state.current_room
+def _room_container(game: Game, handle: str):
+    room = game.current_room
     if room is None:
         return None
     return next((container for container in room.containers if container.obj_handle() == handle), None)
@@ -137,29 +138,29 @@ def _room_container(action_state: GameActionState, handle: str):
 
 @pytest.fixture
 def smoke_context(tmp_path: Path):
-    reset_all_state()
+    get_game().reset_all_state()
 
     data_path = PROJECT_ROOT / "data" / "initial_state.json"
     demo_save_path = tmp_path / "working_state.demo.json"
 
-    game = World.get_instance()
-    setup_world(game, data_path)
+    world = World.get_instance()
+    setup_world(world, data_path)
     player = Player("DemoHero")
 
-    assert len(game.rooms) > 0
-    assert any(len(room.containers) > 0 for room in game.rooms.values())
+    assert len(world.rooms) > 0
+    assert any(len(room.containers) > 0 for room in world.rooms.values())
 
-    start_room = game.rooms.get(game.start_room_name) if isinstance(game.rooms, dict) else None
+    start_room = world.rooms.get(world.start_room_name) if isinstance(world.rooms, dict) else None
     assert start_room is not None
 
-    init_session(
-        world=game,
+    get_game().init_session(
+        world=world,
         current_player=player,
         initial_room=start_room,
         player_name="DemoHero",
         save_path=demo_save_path,
     )
-    action_state = get_game().action_state
+    game = get_game()
     register_verbs()
     verbs = Verb._by_name
     lexicon = lex()
@@ -186,8 +187,8 @@ def smoke_context(tmp_path: Path):
         return result
 
     return {
+        "world": world,
         "game": game,
-        "action_state": action_state,
         "verbs": verbs,
         "run": run,
         "covered_verbs": covered_verbs,
@@ -198,7 +199,8 @@ def smoke_context(tmp_path: Path):
 def test_demo_smoke(smoke_context):
     run = smoke_context["run"]
     verbs = smoke_context["verbs"]
-    action_state: GameActionState = smoke_context["action_state"]
+    game = smoke_context["game"]
+    world = smoke_context["world"]
     demo_save_path: Path = smoke_context["demo_save_path"]
 
     def _minimal_smoke_exit() -> None:
@@ -244,7 +246,7 @@ def test_demo_smoke(smoke_context):
 
     _expect_contains(open_bean_result, "you reached me")
 
-    bag = _room_container(action_state, "bag")
+    bag = _room_container(game, "bag")
     assert bag is not None
 
     run("open lunch bag")
@@ -254,12 +256,12 @@ def test_demo_smoke(smoke_context):
     _expect_any(look_in_bag_result, "inside", "bag")
 
     run("get fish from lunch bag")
-    if "fish" not in _inventory_handles(action_state):
+    if "fish" not in _inventory_handles(world):
         _minimal_smoke_exit()
         return
 
     run("get key from lunch bag")
-    if "key" not in _inventory_handles(action_state):
+    if "key" not in _inventory_handles(world):
         _minimal_smoke_exit()
         return
 
@@ -267,7 +269,7 @@ def test_demo_smoke(smoke_context):
     run("get lighter from lunch bag")
     run("get torch from lunch bag")
     for handle in ("lamp", "lighter", "torch"):
-        assert handle in _inventory_handles(action_state)
+        assert handle in _inventory_handles(world)
 
     run("close lunch bag")
     assert not bag.is_open
@@ -281,10 +283,10 @@ def test_demo_smoke(smoke_context):
     run("get fish from lunch bag")
     run("get key from lunch bag")
     for handle in ("lamp", "lighter", "torch", "fish", "key"):
-        assert handle in _inventory_handles(action_state)
+        assert handle in _inventory_handles(world)
 
     run("light torch")
-    torch_item = _inventory_item(action_state, "torch")
+    torch_item = _inventory_item(world, "torch")
     assert torch_item is not None and getattr(torch_item, "is_lit", False)
 
     torch_bag_fire = run("put torch into lunch bag")
@@ -292,12 +294,12 @@ def test_demo_smoke(smoke_context):
     _expect_any(torch_bag_fire, "catches on fire", "destroyed")
 
     run("drop torch")
-    assert _room_item(action_state, "torch") is not None
+    assert _room_item(world, "torch") is not None
     run("take torch")
-    assert "torch" in _inventory_handles(action_state)
+    assert "torch" in _inventory_handles(world)
 
     run("extinguish torch")
-    torch_item = _inventory_item(action_state, "torch")
+    torch_item = _inventory_item(world, "torch")
     assert torch_item is not None and not getattr(torch_item, "is_lit", True)
 
     say_result = run("say hello")
@@ -306,50 +308,50 @@ def test_demo_smoke(smoke_context):
     _expect_any(eat_result, "vomit", "you")
 
     run("unlock trapdoor")
-    trapdoor = _room_item(action_state, "trapdoor")
+    trapdoor = _room_item(world, "trapdoor")
     assert trapdoor is not None and not getattr(trapdoor, "is_locked", True)
     run("open trapdoor")
     assert trapdoor is not None and getattr(trapdoor, "is_open", False)
 
     run("climb ladder")
-    assert action_state.current_room.name == "Demo Landing"
+    assert game.current_room.name == "Demo Landing"
     run("climb down")
-    assert action_state.current_room.name == "Tower Cell"
+    assert game.current_room.name == "Tower Cell"
 
     run("slide down")
-    if action_state.current_room.name != "Blank Chamber":
+    if game.current_room.name != "Blank Chamber":
         run("climb down")
-    assert action_state.current_room.name == "Blank Chamber"
+    assert game.current_room.name == "Blank Chamber"
 
     _expect_any(run("rub lamp"), "djinni", "shinier")
     _expect_any(run("make wish"), "doorway", "djinni")
 
     run("west")
-    assert action_state.current_room.name == "Colossal Cave"
+    assert game.current_room.name == "Colossal Cave"
 
     run("swim west")
-    assert action_state.current_room.name == "Pool Ledge"
+    assert game.current_room.name == "Pool Ledge"
 
     run("teleport Demo Landing")
-    assert action_state.current_room.name == "Demo Landing"
+    assert game.current_room.name == "Demo Landing"
 
     run("south")
-    assert action_state.current_room.name == "Ravine Edge"
+    assert game.current_room.name == "Ravine Edge"
 
     run("take rope")
-    assert "rope" in _inventory_handles(action_state)
+    assert "rope" in _inventory_handles(world)
 
     tie_result = run("tie rope to hook")
     _expect_any(tie_result, "you tie", "dangles down")
-    rope = _room_item(action_state, "rope")
+    rope = _room_item(world, "rope")
     assert rope is not None and getattr(rope, "is_tied", False)
 
     run("climb rope")
-    assert action_state.current_room.name == "Clover Rest"
+    assert game.current_room.name == "Clover Rest"
     run("climb up")
-    assert action_state.current_room.name == "Ravine Edge"
+    assert game.current_room.name == "Ravine Edge"
     run("north")
-    assert action_state.current_room.name == "Demo Landing"
+    assert game.current_room.name == "Demo Landing"
 
     save_result = run("save")
     assert isinstance(save_result, str)
@@ -381,14 +383,14 @@ def test_demo_smoke(smoke_context):
 
 def test_demo_edge_case_regressions(smoke_context):
     run = smoke_context["run"]
-    game: World = smoke_context["game"]
-    action_state: GameActionState = smoke_context["action_state"]
+    world: World = smoke_context["world"]
+    game: GameActionState = smoke_context["game"]
 
     failures: list[str] = []
 
     # Position player in an area with known directional exits.
     run("teleport Demo Landing")
-    if action_state.current_room is None or action_state.current_room.name != "Demo Landing":
+    if game.current_room is None or game.current_room.name != "Demo Landing":
         failures.append("setup failed: teleport to Demo Landing did not succeed")
     else:
         south_result = run("south")
@@ -397,7 +399,7 @@ def test_demo_edge_case_regressions(smoke_context):
                 "implicit movement failed: expected 'south' to behave like 'go south' "
                 f"(result={south_result!r})"
             )
-        current_room_name = action_state.current_room.name if action_state.current_room is not None else None
+        current_room_name = game.current_room.name if game.current_room is not None else None
         if current_room_name != "Ravine Edge":
             failures.append(
                 "implicit movement destination mismatch: expected room Ravine Edge after 'south' "
@@ -405,8 +407,8 @@ def test_demo_edge_case_regressions(smoke_context):
             )
 
     # Return to Tower Cell for inventory/container edge checks.
-    action_state.current_room = game.rooms.get("Tower Cell")
-    room = action_state.current_room
+    game.current_room = world.rooms.get("Tower Cell")
+    room = game.current_room
     if room is None:
         failures.append("setup failed: no active room while running edge checks")
     else:
@@ -445,8 +447,8 @@ def test_demo_edge_case_regressions(smoke_context):
 
 def test_demo_phrase_batch1_regressions(smoke_context):
     run = smoke_context["run"]
-    game: World = smoke_context["game"]
-    action_state: GameActionState = smoke_context["action_state"]
+    world: World = smoke_context["world"]
+    game: GameActionState = smoke_context["game"]
 
     failures: list[str] = []
 
@@ -464,40 +466,40 @@ def test_demo_phrase_batch1_regressions(smoke_context):
     # Phrase group 1: implicit movement forms (south / s)
     # ------------------------------------------------------------------
     safe_run("teleport Demo Landing")
-    if action_state.current_room is None or action_state.current_room.name != "Demo Landing":
+    if game.current_room is None or game.current_room.name != "Demo Landing":
         failures.append("setup failed: teleport Demo Landing did not land in Demo Landing")
     else:
         safe_run("s")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Ravine Edge":
             failures.append(f"implicit abbreviation failed: 's' should move to Ravine Edge (actual={room_name!r})")
 
         safe_run("north")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Demo Landing":
             failures.append(f"movement parity failed: 'north' should return to Demo Landing (actual={room_name!r})")
 
         safe_run("south")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Ravine Edge":
             failures.append(f"implicit direction failed: 'south' should move to Ravine Edge (actual={room_name!r})")
 
     # ------------------------------------------------------------------
     # Phrase group 2: put/get preposition variants + source validation
     # ------------------------------------------------------------------
-    action_state.current_room = game.rooms.get("Tower Cell")
-    room = action_state.current_room
+    game.current_room = world.rooms.get("Tower Cell")
+    room = game.current_room
     if room is None:
         failures.append("setup failed: Tower Cell is not available")
     else:
-        bag = _room_container(action_state, "bag")
-        trapdoor = _room_item(action_state, "trapdoor")
+        bag = _room_container(game, "bag")
+        trapdoor = _room_item(game, "trapdoor")
         if bag is None or trapdoor is None:
             failures.append("setup failed: expected bag and trapdoor in Tower Cell")
         else:
             safe_run("open lunch bag")
             safe_run("get key from lunch bag")
-            if "key" not in _inventory_handles(action_state):
+            if "key" not in _inventory_handles(game):
                 failures.append("setup failed: could not retrieve key from lunch bag")
             else:
                 # closed container rejection
@@ -505,19 +507,19 @@ def test_demo_phrase_batch1_regressions(smoke_context):
                 bag_before = container_handles(bag)
                 safe_run("put key into bag")
                 bag_after = container_handles(bag)
-                if bag_before != bag_after or "key" not in _inventory_handles(action_state):
+                if bag_before != bag_after or "key" not in _inventory_handles(game):
                     failures.append("closed-container violation: put into closed bag changed state")
 
                 # preposition synonym: in
                 safe_run("open lunch bag")
                 safe_run("put key in bag")
-                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                if "key" in _inventory_handles(game) or "key" not in container_handles(bag):
                     failures.append("preposition mapping failed: 'put key in bag' did not place key in bag")
 
                 # preposition synonym: inside
                 safe_run("get key from lunch bag")
                 safe_run("put key inside bag")
-                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                if "key" in _inventory_handles(game) or "key" not in container_handles(bag):
                     failures.append("preposition mapping failed: 'put key inside bag' did not place key in bag")
 
                 # reset key to inventory for negative put tests
@@ -525,12 +527,12 @@ def test_demo_phrase_batch1_regressions(smoke_context):
 
                 # missing indirect object should not consume item
                 safe_run("put key into")
-                if "key" not in _inventory_handles(action_state):
+                if "key" not in _inventory_handles(game):
                     failures.append("missing-indirect violation: 'put key into' consumed key")
 
                 # non-container target should not consume item
                 safe_run("put key into trapdoor")
-                if "key" not in _inventory_handles(action_state):
+                if "key" not in _inventory_handles(game):
                     failures.append("invalid-target violation: 'put key into trapdoor' consumed key")
 
                 # non-inventory source should not be accepted
@@ -541,15 +543,15 @@ def test_demo_phrase_batch1_regressions(smoke_context):
     # ------------------------------------------------------------------
     # Phrase group 3: multi-command conjunction handling
     # ------------------------------------------------------------------
-    action_state.current_room = game.rooms.get("Tower Cell")
-    room = action_state.current_room
-    trapdoor = _room_item(action_state, "trapdoor") if room is not None else None
+    game.current_room = world.rooms.get("Tower Cell")
+    room = game.current_room
+    trapdoor = _room_item(game, "trapdoor") if room is not None else None
     if trapdoor is None:
         failures.append("setup failed: trapdoor missing for conjunction phrase test")
     else:
         # ensure key available
-        bag = _room_container(action_state, "bag")
-        if bag is not None and "key" not in _inventory_handles(action_state):
+        bag = _room_container(game, "bag")
+        if bag is not None and "key" not in _inventory_handles(game):
             safe_run("open lunch bag")
             safe_run("get key from lunch bag")
 
@@ -564,8 +566,8 @@ def test_demo_phrase_batch1_regressions(smoke_context):
 
 def test_demo_phrase_batch2_regressions(smoke_context):
     run = smoke_context["run"]
-    game: World = smoke_context["game"]
-    action_state: GameActionState = smoke_context["action_state"]
+    world: World = smoke_context["world"]
+    game: Game = smoke_context["game"]
 
     failures: list[str] = []
 
@@ -583,78 +585,78 @@ def test_demo_phrase_batch2_regressions(smoke_context):
     # Phrase group 1: direction normalization and movement parity
     # ------------------------------------------------------------------
     safe_run("teleport Demo Landing")
-    if action_state.current_room is None or action_state.current_room.name != "Demo Landing":
+    if game.current_room is None or game.current_room.name != "Demo Landing":
         failures.append("setup failed: teleport Demo Landing did not land in Demo Landing")
     else:
         safe_run("GO south!!")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Ravine Edge":
             failures.append(f"direction normalization failed: 'GO south!!' should move to Ravine Edge (actual={room_name!r})")
 
         safe_run("N")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Demo Landing":
             failures.append(f"abbreviation parity failed: 'N' should return to Demo Landing (actual={room_name!r})")
 
         safe_run("S")
-        room_name = action_state.current_room.name if action_state.current_room else None
+        room_name = game.current_room.name if game.current_room else None
         if room_name != "Ravine Edge":
             failures.append(f"uppercase abbreviation failed: 'S' should move to Ravine Edge (actual={room_name!r})")
 
     # ------------------------------------------------------------------
     # Phrase group 2: preposition synonyms for put/get without multi-noun
     # ------------------------------------------------------------------
-    action_state.current_room = game.rooms.get("Tower Cell")
-    room = action_state.current_room
+    game.current_room = world.rooms.get("Tower Cell")
+    room = game.current_room
     if room is None:
         failures.append("setup failed: Tower Cell is not available")
     else:
-        bag = _room_container(action_state, "bag")
+        bag = _room_container(game, "bag")
         if bag is None:
             failures.append("setup failed: expected bag in Tower Cell")
         else:
             safe_run("open lunch bag")
             safe_run("get key from lunch bag")
-            if "key" not in _inventory_handles(action_state):
+            if "key" not in _inventory_handles(game):
                 failures.append("setup failed: could not retrieve key from lunch bag")
             else:
                 safe_run("put key within bag")
-                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                if "key" in _inventory_handles(game) or "key" not in container_handles(bag):
                     failures.append("preposition synonym failed: 'put key within bag' did not place key in bag")
 
                 safe_run("get key out bag")
-                if "key" not in _inventory_handles(action_state):
+                if "key" not in _inventory_handles(game):
                     failures.append("preposition synonym failed: 'get key out bag' did not retrieve key")
 
                 safe_run("put key into bag")
-                if "key" in _inventory_handles(action_state) or "key" not in container_handles(bag):
+                if "key" in _inventory_handles(game) or "key" not in container_handles(bag):
                     failures.append("control failed: 'put key into bag' did not place key in bag")
 
                 safe_run("get key off bag")
-                if "key" not in _inventory_handles(action_state):
+                if "key" not in _inventory_handles(game):
                     failures.append("preposition synonym failed: 'get key off bag' did not retrieve key")
 
     # ------------------------------------------------------------------
     # Phrase group 3: unsupported prepositions should not mutate inventory
     # ------------------------------------------------------------------
-    room = action_state.current_room
-    bag = _room_container(action_state, "bag") if room is not None else None
+    room = game.current_room
+    bag = _room_container(game, "bag") if room is not None else None
     if bag is None:
         failures.append("setup failed: bag unavailable for malformed preposition checks")
     else:
-        if "key" not in _inventory_handles(action_state):
+        if "key" not in _inventory_handles(game):
             safe_run("open lunch bag")
             safe_run("get key from lunch bag")
 
-        if "key" not in _inventory_handles(action_state):
+        if "key" not in _inventory_handles(game):
             failures.append("setup failed: key unavailable for malformed preposition checks")
         else:
             safe_run("put key under bag")
-            if "key" not in _inventory_handles(action_state):
+            if "key" not in _inventory_handles(game):
                 failures.append("unsupported-preposition violation: 'put key under bag' consumed key")
 
             safe_run("put key with bag")
-            if "key" not in _inventory_handles(action_state):
+            if "key" not in _inventory_handles(game):
                 failures.append("unsupported-preposition violation: 'put key with bag' consumed key")
 
     assert not failures, "Batch-2 phrase regressions detected:\n" + "\n".join(f" - {failure}" for failure in failures)

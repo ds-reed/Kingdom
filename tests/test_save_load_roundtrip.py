@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import get_game, init_session, reset_all_state, setup_world
+from kingdom.model.game_init import get_game, setup_world
 from kingdom.model.game_persistence import load_game, save_game
 from kingdom.model.noun_model import Container, Item, Player, Room, World
 
@@ -116,28 +116,28 @@ def _exit_snapshot(room: Room) -> dict[str, dict[str, dict[str, object]]]:
 
 
 def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_path: Path) -> None:
-    reset_all_state()
+    get_game().reset_all_state()
 
     base_dir = Path(__file__).resolve().parents[1]
     data_path = base_dir / "data" / "initial_state.json"
     save_path = tmp_path / "roundtrip_validation.tmp.json"
 
-    game = World()
-    setup_world(game, data_path)
+    world = World()
+    setup_world(world, data_path)
 
     player = Player("RoundtripHero")
 
-    start_room = game.rooms.get(game.start_room_name)
-    init_session(
-        world=game,
+    start_room = world.rooms.get(world.start_room_name)
+    get_game().init_session(
+        world=world,
         current_player=player,
         initial_room=start_room,
         player_name=player.name,
         save_path=save_path,
     )
-    get_game().action_state.score = 123
+    get_game().score = 123
 
-    anchor = next(iter(game.rooms.values()))
+    anchor = next(iter(world.rooms.values()))
 
     sentinel_room = Room(
         name="__roundtrip_room__",
@@ -148,7 +148,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     sentinel_room.add_exit("go", "west", anchor, is_visible=False)
     sentinel_room.add_exit("swim", "east", anchor)
     sentinel_room.add_exit("climb", "down", anchor)
-    game.rooms[sentinel_room.name] = sentinel_room
+    world.rooms[sentinel_room.name] = sentinel_room
 
     sentinel_container = Container(
         name="Roundtrip Box",
@@ -214,10 +214,10 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
     # These room flags are world-data invariants; validate they survive save/load for existing rooms.
     invariant_snapshot_before = {
         room_name: (room.is_dark, room.has_water, room.dark_description)
-        for room_name, room in game.rooms.items()
+        for room_name, room in world.rooms.items()
     }
 
-    save_game(game, save_path)
+    save_game(world, save_path)
 
     # Loader currently expects lowercase room collection keys.
     with save_path.open("r", encoding="utf-8") as saved_file:
@@ -232,11 +232,11 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         "saved room payload should omit empty 'features' lists"
     )
 
-    load_game(game, save_path)
+    load_game(world, save_path)
 
     invariant_snapshot_after = {
         room_name: (room.is_dark, room.has_water, room.dark_description)
-        for room_name, room in game.rooms.items()
+        for room_name, room in world.rooms.items()
     }
     for room_name, before_values in invariant_snapshot_before.items():
         assert invariant_snapshot_after.get(room_name) == before_values, (
@@ -244,7 +244,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
             f"before={before_values!r} after={invariant_snapshot_after.get(room_name)!r}"
         )
 
-    loaded_room = game.rooms.get("__roundtrip_room__")
+    loaded_room = world.rooms.get("__roundtrip_room__")
     assert loaded_room is not None, "sentinel room missing after load"
 
     loaded_container = next(

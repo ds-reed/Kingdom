@@ -152,7 +152,7 @@ class RoomRenderer:
     def is_dark_room(self, room: Room) -> bool:
         """Return True if the room is effectively dark."""
         try:
-            player = get_game().action_state.current_player
+            player = get_game().current_player
         except RuntimeError:
             player = None
 

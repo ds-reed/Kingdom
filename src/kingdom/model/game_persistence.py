@@ -4,7 +4,8 @@ import json
 from pathlib import Path 
 
 from . import game_init as model_api
-from .noun_model import Player, Item
+from .game_init import GameActionState, get_game
+from .noun_model import Player, Item, World
 from .direction_model import DIRECTIONS
 
 
@@ -40,31 +41,37 @@ def load_game(world, filepath) -> Path:
     except OSError as error:
         raise RuntimeError(f"Unable to read save file: {target} ({error})") from error
 
+    # --- 1. Reset all global + session state ---
+    model_api.get_game().reset_all_state()    # reset state of last game and other globals
+    game = model_api.get_game()               # create fresh game
+
+    # --- 2. Extract save data ---
     player_data = data.pop("player", None)
     current_room_name = data.get("current_room")
     player_name = player_data.get("name", "Hero") if player_data else "Hero"
 
-    action_state = model_api.get_game().action_state
-    action_state.player_name = player_name
 
-    if action_state.current_player is None:
-        action_state.current_player = Player(player_name)
+    # --- 4. Build fresh world ---
+    world = World.get_instance()
     model_api.setup_world(world, data)
+    game.world = world
 
-    player = action_state.current_player
-    if player is None:
-        raise RuntimeError("No hero is active yet.")
+    # --- 5. Build fresh player ---
+    player = Player(player_name)
+    game.current_player = player
+    game.player_name = player_name
 
-    player.sack.contents.clear()
+    # --- 6. Restore inventory ---
     if player_data:
         for item_json in player_data.get("inventory", []):
             item = model_api._construct_item_from_spec(item_json)
             player.sack.add_item(item)
 
+    # --- 7. Restore room + score ---
     if current_room_name and current_room_name in world.rooms:
-        model_api.get_game().action_state.current_room = world.rooms[current_room_name]
+        game.current_room = world.rooms[current_room_name]
 
-    model_api.get_game().action_state.score = int(data.get("score", 0))
+    game.score = int(data.get("score", 0))
 
     return target
 
@@ -77,8 +84,8 @@ def save_game(world, filepath) -> Path:
         raise RuntimeError("Refusing to overwrite initial_state.json")
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    action_state = model_api.get_game().action_state
-    player = action_state.current_player
+    game = model_api.get_game()
+    player = game.current_player
 
     payload = {
         "directions": _serialize_directions(),
@@ -88,9 +95,9 @@ def save_game(world, filepath) -> Path:
         }
         if player
         else None,
-        "current_room": action_state.current_room.name,
+        "current_room": game.current_room.name,
         "start_room": world.start_room_name,
-        "score": int(action_state.score),
+        "score": int(game.score),
         "rooms": [],
     }
 

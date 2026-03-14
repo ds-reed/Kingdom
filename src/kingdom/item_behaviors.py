@@ -92,11 +92,9 @@ def try_item_special_handler(
 # ------------------------------------------------------------
 
 def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_string: str) -> None:
-    state = get_game().action_state
-    if state is None:
-        return
 
-    room = getattr(state, "current_room", None)
+    game=get_game()
+    room = getattr(game, "current_room", None)
     if room is None:
         return
 
@@ -139,9 +137,9 @@ def open_bean(item, verb_name, words):
 @register_item_behavior("eat_fish")
 def eat_fish(item, verb, words):
 
-    state = get_game().action_state
-    world = getattr(state, "world", None)
-    player = getattr(state, "current_player", None)
+    game = get_game() 
+    world = getattr(game, "world", None)
+    player = getattr(game, "current_player", None)
     if player is None:
         return VerbOutcome(
             message="No active player.",
@@ -155,7 +153,7 @@ def eat_fish(item, verb, words):
             control=VerbControl.SKIP
         )
     
-    room = getattr(state, "current_room", None)
+    room = getattr(game, "current_room", None)
     if room is None:
         return VerbOutcome(
             message="No active room.",
@@ -187,9 +185,9 @@ def eat_fish(item, verb, words):
 @register_item_behavior("rub_lamp")
 def rub_lamp(item, verb, words):
 
-    state = get_game().action_state
-    world = state.world if state else None
-    player = getattr(state, "current_player", None)
+    game = get_game()
+    world = getattr(game, "world", None)
+    player = getattr(game, "current_player", None)
     if player is None:
         return VerbOutcome(
             message="No active player.",
@@ -204,7 +202,7 @@ def rub_lamp(item, verb, words):
             control=VerbControl.STOP
         )
 
-    room = getattr(state, "current_room", None)
+    room = getattr(game, "current_room", None)
     if room is None:
         return VerbOutcome(
             message="No active room.",
@@ -266,9 +264,9 @@ def _djinni_scripted_action(item, verb, words):
     triggers his pre-ordained magical action.
     """
 
-    state = get_game().action_state
-    room = getattr(state, "current_room", None)
-    world = state.world if state else None
+    game = get_game()
+    room = getattr(game, "current_room", None)
+    world = getattr(game, "world", None)
 
 
     message_lines = [
@@ -319,8 +317,8 @@ def _djinni_scripted_action(item, verb, words):
 
 @register_item_behavior("drop_torch")
 def put_torch(item, verb_name, indirect_obj):
-    active_state = get_game().action_state
-    room = getattr(active_state, "current_room", None)
+    game = get_game()
+    room = getattr(game, "current_room", None)
 
     message = []
     if getattr(item, "is_lit", False):

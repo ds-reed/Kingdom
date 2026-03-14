@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import init_session, reset_all_state, setup_world
+from kingdom.model.game_init import get_game, setup_world
 from kingdom.model.game_persistence import load_game, save_game
 from kingdom.model.noun_model import Feature, Player, World
 
@@ -23,14 +23,14 @@ def _find_container(room, container_name: str):
     assert False, f"Container not found in {room.name}: {container_name}"
 
 
-def _bootstrap_world(save_path: Path) -> World:
-    reset_all_state()
+def _bootstrap_world(save_path: Path) -> World:                    #used in multiple tests
+    get_game().reset_all_state()
     world = World()
     setup_world(world, "data/initial_state.json")
 
     start_room = _find_room(world, world.start_room_name)
     player = Player("TestHero")
-    init_session(
+    get_game().init_session(
         world=world,
         current_player=player,
         initial_room=start_room,

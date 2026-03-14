@@ -22,19 +22,19 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
     def execute_with_old_contract():             #compatability layer - remove when all verbs are ported!
 
         def _iter_local_target_candidates(world: World):
-            state = get_game().action_state
-            if state.current_room is not None:
+            game = get_game()
+            if getattr(game, "current_room", None) is not None:
 
-                yield state.current_room
-                for item in state.current_room.items:
+                yield game.current_room
+                for item in game.current_room.items:
                     yield item
-                for container in state.current_room.containers:
+                for container in game.current_room.containers:
                     yield container
                     if not container.is_openable or container.is_open:
                         for item in container.contents:
                             yield item
 
-            player = getattr(state, "current_player", None)
+            player = getattr(game, "current_player", None)
             if player is not None:
                 for item in player.sack.contents:
                     yield item

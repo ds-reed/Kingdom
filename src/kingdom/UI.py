@@ -9,7 +9,7 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 from pathlib import Path
 from typing import Any, Sequence
 from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen
-from kingdom.model.game_init import get_prefs, SessionPrefs
+from kingdom.model.game_init import get_game
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ class UI:
         if not self.confirm(question="Save game? (y/n): "):
             return None
 
-        prefs = get_prefs()
+        prefs = get_game().prefs
         filename = self._prompt_for_filename("Save to", prefs.last_save_filename)
         path = Path(prefs.save_directory) / filename
 
@@ -77,7 +77,7 @@ class UI:
         if not self.confirm(question = "Load game? (y/n): "):
             return None
 
-        prefs = get_prefs()
+        prefs = get_game().prefs
         filename = self._prompt_for_filename("Load from", prefs.last_save_filename)
         path = Path(prefs.save_directory) / filename
 
