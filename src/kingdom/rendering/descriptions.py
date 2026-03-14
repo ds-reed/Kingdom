@@ -4,6 +4,7 @@ from typing import Sequence
 import re
 
 from kingdom.model.noun_model import Room, Item, Container
+from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.game_init import get_action_state
 import kingdom.rendering.textutils as tu
 
@@ -123,6 +124,7 @@ class RoomRenderer:
             return desc
         return f"You look at {item.display_name()} carefully."
     
+    
     def describe_container(self, room: Room, container: Container) -> str:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
@@ -130,6 +132,7 @@ class RoomRenderer:
         if desc:
             return desc
         return f"You look at {container.display_name()} carefully. There might be something interesting inside."
+    
 
     def describe_container_contents(self, room: Room, container: Container) -> str:
         if self.is_dark_room(room):
@@ -140,6 +143,7 @@ class RoomRenderer:
             return f"You see {container.display_name()} is empty."
         names = ", ".join(item.display_name() for item in container.contents)
         return f"Inside {container.display_name()} you see: {names}."
+    
 
     # ----------------------------------------------------------------------
     # Darkness logic
@@ -179,45 +183,55 @@ class RoomRenderer:
     def dark_room_message(self, room: Room) -> str:
         return getattr(room, "dark_description",
                        "It is pitch black. You can't see a thing.")
+    
+    #----------------------------------------------------------------------
+    # Exit description logic
+    #----------------------------------------------------------------------
 
-    # ----------------------------------------------------------------------
-    # Exit formatting
-    # ----------------------------------------------------------------------
 
-    _DIRECTION_ORDER = {"up": 0, "down": 1, "north": 2, "south": 3, "east": 4, "west": 5}
     _VERTICAL_LABELS = {"up": "above", "down": "below"}
 
-    def order_directions(self, directions: Sequence[str]) -> list[str]:
-        return sorted(directions, key=lambda d: self._DIRECTION_ORDER.get(d, 99))
-
     def direction_phrase(self, direction: str) -> str:
+        # Vertical directions get special labels
         if direction in self._VERTICAL_LABELS:
             return self._VERTICAL_LABELS[direction]
-        return f"to the {direction}"
+        # Everything else is direction-agnostic
+        return direction
 
     def build_visible_exits_text(self, exits: Sequence[tuple[str, str, object]]) -> str:
-        directions: list[str] = []
-        for movement_type, direction, exit_obj in exits:
-            if isinstance(direction, str):
-                directions.append(direction)
-
-        ordered = self.order_directions(sorted(set(directions)))
-        if not ordered:
+        # Extract direction strings
+        directions = [direction for _, direction, _ in exits if isinstance(direction, str)]
+        if not directions:
             return "There are no visible exits."
 
+        # order exits in directionRegistry order 
+
+        ordered  = DIRECTIONS.sort_directions(directions)
+
+        # Partition into vertical and non-vertical
         vertical = [d for d in ordered if d in self._VERTICAL_LABELS]
         horizontal = [d for d in ordered if d not in self._VERTICAL_LABELS]
 
+        # Build phrases
         phrases = []
-        if vertical:
-            phrases.append(tu.join_with_and([self.direction_phrase(d) for d in vertical]))
-        if horizontal:
-            phrases.append(tu.join_with_and([self.direction_phrase(d) for d in horizontal]))
 
+        if vertical:
+            # "above and below"
+            v_phrase = tu.join_with_and([self.direction_phrase(d) for d in vertical])
+            phrases.append(v_phrase)
+
+        if horizontal:
+            # "north, south, east and west"
+            h_phrase = tu.join_with_and([self.direction_phrase(d) for d in horizontal])
+            phrases.append(f"to the {h_phrase}")
+
+        # Single exit
         if len(ordered) == 1:
             return f"There is an exit {phrases[0]}."
 
+        # Multiple exits
         return f"There are exits {tu.join_with_and(phrases)}."
+
     
     #----------------------------------------------------------------------
     # Item description logic and heuristics for better narative structure

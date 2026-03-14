@@ -46,6 +46,20 @@ class DirectionRegistry:
 
     def get_all_directions(self):
         """Returns a list of all canonical directions"""
-        return sorted(self.data.keys())
+        return list(self.data.keys())
+    
+    def sort_directions(self, directions: list[str]) -> list[str]:
+        """Return the given directions in the registry's canonical display order."""
+        # Normalize to canonical names
+        canon = [self.get_canonical(d) for d in directions]
+
+        # Filter out unknowns
+        canon = [d for d in canon if d is not None]
+
+        # Preserve registry order
+        ordered = [d for d in self.data.keys() if d in canon]
+
+        return ordered
+
 
 DIRECTIONS = DirectionRegistry()

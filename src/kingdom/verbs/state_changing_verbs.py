@@ -106,8 +106,6 @@ class ChangeStateVerbHandler(VerbHandler):
             desired_state=True,
         )
 
-
-
         # Post-change side effect: reveal exit if configured
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
@@ -138,13 +136,6 @@ class ChangeStateVerbHandler(VerbHandler):
             parts.append(outcome.message)
         elif result_msg:
             parts.append(result_msg)
-
-        # State-based description (opened_state_description)
-        opened_desc = getattr(target, "opened_state_description", None)
-        if opened_desc:
-            parts.append(f"You see {opened_desc}")
-        else:
-            parts.append(f"The {target.canonical_name()} is opened.")
 
         # Revealed exit text
         if side_effect_msg:
@@ -234,13 +225,6 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        # State-based description (closed_state_description)
-        state_desc = getattr(target, "closed_state_description", None)
-        if state_desc:
-            parts.append(f"You see {state_desc}")
-        else:
-            parts.append(f"The {target.canonical_name()} is closed.")
-
         # Hidden exit text
         if side_effect_msg:
             parts.append(side_effect_msg)
@@ -328,13 +312,6 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        # State-based description (unlocked_state_description)
-        state_desc = getattr(target, "unlocked_state_description", None)
-        if state_desc:
-            parts.append(f"You see {state_desc}")
-        else:
-            parts.append(f"The {target.canonical_name()} is unlocked.")
-
         return self.build_message(parts)
     
     def light(self, target: Optional[Noun], words: tuple[str, ...], **kwargs) -> str:
@@ -409,13 +386,6 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        # State-based description (lit_state_description)
-        state_desc = getattr(target, "lit_state_description", None)
-        if state_desc:
-            parts.append(f"You see {state_desc}")
-        else:
-             parts.append(f"The {target.canonical_name()} is lit.")
-
         return self.build_message(parts)
 
 
@@ -481,13 +451,6 @@ class ChangeStateVerbHandler(VerbHandler):
             parts.append(outcome.message)
         elif result_msg:
             parts.append(result_msg)
-
-        # State-based description (unlit_state_description)
-        state_desc = getattr(target, "unlit_state_description", None)
-        if state_desc:
-            parts.append(f"You see {state_desc}")
-        else:
-             parts.append(f"The {target.canonical_name()} is freshly charred and blackened, with a faint wisp of smoke still rising from it.")
 
         return self.build_message(parts)
     

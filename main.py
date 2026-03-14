@@ -57,7 +57,7 @@ def init_game_state() -> tuple[World | None, Lexicon | None]:
 
         ui.print("Welcome to Kingdom.","\n", bold=True)
 
-        player_name = ui.prompt("Player name? > ").strip() or "ralf"
+        player_name = ui.prompt("Player name> ").strip() or "ralf"
         player = Player(player_name)
 
         ui.print(f"Welcome {player_name}!","\n")
@@ -123,7 +123,7 @@ def handle_game_over(
     action_state.score = max(0, int(action_state.score) - int(penalty)) 
 
     if action_state.current_room is not None:
-        lines = render_current_room(action_state, look=true)
+        lines = render_current_room(action_state, look=True)
         ui.render_room(lines, clear=False)
         print() 
     
@@ -253,9 +253,8 @@ def main() -> None:
 
         while True:
 
-            ui.print("\n") 
-            command = ui.prompt("> ")
-            ui.print("\n")
+            command = ui.prompt("\n> ")
+            ui.print()
 
             should_quit, recovery_mode, output = process_command(
                 raw_command=command,
