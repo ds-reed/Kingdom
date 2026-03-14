@@ -96,23 +96,28 @@ class Game:
         self.prefs = new_prefs
 
     def reset_all_state(self):
-        self.action_state = None
+        # Reset session-level fields
+        self.world = None
+        self.current_player = None
+        self.player_name = None
+        self.current_room = None
+        self.score = 0
+
+        self.rooms_found = 0
+        self.items_found = 0
+        self.rooms_found_since_load = 0
+        self.items_found_since_load = 0
+        self.score_since_load = 0
+        self.recent_commands.clear()
+
+        # Reset prefs
         self.prefs = None
 
+        # Reset global noun/container registries
         Container.all_containers.clear()
         Noun.all_nouns.clear()
         Noun._by_name = {}
 
-
-
-@dataclass
-class GameActionState:
-    world: World | None = None
-    current_player: Player | None = None
-    current_room: Room | None = None
-    player_name: str | None = None
-    lexicon: "Lexicon" | None = None
-    score: int = 0
 
 
 @dataclass
