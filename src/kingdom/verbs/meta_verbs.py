@@ -110,7 +110,7 @@ class MetaVerbHandler(VerbHandler):
         if not game.debug_mode:
             keywords = set(cmd.modifiers) if cmd.modifiers else set()
             if "please" not in keywords:
-                return self.build_message("Degug not permitted")    
+                return self.build_message("Debug not permitted")    
             
         # Resolve either a noun or keywords of interest
         room = self.room()

@@ -17,4 +17,4 @@ testpaths = [
 	"tests",
 	"src/kingdom/tests",
 ]
-python_files = ["test_*.py", "demo.py"]
+python_files = ["test_*.py", "regression.py"]

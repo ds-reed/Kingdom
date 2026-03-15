@@ -48,7 +48,7 @@ Kingdom/
 │   ├── check_world_json.py
 │   └── find_obsolete_attributes.py
 ├── tests/
-│   ├── demo.py
+│   ├── regression.py
 │   ├── test_inventory_get_behavior.py
 │   ├── test_save_load_roundtrip.py
 │   └── test_world_container_persistence.py
@@ -209,7 +209,7 @@ Windows helper:
 
 ### Pytest
 
-Default pytest discovery is configured in `pyproject.toml` for `tests/` and `src/kingdom/tests` with `test_*.py` naming plus the smoke-test file `tests/demo.py`.
+Default pytest discovery is configured in `pyproject.toml` for `tests/` and `src/kingdom/tests` with `test_*.py` naming plus the smoke-test file `tests/regression.py`.
 
 Run the current non-language suite:
 
@@ -220,7 +220,7 @@ pytest --ignore=src/kingdom/language/tests
 Run the smoke test directly:
 
 ```bash
-pytest tests/demo.py
+pytest tests/regression.py
 ```
 
 Run the parser/language tests separately when needed:
@@ -232,7 +232,7 @@ pytest src/kingdom/language/tests
 Run the smoke flow directly:
 
 ```bash
-pytest tests/demo.py -q
+pytest tests/regression.py -q
 ```
 
 Current top-level regression coverage includes:

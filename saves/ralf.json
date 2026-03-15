@@ -39,131 +39,7 @@
     },
     "player": {
         "name": "ralf",
-        "inventory": [
-            {
-                "name": "torch",
-                "description": "an old wooden torch",
-                "handle": "torch",
-                "adjectives": [
-                    "old",
-                    "wooden"
-                ],
-                "is_lightable": true,
-                "is_lit": true,
-                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls.",
-                "unlit_state_description": null,
-                "special_handlers": {
-                    "drop": "drop_torch"
-                }
-            },
-            {
-                "name": "bean",
-                "description": "a single shiny bean",
-                "handle": "bean",
-                "adjectives": [
-                    "single",
-                    "shiny"
-                ],
-                "is_openable": true,
-                "opened_state_description": null,
-                "closed_state_description": null,
-                "open_action_description": "You crack open the bean with a satisfying snap.",
-                "close_action_description": null,
-                "open_exit_direction": null,
-                "open_exit_type": null,
-                "special_handlers": {
-                    "open": "open_bean"
-                }
-            },
-            {
-                "name": "brooch",
-                "description": "an ornate brooch",
-                "handle": "brooch",
-                "adjectives": [
-                    "ornate"
-                ],
-                "is_openable": true,
-                "opened_state_description": "an ornate brooch with an ivory carving of a favorite pet fish.",
-                "closed_state_description": "an ornate brooch with a tightly-closed clasp.",
-                "open_action_description": "You open the ornate brooch, revealing an ivory carving of a favorite pet fish.",
-                "close_action_description": null,
-                "open_exit_direction": null,
-                "open_exit_type": null
-            },
-            {
-                "name": "carrot",
-                "description": "a cheery orange carrot",
-                "handle": "carrot",
-                "adjectives": [
-                    "cheery",
-                    "orange"
-                ],
-                "examine_string": "The carrot cheerfully waves hello!",
-                "is_edible": true,
-                "eat_refuse_string": null,
-                "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
-                "can_be_spoken_to": true,
-                "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!"
-            },
-            {
-                "name": "fish",
-                "description": "a suspicious looking fish",
-                "handle": "fish",
-                "adjectives": [
-                    "suspicious-looking"
-                ],
-                "is_edible": true,
-                "eat_refuse_string": null,
-                "eaten_success_string": null,
-                "special_handlers": {
-                    "eat": "eat_fish"
-                }
-            },
-            {
-                "name": "key",
-                "description": "a small brass key",
-                "handle": "key",
-                "adjectives": [
-                    "small",
-                    "brass"
-                ],
-                "unlock_key": "small brass key",
-                "is_flamable": false,
-                "is_edible": true,
-                "eat_refuse_string": null,
-                "eaten_success_string": null
-            },
-            {
-                "name": "lamp",
-                "description": "a battered and dull brass lamp",
-                "handle": "lamp",
-                "adjectives": [
-                    "battered",
-                    "dull",
-                    "brass"
-                ],
-                "is_flamable": false,
-                "is_rubbable": true,
-                "rubbed_state_description": "a battered and shiny brass lamp.",
-                "rub_success_string": "The lamp grows shiny from rubbing.",
-                "trigger_room": "Blank Chamber",
-                "special_handlers": {
-                    "rub": "rub_lamp"
-                }
-            },
-            {
-                "name": "lighter",
-                "description": "a cheap plastic lighter",
-                "handle": "lighter",
-                "adjectives": [
-                    "cheap",
-                    "plastic"
-                ],
-                "can_ignite": true,
-                "ignite_success_string": "You flick the lighter and a small flame appears.",
-                "is_flamable": false
-            }
-        ]
+        "inventory": []
     },
     "current_room": "Tower Cell",
     "start_room": "Tower Cell",
@@ -171,8 +47,9 @@
     "rooms": [
         {
             "name": "Djinni Lair",
-            "description": "You shouldn't be here.",
+            "description": "You shouldn't be here, cheater!!!",
             "handle": "djinni lair",
+            "discover_points": -1000,
             "exits": {},
             "items": [
                 {
@@ -198,6 +75,7 @@
             "name": "Tower Cell",
             "description": "in a cramped stone cell at the top of a lonely tower. A magic ladder along the wall hums with soft blue light and leads up into the cloudy distance.",
             "handle": "tower cell",
+            "found": true,
             "discover_points": 0,
             "exits": {
                 "climb": {
@@ -207,11 +85,47 @@
                     },
                     "down": {
                         "destination": "Blank Chamber",
+                        "is_visible": false,
+                        "is_passable": false,
                         "refuse_string": "The trapdoor is firmly shut."
                     }
                 }
             },
             "items": [
+                {
+                    "name": "torch",
+                    "description": "an old wooden torch",
+                    "handle": "torch",
+                    "adjectives": [
+                        "old",
+                        "wooden"
+                    ],
+                    "is_lightable": true,
+                    "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
+                    "unlit_state_description": null,
+                    "special_handlers": {
+                        "drop": "drop_torch"
+                    },
+                    "discover_points": 0,
+                    "found": true
+                },
+                {
+                    "name": "brooch",
+                    "description": "an ornate brooch",
+                    "handle": "brooch",
+                    "adjectives": [
+                        "ornate"
+                    ],
+                    "is_openable": true,
+                    "opened_state_description": "an ornate brooch with an ivory carving of a favorite pet fish inside",
+                    "closed_state_description": "an ornate brooch with a tightly-closed clasp",
+                    "open_action_description": "You open the ornate brooch, revealing an ivory carving of a favorite pet fish.",
+                    "close_action_description": null,
+                    "open_exit_direction": null,
+                    "open_exit_type": null,
+                    "discover_points": 0,
+                    "found": true
+                },
                 {
                     "name": "trapdoor",
                     "description": "a rusty iron trapdoor",
@@ -222,20 +136,21 @@
                     ],
                     "is_takeable": false,
                     "is_openable": true,
-                    "is_open": true,
-                    "opened_state_description": "an open trapdoor in the middle of the floor. A slick fireman's pole leads down into darkness.",
-                    "closed_state_description": "a closed, rusty iron trapdoor in the middle of the floor.",
+                    "opened_state_description": "An open trapdoor. A slick fireman's pole leads from it down into darkness below",
+                    "closed_state_description": "A closed, rusty iron trapdoor",
                     "open_action_description": null,
                     "close_action_description": null,
                     "open_exit_direction": "down",
                     "open_exit_type": "climb",
                     "is_lockable": true,
-                    "is_locked": false,
+                    "is_locked": true,
                     "unlock_key": "small brass key",
-                    "locked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed and locked.",
-                    "unlocked_state_description": "a rusty iron trapdoor in the middle of the floor. The trap door is closed but unlocked.",
-                    "unlockable_description": "The trapdoor is locked and you need a key.",
-                    "is_flamable": false
+                    "locked_state_description": "A closed and locked rusty iron trap door",
+                    "unlocked_state_description": "A closed but unlocked rusty iron trap door",
+                    "unlockable_description": "The trapdoor is locked and you need a key",
+                    "is_flamable": false,
+                    "discover_points": 0,
+                    "found": true
                 },
                 {
                     "name": "ladder",
@@ -247,13 +162,14 @@
                         "soft blue"
                     ],
                     "is_takeable": false,
-                    "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling.",
-                    "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass.",
+                    "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
+                    "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
                     "is_climbable": true,
                     "climb_directions": [
                         "up"
                     ],
-                    "is_visible": false
+                    "is_visible": false,
+                    "discover_points": 0
                 },
                 {
                     "name": "pole",
@@ -263,13 +179,14 @@
                         "greasy"
                     ],
                     "is_takeable": false,
-                    "take_refuse_string": "The pole is firmly anchored to the floor and ceiling.",
-                    "examine_string": "a firestation-type pole that is slathered in slippery grease.",
+                    "take_refuse_string": "The pole is firmly anchored to the floor and ceiling",
+                    "examine_string": "a firestation-type pole that is slathered in slippery grease",
                     "is_climbable": true,
                     "climb_directions": [
                         "down"
                     ],
-                    "is_visible": false
+                    "is_visible": false,
+                    "discover_points": 0
                 }
             ],
             "containers": [
@@ -281,12 +198,89 @@
                         "greasy",
                         "brown"
                     ],
+                    "found": true,
                     "is_openable": true,
-                    "is_open": true,
-                    "opened_state_description": "a greasy brown lunch bag with its top unfolded open.",
-                    "closed_state_description": "a greasy brown lunch bag with its top folded shut.",
+                    "is_open": false,
+                    "opened_state_description": "a greasy brown lunch bag with its top unfolded open",
+                    "closed_state_description": "a greasy brown lunch bag with its top folded shut",
                     "open_action_description": "You unfold the top of the greasy lunch bag.",
-                    "close_action_description": "You fold the top of the greasy lunch bag shut."
+                    "close_action_description": "You fold the top of the greasy lunch bag shut.",
+                    "discover_points": 0,
+                    "items": [
+                        {
+                            "name": "carrot",
+                            "description": "a cheery orange carrot",
+                            "handle": "carrot",
+                            "adjectives": [
+                                "cheery",
+                                "orange"
+                            ],
+                            "examine_string": "The carrot cheerfully waves hello!",
+                            "is_edible": true,
+                            "eat_refuse_string": null,
+                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
+                            "can_be_spoken_to": true,
+                            "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!"
+                        },
+                        {
+                            "name": "fish",
+                            "description": "a suspicious looking fish",
+                            "handle": "fish",
+                            "adjectives": [
+                                "suspicious-looking"
+                            ],
+                            "is_edible": true,
+                            "eat_refuse_string": null,
+                            "eaten_success_string": null,
+                            "special_handlers": {
+                                "eat": "eat_fish"
+                            }
+                        },
+                        {
+                            "name": "key",
+                            "description": "a small brass key",
+                            "handle": "key",
+                            "adjectives": [
+                                "small",
+                                "brass"
+                            ],
+                            "unlock_key": "small brass key",
+                            "is_flamable": false,
+                            "is_edible": true,
+                            "eat_refuse_string": null,
+                            "eaten_success_string": null
+                        },
+                        {
+                            "name": "lamp",
+                            "description": "a battered and dull brass lamp",
+                            "handle": "lamp",
+                            "adjectives": [
+                                "battered",
+                                "dull",
+                                "brass"
+                            ],
+                            "is_flamable": false,
+                            "is_rubbable": true,
+                            "rubbed_state_description": "a battered and shiny brass lamp",
+                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "trigger_room": "Blank Chamber",
+                            "special_handlers": {
+                                "rub": "rub_lamp"
+                            }
+                        },
+                        {
+                            "name": "lighter",
+                            "description": "a cheap plastic lighter",
+                            "handle": "lighter",
+                            "adjectives": [
+                                "cheap",
+                                "plastic"
+                            ],
+                            "can_ignite": true,
+                            "ignite_success_string": "You flick the lighter and a small flame appears.",
+                            "is_flamable": false
+                        }
+                    ]
                 }
             ]
         },
@@ -308,6 +302,7 @@
                 "climb": {
                     "up": {
                         "destination": "Tower Cell",
+                        "is_passable": false,
                         "refuse_string": "The pole is extremely slippery and cannot be climbed."
                     }
                 }
@@ -315,7 +310,7 @@
             "features": [
                 {
                     "name": "mural",
-                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements.",
+                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements",
                     "handle": "mural",
                     "synonyms": [
                         "djinni mural",
@@ -405,11 +400,11 @@
                     "handle": "wardrobe",
                     "is_openable": true,
                     "is_open": false,
-                    "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them.",
-                    "closed_state_description": "a large wooden wardrobe with its heavy doors closed.",
+                    "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them",
+                    "closed_state_description": "a large wooden wardrobe with its heavy doors closed",
                     "open_action_description": "You pull the heavy wardrobe doors open with a long creak.",
                     "close_action_description": "You push the wardrobe doors shut.",
-                    "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable."
+                    "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable"
                 }
             ]
         },
@@ -425,9 +420,6 @@
             "handle": "demo landing",
             "exits": {
                 "go": {
-                    "down": {
-                        "destination": "Tower Cell"
-                    },
                     "north": {
                         "destination": "Clockwork Court"
                     },
@@ -440,6 +432,12 @@
                     "south": {
                         "destination": "Ravine Edge"
                     }
+                },
+                "climb": {
+                    "down": {
+                        "destination": "Tower Cell",
+                        "go_refuse_string": "You can't walk that direction, did you mean to climb down the ladder?"
+                    }
                 }
             },
             "items": [
@@ -450,6 +448,24 @@
                     "is_edible": true,
                     "eat_refuse_string": null,
                     "eaten_success_string": null
+                },
+                {
+                    "name": "ladder",
+                    "description": "a magic ladder hums with soft blue light.",
+                    "handle": "ladder",
+                    "adjectives": [
+                        "magic",
+                        "glittering",
+                        "soft blue"
+                    ],
+                    "is_takeable": false,
+                    "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
+                    "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "down"
+                    ],
+                    "is_visible": false
                 }
             ]
         },
@@ -481,13 +497,15 @@
                         "coiled"
                     ],
                     "is_tieable": true,
+                    "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
                     "climb_directions": [
-                        "down"
+                        "down",
+                        "up"
                     ]
                 },
                 {
                     "name": "hook",
-                    "description": "an iron hook firmly anchored into the rock at the ravine's edge",
+                    "description": "an iron hook is firmly anchored into the rock at the ravine's edge",
                     "handle": "hook",
                     "adjectives": [
                         "iron",
@@ -629,5 +647,10 @@
                 }
             }
         }
-    ]
+    ],
+    "prefs": {
+        "save_directory": "C:\\Users\\dreed\\MI_Projects\\projects\\Coding\\python\\Kingdom\\saves",
+        "last_save_filename": "ralf.json",
+        "player_name": "ralf"
+    }
 }

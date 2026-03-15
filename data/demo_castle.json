@@ -1,0 +1,198 @@
+{
+  "directions": {
+    "north": { "reverse": "south", "synonyms": ["n"] },
+    "south": { "reverse": "north", "synonyms": ["s"] },
+    "east": { "reverse": "west", "synonyms": ["e"] },
+    "west": { "reverse": "east", "synonyms": ["w"] },
+    "up": { "reverse": "down", "synonyms": ["u"] },
+    "down": { "reverse": "up", "synonyms": ["d"] }
+  },
+  "score": 0,
+  "start_room": "Tower Cell",
+  "rooms": [
+    {
+      "name": "Djinni Lair",
+      "description": "You shouldn't be here, cheater!!!",
+      "discover_points": -1000,
+      "items": [
+        {
+          "name": "djinni",
+          "description": "an imposing djinni",
+          "adjectives": ["imposing", "tall"],
+          "is_takeable": false,
+          "can_be_spoken_to": true,
+          "take_refuse_string": "The 10 foot tall djinni glares at you.",
+          "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
+        }
+      ],
+      "containers": [],
+      "exits": {}
+    },
+    {
+      "name": "Tower Cell",
+      "description": "in a cramped stone cell at the top of a lonely tower. The air is hot and dry, and the only light comes from a small barred window high above. The stone walls are rough to the touch, and the mournful sound of a lone crow echoes through the silent room.",
+      "discover_points": 0,
+      "items": [
+        {
+          "name": "banana",
+          "description": "a blackened and overripe banana",
+          "adjectives": ["blackened", "overripe"],
+          "special_handlers": { "eat": "eat_banana" },
+          "discover_points": 0
+        },
+        {
+          "name": "door",
+          "description": "iron-clad door with a small barred window",
+          "location_description": "is set into the east wall.",
+          "adjectives": ["iron-clad", "east"],
+          "is_takeable": false,
+          "is_openable": true,
+          "is_open": false,
+          "open_action_description": "Surprisingly, the cell door is not locked. It creaks open, revealing a small antechamber beyond.",
+          "open_exit_direction": "east",
+          "open_exit_type": "go",
+          "discover_points": 0
+        }
+      ],
+      "exits": {
+        "go": {
+          "east": {
+            "destination": "Cell Antechamber",
+            "is_visible": false,
+            "is_passable": false,
+            "refuse_string": "The cell door is firmly shut."
+          }
+        }
+      }
+    },
+    {
+      "name": "Cell Antechamber",
+      "description": "a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room.",
+      "items": [
+        {
+          "name": "trapdoor",
+          "description": "a rusty iron trapdoor",
+          "adjectives": ["rusty", "iron"],
+          "is_takeable": false,
+          "is_openable": true,
+          "is_open": false,
+          "is_lockable": true,
+          "is_locked": true,
+          "is_flamable": false,
+          "unlock_key": "small brass key",
+          "locked_state_description": "A closed and locked rusty iron trapdoor",
+          "unlocked_state_description": "A closed but unlocked rusty iron trapdoor",
+          "unlockable_description": "The trapdoor is locked and you need a key",
+          "closed_state_description": "A closed, rusty iron trapdoor",
+          "opened_state_description": "An open trapdoor. A slick fireman's pole leads from it down into the deep darkness below",
+          "open_exit_direction": "down",
+          "open_exit_type": "climb"
+        },
+        {
+          "name": "pole",
+          "description": "a greasy pole.",
+          "examine_string": "a firestation-type pole that is slathered in slippery grease",
+          "adjectives": ["greasy"],
+          "is_takeable": false,
+          "take_refuse_string": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+          "is_climbable": true,
+          "climb_directions": ["down"],
+          "is_visible": false
+        }  
+    ],
+      "containers": [
+        {
+          "name": "body",
+          "description": "a guard's lifeless body",
+          "location_description": "lies slumped on the floor.",
+          "render_priority": 200,
+          "examine_string": "The lifeless body of a prison guard lies slumped on the floor, his uniform stained with what looks like remains of his lunch.",
+          "adjectives": ["lifeless", "prison", "guard"],
+          "synonyms": ["guard", "uniform", "pockets"],
+          "is_takeable": false,
+          "take_refuse_string": "You can't take the body, but you can search it if you like.",
+          "items": [
+            {
+              "name": "pack of cigarettes",
+              "description": "an empty crumpled pack of cigarettes",
+              "adjectives": ["crumpled"],
+              "is_takeable": true
+            },
+            {
+              "name": "lighter",
+              "description": "a cheap plastic lighter",
+              "adjectives": ["cheap", "plastic"],
+              "can_ignite": true,
+              "is_flamable": false,
+              "ignite_success_string": "You flick the lighter and a small flame appears."
+            },
+            {
+              "name": "key",
+              "description": "a small brass key",
+              "adjectives": ["small", "brass"],
+              "unlock_key": "small brass key",
+              "is_flamable": false,
+              "is_edible": true
+            }
+          ]
+        },
+        {
+          "name": "bag",
+          "description": "a greasy brown lunch bag",
+          "adjectives": ["greasy", "brown", "lunch"],
+          "is_openable": true,
+          "is_open": true,
+          "items": [
+            {
+              "name": "fish",
+              "description": "a suspicious-looking half-eaten fish",
+              "adjectives": ["suspicious", "half-eaten"],
+              "is_takeable": true,
+              "discover_points": 1,
+              "special_handlers": { "eat": "eat_fish" }
+            }
+          ]
+        },
+        {
+        "name": "sconce",
+        "description": "a rusty iron wall sconce",
+        "adjectives": ["rusty", "iron", "wall"],
+        "is_takeable": false,
+        "is_openable": false,   
+        "is_transparent": true,
+        "render_priority" : 500,
+        "is_fixed": true,
+        "items": [
+            {
+            "name": "torch",
+            "description": "an unlit torch",
+            "adjectives": ["unlit"],
+            "is_takeable": true,
+            "is_lightable": true,
+            "is_lit": false,
+            "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
+            "special_handlers": { "drop": "drop_torch" }
+            }
+        ]
+        }
+      ],
+      "exits": {
+        "go": {
+          "west": {
+            "destination": "Tower Cell",
+            "is_visible": true,
+            "is_passable": true
+          }
+        },
+        "climb": {  
+          "down": {
+            "destination": "Dark Hallway",
+            "is_visible": false,
+            "is_passable": false,
+            "go_refuse_string": "The pole descends into utter darkness. Did you want to slide down?"
+          }
+        }
+      }
+    }
+  ]
+}

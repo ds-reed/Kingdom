@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional
 
 from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
-from kingdom.verbs.verb_handler import VerbHandler
+from kingdom.verbs.verb_handler import ExecuteCommand, VerbHandler
 
 from kingdom.model.noun_model import Noun, Container, Feature
 from kingdom.rendering.descriptions import render_current_room, render_item, render_container, render_container_contents
@@ -187,36 +187,40 @@ class StatefulVerbHandler(VerbHandler):
 
     # moved from UI - not following the usual pattern yet.    
 
-    def look(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
+    def look(self, target: Noun | None, words: tuple[str, ...] = (), cmd: ExecuteCommand= None) -> str:
 
         room = self.room()
+        target = cmd.direct_object
+        verb_token = cmd.verb_token 
 
-        parse = self.resolve_noun_or_word(words, interest=["inside", "in"])
-        noun = parse["noun"]
-        keywords = parse["keywords"]
-        raw = parse["raw"]
+        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in"))
+        if prep and dest:
+            target = dest
 
-        if "inside" in keywords or "in" in keywords:
+        look_inside = prep or (verb_token.lower() == "search" and (target.get_class_name() if target else None) == "Container")
+
+        if look_inside:
             if target is None:
-                return self.build_message("Look inside what?")
+                return self.build_message(f"{verb_token}{(' '+ prep +' ') if prep else ' '}what?")
             if isinstance(target, Container):
-                return self.build_message(render_container_contents(room, target))
+                msg = [f"You {verb_token}{(' '+ prep +' ') if prep else ' '}the {target.canonical_name()}. ", render_container_contents(room, target)]
+                return self.build_message(msg)
+
             if getattr(target, "is_open", False):
-                message = getattr(target, "opened_state_description", None) or "You look inside, but don't see anything special."
+                message = getattr(target, "opened_state_description", None) or f"You {verb_token}, but don't see anything special."
                 return self.build_message(message)
-            return self.build_message(f"You can't look inside the {target.display_name()}.")
+            return self.build_message(f"You can't {verb_token} inside the {target.display_name()}.")
         
-        if not target: target = noun
+        if target is None:
+            if cmd.direct_object_token:
+                return self.build_message(f"I see no {cmd.direct_object_token} here.")
+            else:
+                return self.build_message(render_current_room(room, look=True))
+        
+        if target.get_class_name() == "Item":
+            return self.build_message(render_item(room, target))
+        elif target.get_class_name() == "Container":
+            return self.build_message(render_container(room, target))
+        elif isinstance(target, Feature):
+            return self.build_message(f"Looking closely at the {target.canonical_name()}, you see {target.description}")
 
-        if target is not None:
-            if target.get_class_name() == "Item":
-                return self.build_message(render_item(room, target))
-            elif target.get_class_name() == "Container":
-                return self.build_message(render_container(room, target))
-            elif isinstance(target, Feature):
-                return self.build_message(f"Looking closely at the {target.canonical_name()}, you see {target.description}")
-
-            
-        if raw: return self.build_message("I don't understand what you want to look at.")
-
-        return self.build_message(render_current_room(room, look=True))

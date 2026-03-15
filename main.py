@@ -158,7 +158,8 @@ def process_command(
             return False, recovery_mode, "Load cancelled."
 
         try:
-            loaded_path = load_game(world, path)
+            game = get_game()
+            loaded_path = game.load_game(path)
         except RuntimeError as e:
             return False, recovery_mode, f"Load failed: {e}"
 
@@ -175,7 +176,8 @@ def process_command(
             return False, recovery_mode, "Save cancelled."
 
         try:
-            saved_path = save_game(world, path)
+            game = get_game()
+            saved_path = game.save_game(path)
         except RuntimeError as e:
             return False, recovery_mode, f"Save failed: {e}"
 

@@ -15,6 +15,9 @@ _WALL_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+_WALL_ADJ_PATTERN = re.compile(r"\bwall\s+\w+", re.IGNORECASE)
+
+
 
 class RoomRenderer:
     """
@@ -41,7 +44,6 @@ class RoomRenderer:
         visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
         visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
 
-
         #update discover score - checks if first time seeing and if so updates score metrics
         game.update_discover_score(room)
         for item in visible_items:
@@ -49,82 +51,159 @@ class RoomRenderer:
         for container in visible_containers:
             game.update_discover_score(container)
 
-        wall_items = []
-        floor_items = []
-        ceiling_items = []
-        special_structures = []
 
-        # --- CLASSIFY ALL ITEMS FIRST ---
-        fixtures = []
+        # --- PRIORITY SORTING -------------------------------------------------
+
+        # Combine items and containers into a single sequence for ordering
+        all_visible_objects = []
 
         for item in visible_items:
-            name = item.stateful_name()
+            all_visible_objects.append(("item", item))
 
-            # 0. Fixtures override everything
+        for container in visible_containers:
+            all_visible_objects.append(("container", container))
+
+        # Sort by render_priority (higher first)
+        all_visible_objects.sort(
+            key=lambda pair: (getattr(pair[1], "render_priority", 0) or 0),
+            reverse=True
+        )
+
+        # --- BUCKET PRIORITIES -------------------------------------------------
+        BUCKET_PRIORITY = {
+            "floor": 0,
+            "special": 1,
+            "container": 2,
+            "fixture": 3,
+            "wall": 4,
+            "ceiling": 5,
+        }
+
+        # This will hold tuples of (bucket_name, object_or_string)
+        render_entries = []
+
+
+
+        # --- CLASSIFY ALL OBJECTS IN PRIORITY ORDER  ---------------------
+        wall_items = []          # renamed from wall_items for clarity in next block
+
+        for kind, obj in all_visible_objects:
+            name = obj.stateful_name()
+
+            # If the object has an authored location_description, treat it as a special structure
+            # (this stays first — it's the intended override)
+            if getattr(obj, "location_description", None):
+                render_entries.append(("special", obj))
+                continue
+
+            # 0. Fixtures 
             if self.classify_fixture(name):
-                fixtures.append(item)
+                render_entries.append(("fixture", obj))
                 continue
 
             # 1. Special structures (doors, trapdoors, hatches)
             special = self.classify_special_structure(name)
             if special == "wall":
-                wall_items.append((item, name, None))
+                wall_items.append((obj, name, None))
                 continue
             elif special == "floor":
-                special_structures.append(item)
+                render_entries.append(("special", obj))
                 continue
             elif special == "ceiling":
-                ceiling_items.append(item)
+                render_entries.append(("ceiling", obj))
                 continue
 
-            # 2. Regex-based wall detection
-            is_wall, cleaned, phrase = self.extract_wall_phrase(item.display_name().lower())
+            # 2. Regex-based wall detection  
+            is_wall, cleaned, phrase = self.extract_wall_phrase(name)  # ← no .lower() anymore
             if is_wall:
-                wall_items.append((item, cleaned, phrase))
+                wall_items.append((obj, cleaned, phrase))
+                continue
+
+            # 3. Containers get their own bucket
+            if kind == "container":
+                render_entries.append(("container", obj))
+                continue
+
+            # 4. Default: floor item
+            render_entries.append(("floor", obj))
+
+        # --- GROUPED WALL ITEMS ------------------------------------------------
+        wall_max_pri = 0
+        if wall_items:
+            # Respect render_priority even for grouped walls (the highest one wins)
+            wall_max_pri = max(
+                (getattr(obj, "render_priority", 0) or 0 for obj, _, _ in wall_items),
+                default=0
+            )
+
+            # Enhanced names — transparent containers now show contents inline!
+            enhanced_names = []
+            for obj, cleaned, _ in wall_items:
+                if (isinstance(obj, Container) and
+                    getattr(obj, "is_transparent", False) and
+                    obj.contents):
+                    inner = tu.join_with_and(
+                        [tu.add_indefinite_article(i.stateful_name()) for i in obj.contents]
+                    )
+                    enhanced = f"{cleaned} holding {inner}"
+                else:
+                    enhanced = cleaned
+                enhanced_names.append(enhanced)
+
+            joined = tu.join_with_and(enhanced_names)
+
+            if len(wall_items) == 1:
+                wall_text = tu.terminate(f"On a nearby wall you can see {joined}")
             else:
-                floor_items.append(item)
+                wall_text = tu.terminate(f"On the walls around the room you can see {joined}")
+
+            render_entries.append(("wall", wall_text))
+
+        queue = []
+
+        for bucket, obj in render_entries:
+            bucket_pri = BUCKET_PRIORITY[bucket]
+
+            if isinstance(obj, str):
+                # grouped lines
+                combined = bucket_pri
+                if bucket == "wall":
+                    combined = (wall_max_pri * 100) + bucket_pri   # ← now respects render_priority
+                queue.append((combined, obj))
+                continue
+
+            item_pri = getattr(obj, "render_priority", 0) or 0
+            combined = (item_pri * 100) + bucket_pri
+
+            queue.append((combined, obj))
+
+        for pri, obj in queue:
+            if not isinstance(obj, str):
+                obj_name = obj.stateful_name()
+        # Now sort
+        queue.sort(key=lambda x: x[0], reverse=True)
+
+        for pri, obj in queue:
+            if not isinstance(obj, str):
+                obj_name = obj.stateful_name()
+
+        # Now render
+        for _, entry in queue:
+            if isinstance(entry, str):
+                lines.append(entry)
+            else:
+                text = self.describe_presence(entry)
+                if text:
+                    lines.append(text)
 
 
-        floor_line = self.group_floor_items(floor_items)
-        if floor_line:
-            lines.append(floor_line)
-
-        # --- RENDER SPECIAL STRUCTURES ---
-        for s in special_structures:
-            presence = self.describe_presence(s)
-            if presence:
-                lines.append(presence)
-
-        # --- RENDER CONTAINERS ---
-        for c in visible_containers:
-            presence = self.describe_presence(c)
-            if presence:
-                lines.append(presence)
-
-        # --- RENDER FIXTURES ---
-        for f in fixtures:
-            presence = self.describe_presence(f)
-            if presence:
-                lines.append(presence)
-            
-        # --- RENDER WALL ITEMS ---
-        wall_line = self.group_wall_items(wall_items)
-        if wall_line:
-            lines.append(wall_line)
-
-        # --- RENDER CEILING ITEMS ---
-        ceiling_line = self.group_ceiling_items(ceiling_items)
-        if ceiling_line:
-            lines.append(ceiling_line)
-
-        # --- RENDER EXITS ---
+        # --- RENDER EXITS ------------------------------------------------------
         exits = room.get_all_exits(movement_type="all", visible_only=True)
         exits_text = self.build_visible_exits_text(exits)
         if exits_text:
             lines.append(exits_text)
 
         return lines
-
 
     def describe_item(self, room: Room, item: Item) -> str:
         if self.is_dark_room(room):
@@ -149,15 +228,15 @@ class RoomRenderer:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
         if container.is_openable and not container.is_open:
-            return f"You see {container.display_name()} is closed."
+            return f"You see {container.canonical_name()} is closed."
         if not container.contents:
-            return f"You see {container.display_name()} is empty."
+            return f"You see {container.canonical_name()} is empty."
         names = []
         for item in container.contents:
             game.update_discover_score(item)            #update discovery score for items inside container when looking inside
             names.append(item.display_name())
         result = ", ".join(names)
-        return f"Inside {container.display_name()} you see: {result}."
+        return f"You see: {result}."
     
 
     # ----------------------------------------------------------------------
@@ -252,24 +331,36 @@ class RoomRenderer:
     # Item description logic and heuristics for better narative structure
     #----------------------------------------------------------------------
 
+
     def extract_wall_phrase(self, text: str):
-        """
-        Returns (is_wall_item, cleaned_text, matched_phrase or None)
-        """
+        # 1. Phrase-based wall detection ("on the wall", etc.)
         m = _WALL_PATTERN.search(text)
-        if not m:
-            return False, text, None
+        if m:
+            phrase = m.group(0)
+            cleaned = text.replace(phrase, "").strip()
+            return True, cleaned, phrase
 
-        matched = m.group(0)
-        # Remove the matched phrase cleanly
-        cleaned = (text[:m.start()] + text[m.end():]).strip()
-        # Remove doubled spaces
-        cleaned = re.sub(r"\s{2,}", " ", cleaned)
-        return True, cleaned, matched
+        # 2. Adjective-based wall detection ("wall sconce", "wall bracket")
+        m2 = _WALL_ADJ_PATTERN.search(text)
+        if m2:
+            phrase = m2.group(0)
+            cleaned = text.strip()
+            return True, cleaned, phrase
 
+        # 3. No wall cue
+        return False, text, None
 
     def describe_presence(self, obj):
         name = obj.stateful_name()
+
+        # 0. Author-provided location description overrides all heuristics
+        loc = getattr(obj, "location_description", None)
+        if loc:
+            name = obj.stateful_name()
+            # Always use definite article for authored location lines
+            return tu.terminate(
+                tu.capitalize_first(tu.add_indefinite_article(f"{name} {loc}"))
+            )
 
         # Wall items handled separately
         is_wall, cleaned, phrase = self.extract_wall_phrase(name.lower())
@@ -278,15 +369,30 @@ class RoomRenderer:
 
         # Containers
         if isinstance(obj, Container):
-            return tu.terminate(tu.capitalize_first(
-                f"{tu.add_indefinite_article(name)} sits nearby"
-            ))
+            # Transparent containers show contents inline
+            if getattr(obj, "is_transparent", False) and obj.contents:
+                inner = tu.join_with_and(
+                    [tu.add_indefinite_article(i.stateful_name()) for i in obj.contents]
+                )
+                return tu.terminate(
+                    tu.capitalize_first(
+                        f"{tu.add_indefinite_article(name)} holding {inner}"
+                    )
+                )
+
+            # Normal opaque containers
+            return tu.terminate(
+                tu.capitalize_first(
+                    f"{tu.add_indefinite_article(name)} sits nearby"
+                )
+            )
+
 
         # Trapdoor heuristic
         lname = name.lower()
         if "trapdoor" in lname or "trap door" in lname:
             return tu.terminate(tu.capitalize_first(
-                f"{tu.add_indefinite_article(name)} lies set into the floor"
+                f"{tu.add_indefinite_article(name)} is set into the floor"
             ))
         
         #room fixtures (anchored, embedded, fixed, bolted, mounted, set into, etc.) get their own special phrasing to avoid sounding like loose items
@@ -333,7 +439,7 @@ class RoomRenderer:
 
     def classify_special_structure(self, name: str):              # later we will make doors their own class and will be tied to a direction and location.
         """
-        Returns one of: 'wall', 'floor', 'ceiling', or None.
+        Returns one of: 'wall', 'floor', 'ceiling', "door", or None.
         """
         lname = name.lower()
 

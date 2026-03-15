@@ -117,7 +117,7 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
             # Direction?
             d = lexicon.token_to_direction.get(tok)
             if d:
-                direction_tokens.append(tok)
+                direction_tokens.append(d.canonical)           # always canonicalize directions - we match by canonical name in the verb handlers.
                 matched_any = True
 
 
@@ -397,7 +397,7 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
 
 
             if is_direction(t):
-                direction_tokens.append(t)
+                direction_tokens.append(t)          
 
             if t in lexicon.modifiers:
                 modifier_tokens.append(t)

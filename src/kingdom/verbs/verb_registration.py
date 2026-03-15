@@ -111,7 +111,7 @@ def register_verbs():
 
           Verb("look", stateful.look,
                synonyms=["examine", "inspect", "search"],
-               modifiers=["in", "inside", "at"],
+               modifiers=[],
                uses_directions=False),
 
           Verb("eat", stateful.eat,

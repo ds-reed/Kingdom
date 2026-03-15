@@ -294,6 +294,8 @@ class Item(Noun):
     # Identity & lexicon
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "always"})
+    location_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    render_priority: Optional[int] = field(default=1, metadata={"persist": "non_default"})
     handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
@@ -452,6 +454,8 @@ class Container(Noun):
     # Required by noun class
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    location_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    render_priority: Optional[int] = field(default=1, metadata={"persist": "non_default"})
     handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
@@ -476,7 +480,8 @@ class Container(Noun):
     examine_string: Optional[str] = None
     
     # Visibility
-    is_visible: bool = field(default=True, metadata={"persist": "non_default"})   
+    is_visible: bool = field(default=True, metadata={"persist": "non_default"}) 
+    is_transparent: bool = field(default=False, metadata={"persist": "non_default"})  
 
     #scoring
     discover_points: int = field(default=5, metadata={"persist": "non_default"})

@@ -52,7 +52,8 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     assert bag is not None
 
     open_result = _run_command(game, "open lunch bag")
-    assert "open" in open_result.lower()
+    assert isinstance(open_result, str)
+    assert "bag" in open_result.lower()
     assert bag.is_open
 
     inventory_handles_before_get_all = {item.obj_handle() for item in player.get_inventory_items()}

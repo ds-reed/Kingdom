@@ -156,6 +156,7 @@ def smoke_context(tmp_path: Path):
         player_name="DemoHero",
         save_path=demo_save_path,
     )
+    game.debug_mode = True
 
     register_verbs()
     verbs = Verb._by_name
