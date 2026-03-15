@@ -201,6 +201,9 @@ class StatefulVerbHandler(VerbHandler):
                 return self.build_message("Look inside what?")
             if isinstance(target, Container):
                 return self.build_message(render_container_contents(room, target))
+            if getattr(target, "is_open", False):
+                message = getattr(target, "opened_state_description", None) or "You look inside, but don't see anything special."
+                return self.build_message(message)
             return self.build_message(f"You can't look inside the {target.display_name()}.")
         
         if not target: target = noun

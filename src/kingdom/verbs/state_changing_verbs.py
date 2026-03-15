@@ -32,6 +32,8 @@ class ChangeStateVerbHandler(VerbHandler):
             setattr(target, state_attr, desired_state)
 
         # 2. Build the message
+        if getattr(target, f"{verb_phrase}_action_description", None):
+            return getattr(target, f"{verb_phrase}_action_description")
         if used_item:
             return f"You {verb_phrase} {target.display_name()} with {used_item}."
         elif indirect:

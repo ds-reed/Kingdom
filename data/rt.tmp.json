@@ -123,18 +123,18 @@
                     }
                 },
                 {
-                    "name": "broach",
-                    "description": "an ornate broach",
-                    "handle": "broach",
+                    "name": "brooch",
+                    "description": "an ornate brooch",
+                    "handle": "brooch",
                     "synonyms": [],
                     "adjectives": [
                         "ornate"
                     ],
                     "is_openable": true,
                     "is_open": false,
-                    "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish.",
-                    "closed_state_description": "an ornate broach with a tightly-closed clasp.",
-                    "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish."
+                    "opened_state_description": "an ornate brooch with an ivory carving of a favorite pet fish.",
+                    "closed_state_description": "an ornate brooch with a tightly-closed clasp.",
+                    "open_action_description": "You open the ornate brooch, revealing an ivory carving of a favorite pet fish."
                 },
                 {
                     "name": "trapdoor",

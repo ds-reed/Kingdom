@@ -44,14 +44,14 @@
           "discover_points": 0
         },
         {
-          "name": "broach",
-          "description": "an ornate broach",
+          "name": "brooch",
+          "description": "an ornate brooch",
           "adjectives": ["ornate"],
           "is_openable": true,
           "is_open": false,
-          "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
-          "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish inside",
-          "closed_state_description": "an ornate broach with a tightly-closed clasp",
+          "open_action_description": "You open the ornate brooch, revealing an ivory carving of a favorite pet fish.",
+          "opened_state_description": "an ornate brooch with an ivory carving of a favorite pet fish inside",
+          "closed_state_description": "an ornate brooch with a tightly-closed clasp",
           "discover_points": 0
         },
         {

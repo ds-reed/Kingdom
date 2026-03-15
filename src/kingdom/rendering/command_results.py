@@ -15,7 +15,7 @@ def exit_message(game: Game) -> str:
     lines = [f"Thanks for playing Kingdom {game.player_name}!"]
 
     if score_since_load == 0:
-        score_message = "We're sorry to see you go so soon."
+        lines.append("We're sorry to see you go so soon.")
     else:
         lines.append(f"You earned {score_since_load} points since your last load, for a total score of {score}.")
         lines.append(f"You have found {items_found} items in total, including {items_found_since_load} since your last load.")
