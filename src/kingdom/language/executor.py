@@ -117,8 +117,6 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
             message=result,
             effects=[]
         )
-        game = get_game()
-        game.update_discovery_score(game.current_room)   # handle any discoveries that may have resulted from command execution (e.g. new room, new item/container, etc)
 
         return outcome
 

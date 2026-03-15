@@ -147,6 +147,10 @@ class Noun:
     def synonym_names(self) -> list[str]:
         return self.synonyms  
     
+    @classmethod
+    def get_class_name(cls) -> str :
+        return cls.__name__
+    
     def stateful_name(self):
         # Start with the base description
         desc = self.description or self.display_name()
@@ -174,8 +178,8 @@ class Noun:
             desc = self.rubbed_state_description
 
         # Tied/attached
-        if getattr(self, "is_tied_to_description", None):
-            desc = f"{desc}, {self.is_tied_to_description}"
+        if getattr(self, "is_tied", False) and getattr(self, "tied_state_description", None):
+            desc = self.tied_state_description
 
         # Normalize (lowercase, remove trailing period)
         desc = desc.strip()
@@ -232,9 +236,7 @@ class Noun:
 
         return None
 
-    @classmethod
-    def get_class_name(cls) -> str :
-        return cls.__name__
+
 
 
     def matches_reference(self, reference: str) -> bool:
@@ -343,6 +345,7 @@ class Item(Noun):
     is_tieable: bool = field(default=False, metadata={"persist": "non_default"})
     is_tied: bool = field(default=False, metadata={"persist": "non_default"})
     can_be_tied_to: bool = field(default=False, metadata={"persist": "non_default"})
+    tied_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_tied"})
 
     # Climbing
     is_climbable: bool = field(default=False, metadata={"persist": "non_default"})

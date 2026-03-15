@@ -24,9 +24,11 @@ class RoomRenderer:
 
 
     def describe_room(self, room: Room, look=False) -> list[str]:
+
         if self.is_dark_room(room):
             return [self.dark_room_message(room)]
 
+        game = get_game()
         lines: list[str] = []
 
         # Room description
@@ -39,6 +41,14 @@ class RoomRenderer:
         visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
         visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
 
+
+        #update discover score - checks if first time seeing and if so updates score metrics
+        game.update_discover_score(room)
+        for item in visible_items:
+            game.update_discover_score(item)
+        for container in visible_containers:
+            game.update_discover_score(container)
+
         wall_items = []
         floor_items = []
         ceiling_items = []
@@ -48,7 +58,7 @@ class RoomRenderer:
         fixtures = []
 
         for item in visible_items:
-            name = item.display_name()
+            name = item.stateful_name()
 
             # 0. Fixtures override everything
             if self.classify_fixture(name):
@@ -135,14 +145,19 @@ class RoomRenderer:
     
 
     def describe_container_contents(self, room: Room, container: Container) -> str:
+        game = get_game()
         if self.is_dark_room(room):
             return self.dark_room_message(room)
         if container.is_openable and not container.is_open:
             return f"You see {container.display_name()} is closed."
         if not container.contents:
             return f"You see {container.display_name()} is empty."
-        names = ", ".join(item.display_name() for item in container.contents)
-        return f"Inside {container.display_name()} you see: {names}."
+        names = []
+        for item in container.contents:
+            game.update_discover_score(item)            #update discovery score for items inside container when looking inside
+            names.append(item.display_name())
+        result = ", ".join(names)
+        return f"Inside {container.display_name()} you see: {result}."
     
 
     # ----------------------------------------------------------------------
@@ -290,10 +305,10 @@ class RoomRenderer:
             return None
 
         if len(items) == 1:
-            name = tu.add_indefinite_article(items[0].display_name())
+            name = tu.add_indefinite_article(items[0].stateful_name())
             return tu.terminate(f"On the floor of the room lies {name}")
 
-        names = [tu.add_indefinite_article(i.display_name()) for i in items]
+        names = [tu.add_indefinite_article(i.stateful_name()) for i in items]
         joined = tu.join_with_and(names)
         return tu.terminate(f"Scattered around the room are {joined}")
 
@@ -333,27 +348,24 @@ class RoomRenderer:
 
         return None
     
-
     def classify_fixture(self, name: str):
         lname = name.lower()
 
-        # anchored, embedded, fixed, bolted, mounted, set into, etc.
         fixture_keywords = [
             "anchored", "embedded", "bolted", "mounted",
-            "set into", "driven into", "fixed into", "firmly anchored"
+            "set into", "driven into", "fixed into", "firmly anchored",
+            "tied", "attached", "secured"   # NEW
         ]
 
-        if any(kw in lname for kw in fixture_keywords):
-            return True
+        return any(kw in lname for kw in fixture_keywords)
 
-        return False
 
 
     def group_ceiling_items(self, items):
         if not items:
             return None
 
-        names = [tu.add_indefinite_article(i.display_name()) for i in items]
+        names = [tu.add_indefinite_article(i.stateful_name()) for i in items]
         joined = tu.join_with_and(names)
 
         if len(items) == 1:

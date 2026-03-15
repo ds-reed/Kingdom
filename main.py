@@ -33,7 +33,7 @@ from kingdom.language.executor import execute
 
 
 #------------------ Design Note: Main Refactor (v2) ------------------
-def init_game_state() -> Game | None:
+def init_game_state(world_file) -> Game | None:
     """
     Welcome player and initialize game world.
     """
@@ -44,7 +44,7 @@ def init_game_state() -> Game | None:
     
     base_dir = Path(__file__).resolve().parent
     save_path = base_dir / "saves" / f"{player_name}.json"
-    data_path = base_dir / "data" / "initial_state.json"
+    data_path = base_dir / "data" / world_file
     
     try:
 
@@ -220,6 +220,8 @@ def parse_args() -> argparse.Namespace:
         default=TERMINAL_MODE_MODERN,
         help="Terminal presentation mode (default: modern)",
     )
+    parser.add_argument("-f", "--file", help="World JSON file to load", default="initial_state.json")
+
     return parser.parse_args()
 
 def main() -> None:
@@ -229,6 +231,8 @@ def main() -> None:
 
     set_terminal_mode(args.mode)
 
+    world_file = args.file
+
     base_dir = Path(__file__).parent
     logger = SessionLogger(base_dir)
     logger.start()
@@ -236,7 +240,7 @@ def main() -> None:
 
     try:
         
-        game =init_game_state()
+        game =init_game_state(world_file)
         
         recovery_mode = False
 

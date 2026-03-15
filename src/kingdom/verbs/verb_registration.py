@@ -50,7 +50,7 @@ def register_verbs():
           Verb("teleport", movement.teleport,
                synonyms=["goto"],
                hidden=True,
-               modifiers=[],
+               modifiers=["please"],
                uses_directions=True),
 
           # Change state verbs
@@ -156,6 +156,12 @@ def register_verbs():
                synonyms=[],
                hidden=True,
                modifiers=["room", "player", "Verbs", "commands", "lexicon", "all", "set"],
+               uses_directions=False),
+
+          Verb("enable_debug", meta.enable_debug,
+               synonyms=["debug_mode", "set_debug", "set_debug_mode"],
+               hidden=True,
+               modifiers=["please"],
                uses_directions=False),
 
           # Inventory verbs

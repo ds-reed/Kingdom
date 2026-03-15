@@ -197,6 +197,9 @@ class MovementVerbHandler(VerbHandler):
         world = self.world()
         room = self.room()
 
+        if not game.debug_mode:
+            return self.build_message("Teleport not permitted")    
+
         requested_room = cmd.direct_object_token if cmd.direct_object_token else None
 
         # No argument → show list

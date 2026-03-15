@@ -358,8 +358,9 @@
           "is_takeable": true,
           "is_tieable": true,
           "is_tied": false,
+          "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
           "is_climbable": false,
-          "climb_directions": ["down"]
+          "climb_directions": ["down", "up"]
         },
         {
           "name": "hook",
@@ -368,7 +369,6 @@
           "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
           "is_takeable": false,
           "is_tied_to": false,
-          "is_tied_to_description": "a long sturdy rope is tied securly to the hook and dangles down over the edge of the ravine",
           "can_be_tied_to": true
         }
       ],

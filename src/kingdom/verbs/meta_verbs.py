@@ -104,8 +104,15 @@ class MetaVerbHandler(VerbHandler):
             return lines
         
 
-        # Resolve either a noun or keywords of interest
 
+        # check contsraints: only allow debug if in debug mode or if "please" is included in the command modifiers
+        game = self.game()
+        if not game.debug_mode:
+            keywords = set(cmd.modifiers) if cmd.modifiers else set()
+            if "please" not in keywords:
+                return self.build_message("Degug not permitted")    
+            
+        # Resolve either a noun or keywords of interest
         room = self.room()
         player = self.player()
         noun = None
@@ -256,4 +263,16 @@ class MetaVerbHandler(VerbHandler):
             lines.append(f"You have found {game.items_found} items and discovered {game.rooms_found} rooms.")
 
         return self.build_message(lines)
+    
 
+    def enable_debug(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None) -> str:
+        keywords = set(cmd.modifiers) if cmd.modifiers else set()
+        if "please" in keywords:
+            self.game().debug_mode = True
+            return self.build_message("Debug mode enabled.")
+        magic: str = input("Enter magic words: ").strip()
+        if magic == "please":
+            self.game().debug_mode = True
+            return self.build_message("Debug mode enabled.")
+        else:
+            return self.build_message("Incorrect magic words.")

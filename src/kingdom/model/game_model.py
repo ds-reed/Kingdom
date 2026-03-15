@@ -72,6 +72,7 @@ class Game:
         self.items_found_since_load: int = 0
         self.score_since_load: int = 0
         self.recent_commands: deque[str] = deque(maxlen=10)
+        self.debug_mode: bool = False
 
 
     def init_session(
@@ -104,6 +105,8 @@ class Game:
         self.rooms_found_since_load = 0
         self.items_found_since_load = 0
         self.score_since_load = 0
+        self.debug_mode = False
+
 
         self.recent_commands.clear()
 
@@ -270,43 +273,23 @@ class Game:
         Noun.all_nouns.clear()
         Noun._by_name = {}
 
-    def update_discovery_score(self, room: Room):
+    def update_discover_score(self, noun: Noun):        #discover visibile items only. Called during rendering
         # Room discovery
-        if not room.found:
-            self.score += room.discover_points
-            self.score_since_load += room.discover_points
+        if noun.get_class_name() == "Room" and not noun.found:
+            self.score += noun.discover_points
+            self.score_since_load += noun.discover_points
             self.rooms_found += 1
             self.rooms_found_since_load += 1
-            room.found = True
+            noun.found = True
 
-        # Item discovery
-        for item in room.items:
-            if not item.found:
-                pts = getattr(item, "discover_points", 0)
-                self.score += pts
-                self.score_since_load += pts
-                self.items_found += 1
-                self.items_found_since_load += 1
-                item.found = True
-
-        # Container and contents discovery 
-        for container in room.containers:
-            if not container.found:
-                pts = getattr(container, "discover_points", 0)
-                self.score += pts
-                self.score_since_load += pts
-                self.items_found += 1
-                self.items_found_since_load += 1
-                container.found = True
-            if container.is_open:
-                for item in container.contents:
-                    if not item.found:
-                        pts = getattr(item, "discover_points", 0)
-                        self.score += pts
-                        self.score_since_load += pts
-                        self.items_found += 1
-                        self.items_found_since_load += 1
-                        item.found = True
+        # Item discovery/container
+        if (noun.get_class_name() == "Item" or noun.get_class_name() == "Container") and not noun.found:
+            pts = getattr(noun, "discover_points", 0)
+            self.score += pts
+            self.score_since_load += pts
+            self.items_found += 1
+            self.items_found_since_load += 1
+            noun.found = True
 
 
 

@@ -32,14 +32,14 @@ def _extract_loader_keys(models_text: str) -> dict[str, set[str]]:
         return out
 
     item_block = function_block("_construct_item_from_spec")
-    boxes_block = function_block("_construct_boxes")
+    containers_block = function_block("_construct_containers")
     rooms_block = function_block("_construct_rooms")
     setup_block = function_block("setup_world")
     load_block = function_block("load_game")
 
     return {
         "item": keys_for_var(item_block, "item_spec"),
-        "box": keys_for_var(boxes_block, "entry") | keys_for_var(rooms_block, "box_data"),
+        "container": keys_for_var(containers_block, "entry") | keys_for_var(rooms_block, "container_data"),
         "room": keys_for_var(rooms_block, "entry"),
         "world": keys_for_var(setup_block, "data") | keys_for_var(load_block, "data"),
         "player": keys_for_var(load_block, "player_data"),
@@ -50,7 +50,7 @@ def _collect_json_keys(payload: dict) -> dict[str, set[str]]:
     seen: dict[str, set[str]] = {
         "world": set(),
         "room": set(),
-        "box": set(),
+        "container": set(),
         "item": set(),
         "player": set(),
     }
@@ -71,14 +71,14 @@ def _collect_json_keys(payload: dict) -> dict[str, set[str]]:
             if isinstance(item, dict):
                 seen["item"].update(item.keys())
 
-    def _collect_box(box):
-        if not isinstance(box, dict):
+    def _collect_container(container):
+        if not isinstance(container, dict):
             return
-        seen["box"].update(box.keys())
-        _collect_items(box.get("items", []))
+        seen["container"].update(container.keys())
+        _collect_items(container.get("items", []))
 
-    for box in payload.get("boxes", []) if isinstance(payload.get("boxes"), list) else []:
-        _collect_box(box)
+    for container in payload.get("containers", []) if isinstance(payload.get("containers"), list) else []:
+        _collect_container(container)
 
     rooms = payload.get("rooms")
     if isinstance(rooms, list):
@@ -87,8 +87,8 @@ def _collect_json_keys(payload: dict) -> dict[str, set[str]]:
                 continue
             seen["room"].update(room.keys())
             _collect_items(room.get("items", []))
-            for room_box in room.get("boxes", []) if isinstance(room.get("boxes"), list) else []:
-                _collect_box(room_box)
+            for room_container in room.get("containers", []) if isinstance(room.get("containers"), list) else []:
+                _collect_container(room_container)
 
     if isinstance(player, dict):
         _collect_items(player.get("inventory", []))
@@ -168,7 +168,7 @@ def main() -> int:
     seen: dict[str, set[str]] = {
         "world": set(),
         "room": set(),
-        "box": set(),
+        "container": set(),
         "item": set(),
         "player": set(),
     }
@@ -192,12 +192,12 @@ def main() -> int:
         print(f"- {path}")
 
     print("\n=== Keys requested by loader code but not seen in scanned JSON ===")
-    for scope in ["world", "player", "room", "box", "item"]:
+    for scope in ["world", "player", "room", "container", "item"]:
         missing = sorted(expected[scope] - seen[scope])
         print(f"{scope}: {missing}")
 
     print("\n=== Keys present in scanned JSON but not requested in loader code ===")
-    for scope in ["world", "player", "room", "box", "item"]:
+    for scope in ["world", "player", "room", "container", "item"]:
         extra = sorted(seen[scope] - expected[scope])
         print(f"{scope}: {extra}")
 
