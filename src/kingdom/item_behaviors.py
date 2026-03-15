@@ -12,7 +12,7 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 from kingdom.model.noun_model import Noun
 
 

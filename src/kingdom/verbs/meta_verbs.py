@@ -1,7 +1,7 @@
 # meta verbs include things like HELP and DEBUG that don't interact in any way with the world state. I may consolidate this later  
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, Feature, Player
-from kingdom.model.game_init import QuitGame, SaveGame, LoadGame, GameOver
+from kingdom.model.game_model import QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.verb_model import Verb
 

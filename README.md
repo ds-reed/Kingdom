@@ -59,6 +59,10 @@ Kingdom/
     ├── terminal_style.py
     ├── UI.py
     ├── utilities.py
+    ├── rendering/
+    │   ├── command_results.py
+    │   ├── descriptions.py
+    │   └── textutils.py
     ├── language/
     │   ├── executor.py
     │   ├── interpreter.py
@@ -67,8 +71,7 @@ Kingdom/
     │   └── tests/
     ├── model/
     │   ├── direction_model.py
-    │   ├── game_init.py
-    │   ├── game_persistence.py
+    │   ├── game_model.py
     │   ├── noun_model.py
     │   └── verb_model.py
     └── verbs/

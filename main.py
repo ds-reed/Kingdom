@@ -18,7 +18,7 @@ from kingdom.UI import ui
 
 #  model modules
 from kingdom.model.noun_model import World, Player, Room
-from kingdom.model.game_init import Game, QuitGame, GameOver, SaveGame, LoadGame, get_game
+from kingdom.model.game_model import Game, QuitGame, GameOver, SaveGame, LoadGame, get_game
 
 from kingdom.rendering.descriptions import render_current_room
 from kingdom.rendering.command_results import exit_message

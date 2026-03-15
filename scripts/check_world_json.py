@@ -29,7 +29,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.append(str(ROOT / "src"))
 
 from kingdom.model.noun_model import World  # noqa: E402
-from kingdom.model.game_init import setup_world  # noqa: E402
+from kingdom.model.game_model import setup_world  # noqa: E402
 
 
 @dataclass

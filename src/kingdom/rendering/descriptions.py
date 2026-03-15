@@ -5,7 +5,7 @@ import re
 
 from kingdom.model.noun_model import Room, Item, Container
 from kingdom.model.direction_model import DIRECTIONS
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 import kingdom.rendering.textutils as tu
 
 

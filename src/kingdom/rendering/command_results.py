@@ -1,6 +1,6 @@
 #command_results.py
 
-from kingdom.model.game_init import Game
+from kingdom.model.game_model import Game
 import kingdom.rendering.textutils as tu
 
 

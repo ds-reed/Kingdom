@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 from kingdom.model.noun_model import Feature, Player, World
 
 

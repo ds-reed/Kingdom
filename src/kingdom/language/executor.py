@@ -6,7 +6,7 @@ from kingdom.language.interpreter import InterpretedCommand
 from kingdom.model.noun_model import World
 from kingdom.model.verb_model import Verb
 from kingdom.verbs.verb_handler import ExecuteCommand
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 
 
 

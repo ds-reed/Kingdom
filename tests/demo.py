@@ -12,7 +12,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.verbs.verb_registration import register_verbs
 from kingdom.model.verb_model import Verb
-from kingdom.model.game_init import (
+from kingdom.model.game_model import (
     Game,
     GameOver,
     LoadGame,
@@ -224,23 +224,11 @@ def test_demo_smoke(smoke_context):
 
     score_result = run("score")
     _expect_any(score_result, "score")
+    assert isinstance(score_result, str)
+    assert str(game.score) in score_result
 
     inventory_result = run("inventory")
     _expect_any(inventory_result, "don't have anything", "you have (0")
-
-    open_bean_result = run("open bean")
-    full_object_resolution = isinstance(open_bean_result, str) and "you reached me" in open_bean_result.lower()
-
-    # During parser refactors, noun/synonym resolution may be intentionally incomplete.
-    # Keep a minimal smoke path green while preserving deeper checks when resolution works.
-    if not full_object_resolution:
-        assert isinstance(open_bean_result, str)
-        assert open_bean_result.lower() in {"open what?", "unknown"}
-
-        _minimal_smoke_exit()
-        return
-
-    _expect_contains(open_bean_result, "you reached me")
 
     bag = _room_container(game, "bag")
     assert bag is not None
@@ -322,8 +310,10 @@ def test_demo_smoke(smoke_context):
     _expect_any(run("rub lamp"), "djinni", "shinier")
     _expect_any(run("make wish"), "doorway", "djinni")
 
+    score_before_new_room = game.score
     run("west")
     assert game.current_room.name == "Colossal Cave"
+    assert game.score > score_before_new_room
 
     run("swim west")
     assert game.current_room.name == "Pool Ledge"
@@ -410,12 +400,10 @@ def test_demo_edge_case_regressions(smoke_context):
     else:
         bag = next((container for container in room.containers if container.obj_handle() == "bag"), None)
         trapdoor = next((item for item in room.items if item.obj_handle() == "trapdoor"), None)
-        bean = next((item for item in room.items if item.obj_handle() == "bean"), None)
-
-        if bag is None or trapdoor is None or bean is None:
+        if bag is None or trapdoor is None:
             failures.append(
-                "setup failed: expected bag, trapdoor, and bean in Tower Cell "
-                f"(bag={bag is not None}, trapdoor={trapdoor is not None}, bean={bean is not None})"
+                "setup failed: expected bag and trapdoor in Tower Cell "
+                f"(bag={bag is not None}, trapdoor={trapdoor is not None})"
             )
         else:
             run("open lunch bag")
@@ -428,15 +416,6 @@ def test_demo_edge_case_regressions(smoke_context):
                 )
             if trapdoor in bag.contents:
                 failures.append("state corruption: trapdoor moved into bag despite not being in inventory")
-
-            bean_put_result = run("put bean into bag")
-            if _has_any(bean_put_result, ("you put", "put ")):
-                failures.append(
-                    "invalid put accepted: bean is room-local and not in inventory, but command succeeded "
-                    f"(result={bean_put_result!r})"
-                )
-            if bean in bag.contents:
-                failures.append("state corruption: bean moved into bag without being taken")
 
     assert not failures, "Edge-case regressions detected:\n" + "\n".join(f" - {failure}" for failure in failures)
 

@@ -7,7 +7,7 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, World 
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 from kingdom.item_behaviors import VerbOutcome, VerbControl 
 from kingdom.model.direction_model import DIRECTIONS
 

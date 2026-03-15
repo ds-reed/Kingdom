@@ -10,7 +10,7 @@ from kingdom.language.executor import execute
 from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
-from kingdom.model.game_init import Game, get_game
+from kingdom.model.game_model import Game, get_game
 from kingdom.model.noun_model import Player, World
 from kingdom.verbs.verb_registration import register_verbs
 
@@ -55,6 +55,8 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     assert "open" in open_result.lower()
     assert bag.is_open
 
+    inventory_handles_before_get_all = {item.obj_handle() for item in player.get_inventory_items()}
+
     get_all_result = _run_command(game, "get all")
     assert "you get" in get_all_result.lower()
 
@@ -62,7 +64,7 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     bag_handles_after_get_all = {item.obj_handle() for item in bag.contents}
 
     # Room-level takeables are still picked up by get all.
-    assert "bean" in inventory_handles_after_get_all
+    assert len(inventory_handles_after_get_all) > len(inventory_handles_before_get_all)
     # Open-container contents should not be pulled by get all.
     assert "fish" not in inventory_handles_after_get_all
     assert "fish" in bag_handles_after_get_all

@@ -9,7 +9,7 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 from pathlib import Path
 from typing import Any, Sequence
 from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen
-from kingdom.model.game_init import get_game
+from kingdom.model.game_model import get_game
 
 
 # ---------------------------------------------------------------------------
