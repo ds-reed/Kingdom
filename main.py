@@ -21,6 +21,7 @@ from kingdom.model.noun_model import World, Player, Room
 from kingdom.model.game_init import Game, QuitGame, GameOver, SaveGame, LoadGame, get_game
 
 from kingdom.rendering.descriptions import render_current_room
+from kingdom.rendering.command_results import exit_message
 
 from kingdom.verbs.verb_registration import register_verbs
 
@@ -182,7 +183,7 @@ def process_command(
         return False, recovery_mode, f"Game saved to {saved_path}"
     
     except QuitGame:
-        if ui.request_quit(): return True, recovery_mode, "Goodbye! Thanks for playing Kingdom."
+        if ui.request_quit(): return True, recovery_mode, exit_message(get_game())
         else: return False, recovery_mode, "Quit cancelled."
         
     except GameOver as game_over:
@@ -193,7 +194,7 @@ def process_command(
             start_room,
         )
         if should_quit:
-            return True, recovery_mode, "Goodbye! Thanks for playing Kingdom."
+            return True, recovery_mode, exit_message(get_game())
         return False, recovery_mode, None
 
     except TypeError as e:
@@ -250,11 +251,12 @@ def main() -> None:
                 lexicon=game.lexicon,
                 recovery_mode=recovery_mode,
             )
-
+            
+            ui.print(output) if output else None
             if should_quit:
                 break
 
-            ui.print(output) if output else None
+
 
     finally:
         logger.stop()

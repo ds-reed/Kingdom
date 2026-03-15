@@ -35,11 +35,6 @@ class MovementVerbHandler(VerbHandler):
         lines = [f"You {success_verb_phrase} {direction}."]
         lines.extend(render_current_room(destination) or [])
 
-        # Scoring
-        if not destination.found:
-            game.score += getattr(destination, "discover_points", 0)
-            destination.found = True
-
         return lines
     
     def check_movement(self, exit_obj, movement_type, direction):

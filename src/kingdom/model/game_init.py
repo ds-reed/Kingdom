@@ -270,13 +270,50 @@ class Game:
         Noun.all_nouns.clear()
         Noun._by_name = {}
 
+    def update_discovery_score(self, room: Room):
+        # Room discovery
+        if not room.found:
+            self.score += room.discover_points
+            self.score_since_load += room.discover_points
+            self.rooms_found += 1
+            self.rooms_found_since_load += 1
+            room.found = True
+
+        # Item discovery
+        for item in room.items:
+            if not item.found:
+                pts = getattr(item, "discover_points", 0)
+                self.score += pts
+                self.score_since_load += pts
+                self.items_found += 1
+                self.items_found_since_load += 1
+                item.found = True
+
+        # Container and contents discovery 
+        for container in room.containers:
+            if not container.found:
+                pts = getattr(container, "discover_points", 0)
+                self.score += pts
+                self.score_since_load += pts
+                self.items_found += 1
+                self.items_found_since_load += 1
+                container.found = True
+            if container.is_open:
+                for item in container.contents:
+                    if not item.found:
+                        pts = getattr(item, "discover_points", 0)
+                        self.score += pts
+                        self.score_since_load += pts
+                        self.items_found += 1
+                        self.items_found_since_load += 1
+                        item.found = True
+
+
+
 # Global game instance
 _game = Game()
 def get_game() -> Game:
     return _game
-
-
-
 
 
 #----- function for constructing directions from JSON data -----

@@ -15,7 +15,7 @@ class MetaVerbHandler(VerbHandler):
     def save(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
         raise SaveGame()
 
-    def quit(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
+    def quit(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None):   
         raise QuitGame()
 
     def die(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs):
@@ -241,9 +241,19 @@ class MetaVerbHandler(VerbHandler):
         self,
         target: Noun | None,
         words: tuple[str, ...] = (),
-        **kwargs    
+        cmd: "ExecuteCommand" = None    
     ) -> str:
         game = self.game()
-        return self.build_message(f"Your current score is: {game.score}")
+        keywords = set(cmd.modifiers) if cmd.modifiers else set()
 
+        lines = []
+        if "all" in keywords:
+            lines.append(f"Your current score is: {game.score}, including {game.score_since_load} points added since your last load.")
+            lines.append(f"You have found {game.items_found} items in total, including {game.items_found_since_load} since your last load.")
+            lines.append(f"You have discovered {game.rooms_found} rooms in total, including {game.rooms_found_since_load} since your last load.")
+        else:
+            lines.append(f"Your current score is: {game.score}.")
+            lines.append(f"You have found {game.items_found} items and discovered {game.rooms_found} rooms.")
+
+        return self.build_message(lines)
 

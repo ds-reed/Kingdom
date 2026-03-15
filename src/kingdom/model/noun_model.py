@@ -365,6 +365,10 @@ class Item(Noun):
     trigger_room: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "non_default"})
 
+    #scoring
+    discover_points: int = field(default=2, metadata={"persist": "non_default"})
+    found: bool = field(default=False, metadata={"persist": "non_default"})
+
 
     # ------------------------------------------------------------
     # Runtime-only fields (never saved)
@@ -470,6 +474,10 @@ class Container(Noun):
     
     # Visibility
     is_visible: bool = field(default=True, metadata={"persist": "non_default"})   
+
+    #scoring
+    discover_points: int = field(default=5, metadata={"persist": "non_default"})
+    found: bool = field(default=False, metadata={"persist": "non_default"})
 
     # Runtime state – never saved
     contents: List["Item"] = field(default_factory=list, init=False)

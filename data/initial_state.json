@@ -12,8 +12,8 @@
   "rooms": [
     {
       "name": "Djinni Lair",
-      "description": "You shouldn't be here.",
-      "discover_points": 10,
+      "description": "You shouldn't be here, cheater!!!",
+      "discover_points": -1000,
       "items": [
         {
           "name": "djinni",
@@ -40,16 +40,8 @@
           "is_lightable": true,
           "is_lit": false,
           "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
-          "special_handlers": { "drop": "drop_torch" }
-        },
-        {
-          "name": "bean",
-          "description": "a single shiny bean",
-          "adjectives": ["single", "shiny"],
-          "is_takeable": true,
-          "is_openable": true,
-          "open_action_description": "You crack open the bean with a satisfying snap.",
-          "special_handlers": { "open": "open_bean" }
+          "special_handlers": { "drop": "drop_torch" },
+          "discover_points": 0
         },
         {
           "name": "broach",
@@ -59,7 +51,8 @@
           "is_open": false,
           "open_action_description": "You open the ornate broach, revealing an ivory carving of a favorite pet fish.",
           "opened_state_description": "an ornate broach with an ivory carving of a favorite pet fish inside",
-          "closed_state_description": "an ornate broach with a tightly-closed clasp"
+          "closed_state_description": "an ornate broach with a tightly-closed clasp",
+          "discover_points": 0
         },
         {
           "name": "trapdoor",
@@ -78,7 +71,8 @@
           "closed_state_description": "A closed, rusty iron trapdoor",
           "opened_state_description": "An open trapdoor. A slick fireman's pole leads from it down into darkness below",
           "open_exit_direction": "down",
-          "open_exit_type": "climb"
+          "open_exit_type": "climb",
+          "discover_points": 0
         },
         {
           "name": "ladder",
@@ -89,7 +83,8 @@
           "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["up"],
-          "is_visible": false
+          "is_visible": false,
+          "discover_points": 0
         },
         {
           "name": "pole",
@@ -100,7 +95,8 @@
           "take_refuse_string": "The pole is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["down"],
-          "is_visible": false
+          "is_visible": false,
+          "discover_points": 0
         }    
       ],
       "containers": [
@@ -115,6 +111,7 @@
           "close_action_description": "You fold the top of the greasy lunch bag shut.",
           "opened_state_description": "a greasy brown lunch bag with its top unfolded open",
           "closed_state_description": "a greasy brown lunch bag with its top folded shut",
+          "discover_points": 0,
           "items": [
             {
               "name": "carrot",
