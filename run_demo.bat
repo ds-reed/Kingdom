@@ -1,1 +1,0 @@
-pytest tests/demo.py -vv -rA

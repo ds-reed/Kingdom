@@ -12,6 +12,7 @@ from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
 from dataclasses import dataclass, field
 from typing import Optional, List
 
+from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.noun_model import Item, World
 from kingdom.model.verb_model import Verb 
 
@@ -141,7 +142,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             """Interpret direction tokens into canonical directions."""
             if not action.direction_tokens or not uses_directions:
                 return None
-            return action.direction_tokens[0]
+            return DIRECTIONS.get_canonical(action.direction_tokens[0])     # only handling one direction at the moment
 
         def _resolve_modifiers(action: ParsedAction): 
             """Interpret modifiers (including 'all')."""

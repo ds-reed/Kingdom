@@ -43,18 +43,12 @@ class ChangeStateVerbHandler(VerbHandler):
 
 #----------------- the core state-changing verbs -------------------------
 
-    def open(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        **kwargs
-    ) -> str:
+    def open(self, target: Optional[Noun] = None,words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
-        world = self.world()
         
-        parse = self.resolve_noun_or_word(words, interest=['sesame', 'all', 'everything'])
-        keywords = parse["keywords"]
+        keywords = cmd.modifiers
+        target = cmd.direct_object
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -112,21 +106,18 @@ class ChangeStateVerbHandler(VerbHandler):
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
     
-        if direction is not None:  #opening has a side effect of opening an exit in the room
+        if direction is not None:  #opening has a side effect of unblocking an exit in the room
             reverse_direction = self.get_reverse_of(direction)
 
             forward_exit = room.get_exit(getattr(target, "open_exit_type", "go"), direction)
             if forward_exit:
-                forward_exit.set_existing("is_visible", True)
                 forward_exit.set_existing("is_passable", True)
-                side_effect_msg = f"You notice a passage leading {direction}."
+                side_effect_msg = f"You opened a passage leading {direction}."
 
-            
             destination = forward_exit.destination if forward_exit else None
 
             reverse_exit = destination.get_exit(getattr(target, "open_exit_type", "go"), reverse_direction) if destination else None
             if reverse_exit:
-                reverse_exit.set_existing("is_visible", True)
                 reverse_exit.set_existing("is_passable", True)
 
 
@@ -139,25 +130,20 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        # Revealed exit text
+        # Opened exit text
         if side_effect_msg:
             parts.append(side_effect_msg)
 
         return self.build_message(parts)
 
 
-    def close(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        **kwargs
-    ) -> str:
+    def close(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
         world = self.world()
         
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]
+        keywords = cmd.modifiers
+        target = cmd.direct_object 
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -201,21 +187,24 @@ class ChangeStateVerbHandler(VerbHandler):
             desired_state=False,
         )
 
-        # Post-change side effect: hide exit if configured
+        # Post-change side effect: block exit if configured
         side_effect_msg = ""
         direction = getattr(target, "open_exit_direction", None)
         destination = getattr(target, "open_exit_type", None)
+   
+        if direction is not None:  
+            reverse_direction = self.get_reverse_of(direction)
 
-        if direction and destination:
-            destination_room = world.rooms.get(destination)
+            forward_exit = room.get_exit(getattr(target, "open_exit_type", "go"), direction)
+            if forward_exit:
+                forward_exit.set_existing("is_passable", False)
+                side_effect_msg = f"You seal off a passage leading {direction}."
 
-            if room and destination_room:
-                room.go_exits.pop(direction, None)   # should use room_remove_exit function when we have it
+            destination = forward_exit.destination if forward_exit else None
 
-                reverse = self.get_reverse_of(direction)
-                destination_room.go_exits.pop(reverse, None)   # should use room_remove_exit function when we have it
-
-                side_effect_msg = f"You seal off the passage leading {direction}."
+            reverse_exit = destination.get_exit(getattr(target, "open_exit_type", "go"), reverse_direction) if destination else None
+            if reverse_exit:
+                reverse_exit.set_existing("is_passable", False)
 
 
         # ------------- Build the final return string ----------------
@@ -227,7 +216,7 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        # Hidden exit text
+        # closed exit text
         if side_effect_msg:
             parts.append(side_effect_msg)
 
@@ -237,14 +226,11 @@ class ChangeStateVerbHandler(VerbHandler):
         self,
         target: Optional[Noun],
         words: tuple[str, ...],
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
 
-        room = self.room()
-        world = self.world()
-        
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]
+        target = cmd.direct_object
+        keywords = cmd.modifiers
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -316,15 +302,14 @@ class ChangeStateVerbHandler(VerbHandler):
 
         return self.build_message(parts)
     
-    def light(self, target: Optional[Noun], words: tuple[str, ...], **kwargs) -> str:
+    def light(self, target: Optional[Noun], words: tuple[str, ...], cmd: ExecuteCommand = None) -> str:
 
-        room = self.room()
-        world = self.world()
+
         player = self.player()
         inventory = player.sack.contents
         
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]
+        target = cmd.direct_object
+        keywords = cmd.modifiers
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -391,15 +376,11 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
 
 
-    def extinguish(
-        self,
-        target: Optional[Noun],
-        words: tuple[str, ...],
-        **kwargs
-    ) -> str:
+    def extinguish(self, target: Optional[Noun], words: tuple[str, ...], cmd: ExecuteCommand = None) -> str:
         
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything', 'hands', 'hand'])
-        keywords = parse["keywords"]        
+        target = cmd.direct_object
+        keywords = cmd.modifiers
+
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -457,15 +438,10 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
     
 
-    def rub(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        **kwargs
-    ) -> str:
+    def rub(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
         
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]        
+        target = cmd.direct_object
+        keywords = cmd.modifiers
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -518,12 +494,7 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
     
 
-    def tie(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def tie(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
         
         player=self.player()
         current_room=self.room()
@@ -585,6 +556,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
         # Post-change side effect: enable item for climbing - this is hardcoded for a rope dangling down a cliff at the moment.
         # should make this a special_handler
+
         #-------- this is all ugly
 
         side_effect_msg =  f"The {target.canonical_name()} is now tied to the {indirect.canonical_name()} and dangles down the cliff face below."
@@ -596,7 +568,6 @@ class ChangeStateVerbHandler(VerbHandler):
             connected_room.get_exit("climb", "up").set_existing("is_passable", True)
             connected_room.get_exit("climb", "up").set_existing("is_visible", True)
             connected_room.add_item(target)  # add the item to the room so it can be interacted with there - it will be in two rooms
-
 
         # ------------- Build the final return string ----------------
         parts: list[str] = []

@@ -33,6 +33,8 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
                     if not container.is_openable or container.is_open:
                         for item in container.contents:
                             yield item
+                for feature in game.current_room.features:
+                    yield feature
 
             player = getattr(game, "current_player", None)
             if player is not None:

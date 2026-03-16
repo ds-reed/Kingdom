@@ -753,6 +753,7 @@ class Room(Noun):
     def get_all_exits(
         self,
         movement_type="all",
+        direction=None,
         visible_only=False,
         passable_only=False
     ) -> list[tuple[str, str, Exit] | tuple[str, Exit]]:
@@ -765,6 +766,8 @@ class Room(Noun):
             if visible_only and not exit_obj.is_visible:
                 return False
             if passable_only and not exit_obj.is_passable:
+                return False
+            if direction and exit_obj.direction != direction:
                 return False
             return True
 
@@ -887,7 +890,7 @@ class Feature(Noun):
         super().__init__()
 
     def _normalized_identity_tokens(self) -> set[str]:
-        return super()._normalized_identity_tokens() | set(self.synonyms)
+        return set(super()._normalized_identity_tokens()) | set(self.synonyms)
 
     def to_dict(self) -> dict:
         payload = serialize_non_default(self)

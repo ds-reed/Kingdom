@@ -169,9 +169,10 @@
           },
           "down": {
             "destination": "Blank Chamber",
-            "is_visible": false,
+            "is_visible": true,
             "is_passable": false,
-            "refuse_string": "The trapdoor is firmly shut."
+            "refuse_string": "The trapdoor is firmly shut.",
+            "go_refuse_string": "You can't walk that direction, did you want to slide down the greasy pole?"
           }
         }
       }
@@ -358,7 +359,7 @@
           "is_takeable": true,
           "is_tieable": true,
           "is_tied": false,
-          "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
+          "is_tied_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
           "is_climbable": false,
           "climb_directions": ["down", "up"]
         },

@@ -14,14 +14,15 @@ class StatefulVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
         
         player = self.player()
         room = self.room()
 
-        parse = self.resolve_noun_or_word(words, interest=['all', 'everything'])
-        keywords = parse["keywords"]        
+        target = cmd.direct_object
+        keywords = cmd.modifiers
+
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -83,11 +84,12 @@ class StatefulVerbHandler(VerbHandler):
         self,
         target: Optional[Noun] = None,
         words: tuple[str, ...] = (),
-        **kwargs
+        cmd: ExecuteCommand = None
     ) -> str:
         
-        parse = self.resolve_noun_or_word(words, interest=['wish'])
-        keywords = parse["keywords"]        
+        target = cmd.direct_object
+        keywords = cmd.modifiers
+
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -137,11 +139,13 @@ class StatefulVerbHandler(VerbHandler):
         return self.build_message(parts)
                 
 
-    def make(self, target=None, words=(), **kwargs):
+    def make(self, target=None, words=(), cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
-        parse = self.resolve_noun_or_word(words, interest=['wish', 'all', 'everything'])
-        keywords = parse["keywords"]        
+
+        target = cmd.direct_object
+        keywords = cmd.modifiers   
+
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -184,8 +188,7 @@ class StatefulVerbHandler(VerbHandler):
             return self.build_message(cant_msg)
 
         # nothing to make yet, so not implementing a state change here.
-
-    # moved from UI - not following the usual pattern yet.    
+ 
 
     def look(self, target: Noun | None, words: tuple[str, ...] = (), cmd: ExecuteCommand= None) -> str:
 
@@ -197,8 +200,9 @@ class StatefulVerbHandler(VerbHandler):
         if prep and dest:
             target = dest
 
+        # synonym "search" equates to "look insside" for containers - don't have a generql way to map synonyms to verb+modifier combinations yet, so handling as a special case here
         look_inside = prep or (verb_token.lower() == "search" and (target.get_class_name() if target else None) == "Container")
-
+    
         if look_inside:
             if target is None:
                 return self.build_message(f"{verb_token}{(' '+ prep +' ') if prep else ' '}what?")

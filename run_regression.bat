@@ -1,0 +1,1 @@
+pytest tests/regression.py -vv -rA

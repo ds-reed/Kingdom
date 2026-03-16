@@ -13,10 +13,10 @@ from kingdom.model.game_model import GameOver
 from kingdom.model.verb_model import Verb
 from kingdom.rendering.descriptions import render_current_room
 from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
+from kingdom.model.direction_model import DIRECTIONS
 
 
 class MovementVerbHandler(VerbHandler):
-
 
     # ------------------------------------------------------------
     # Generic movement engine for GO, SWIM, CLIMB, etc.
@@ -48,7 +48,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, target, words, cmd):
+    def go(self, target, words, cmd: ExecuteCommand):
         direction = cmd.direction
         room = self.room()
 
@@ -56,31 +56,28 @@ class MovementVerbHandler(VerbHandler):
 
         #check all exits
 
-        any_exit = room.get_exit("go", direction) or room.get_exit("swim", direction) or  room.get_exit("climb", direction)
-
-
+        any_exit = room.get_all_exits(direction = direction)
 
         if not any_exit:
             return self.build_message(f"You can't travel {direction} from here.")
-
-        go_exit  = room.get_exit("go", direction)    
-
+      
+        go_exit = room.get_exit("go", direction)
+  
         if go_exit:
             movement_refusal = self.check_movement(go_exit, "go", direction)
             if movement_refusal:
                 return self.build_message(movement_refusal)
             return self.build_message(self.perform_movement(go_exit, direction, "go"))   #successful go movement
 
-        # No go exit, but other move types have exits in this direction. Collect go_refuse_string(s) if present
+        # No go exit, but other move types have passable exits in this direction. Collect go_refuse_string(s) if present
         else:
             if any_exit:
                 for movement_type in ["swim", "climb"]:
                     exit_obj = room.get_exit(movement_type, direction)
                     if exit_obj and exit_obj.go_refuse_string:
-                        msgs.append(exit_obj.go_refuse_string)
+                        msgs.append(exit_obj.go_refuse_string if exit_obj.is_passable else f"Something is holding you back from {movement_type}ing {direction}.")
 
         return self.build_message(msgs or f"You can't go {direction} from here.")
-
 
 
     def swim(self, target, words, cmd:ExecuteCommand):
@@ -245,9 +242,8 @@ class MovementVerbHandler(VerbHandler):
             return self.build_message(f"You are already in {room.canonical_name()}.")
 
         # Perform the teleport
-        old_room_name = room.canonical_name()
         game.current_room = desired_room
-        new_room_name = desired_room.canonical_name()
+
 
         return(self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)))
 

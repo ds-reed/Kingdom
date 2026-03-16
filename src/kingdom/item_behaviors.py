@@ -13,7 +13,7 @@ from typing import Callable, Optional
 from enum import Enum, auto
 
 from kingdom.model.game_model import get_game
-from kingdom.model.noun_model import Noun
+from kingdom.model.noun_model import Item, Noun
 
 
 class VerbControl(Enum):
@@ -124,14 +124,6 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
 #     ...
 #     return VerbOutcome("Example!", stop_outer=True)
 
-#----------------- the Magic Bean test item ---------------------------------
-
-@register_item_behavior("open_bean")
-def open_bean(item, verb_name, words):
-
-    print("Ha Ha - you tried to open a magical bean!")  # or log it
-    return VerbOutcome(message="you reached me!!!!", control=VerbControl.SKIP)   
-
 # ----------------- the fish ---------------------------------
 
 @register_item_behavior("eat_fish")
@@ -139,26 +131,7 @@ def eat_fish(item, verb, words):
 
     game = get_game() 
     world = getattr(game, "world", None)
-    player = getattr(game, "current_player", None)
-    if player is None:
-        return VerbOutcome(
-            message="No active player.",
-            control=VerbControl.STOP
-        )
-    inventory = player.sack.contents
-
-    if item not in inventory:
-        return VerbOutcome(
-            message="You have no fish.",
-            control=VerbControl.SKIP
-        )
-    
     room = getattr(game, "current_room", None)
-    if room is None:
-        return VerbOutcome(
-            message="No active room.",
-            control=VerbControl.STOP
-        )
 
     # Check if vomit already exists to prevent duplicates
     for obj in room.items: 
@@ -166,19 +139,37 @@ def eat_fish(item, verb, words):
             return VerbOutcome( message="You made quite a mess here!", control=VerbControl.SKIP )
         
     # spawn vomit if it doesn't already exist
-    vomit = _spawn_room_item(world, 
+    _spawn_room_item(world, 
         name="it looks like someone has been violently ill on a nearby wall",
         handle="vomit",
         is_takeable=False,      
         take_refuse_string="EW! The nasty vomit just makes your hands dirty."
     )
 
-    # Final message - TRS80 old-school style
+    # Final message
     return VerbOutcome(
         message="You barely get the fish to your nose when you vomit violently on a nearby wall.",
         control=VerbControl.STOP
     )
 
+
+#--------------------------- eat banana ---------------------------------
+
+@register_item_behavior("eat_banana")
+def eat_banana(item, verb, words):
+
+    game = get_game()
+    player = getattr(game, "current_player", None)
+    room = getattr(game, "current_room", None)
+
+    player.remove_from_sack(item)
+    player.add_to_sack(Item.get_by_name("peel"))
+
+    # Final message 
+    return VerbOutcome(
+        message="You peel the banana and wolf it down hungrily, leaving only the slippery peel behind.",
+        control=VerbControl.SKIP
+    )
 
 #----------------- the Lamp and Djinni ---------------------------------
 

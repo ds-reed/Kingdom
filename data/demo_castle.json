@@ -23,6 +23,14 @@
           "can_be_spoken_to": true,
           "take_refuse_string": "The 10 foot tall djinni glares at you.",
           "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
+        },
+        {
+          "name": "peel",
+          "description": "slippery banana peel",
+          "examine_string": "a slippery banana peel that looks like it could cause a nasty fall if someone stepped on it...",
+          "adjectives": ["slippery", "slick"],
+          "special_handlers": { "throw": "throw_peel" },
+          "discover_points": 10
         }
       ],
       "containers": [],
@@ -58,7 +66,7 @@
         "go": {
           "east": {
             "destination": "Cell Antechamber",
-            "is_visible": false,
+            "is_visible": true,
             "is_passable": false,
             "refuse_string": "The cell door is firmly shut."
           }
@@ -67,7 +75,7 @@
     },
     {
       "name": "Cell Antechamber",
-      "description": "a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room.",
+      "description": "a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room. There is a door to the north that is strongly bolted shut from the outside.",
       "items": [
         {
           "name": "trapdoor",
@@ -165,17 +173,31 @@
         "items": [
             {
             "name": "torch",
-            "description": "an unlit torch",
-            "adjectives": ["unlit"],
+            "description": "old wooden torch",
+            "adjectives": ["old", "wooden"],
             "is_takeable": true,
             "is_lightable": true,
             "is_lit": false,
             "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
+            "unlit_state_description": "an unlit, old wooden torch",
             "special_handlers": { "drop": "drop_torch" }
             }
         ]
         }
       ],
+      "features": [
+            {
+            "name": "window",
+            "description": "a narrow barred window is set high in the wall, allowing a thin shaft of light to pierce the gloom.",
+            "examine_string": "it is set high in the wall, allowing a thin shaft of light to pierce the gloom. The bars are made of sturdy iron and are firmly embedded into the stone, making escape through the window impossible. "
+            },
+            {
+            "name": "door",
+            "description": "a sturdy wooden door is set into the north wall.",
+            "examine_string": "that its surface is scarred with scratches and dents. It is firmly bolted shut from the outside, and there is no handle or keyhole visible.",
+            "adjectives": ["bolted", "wooden", "north"]
+            }
+        ],
       "exits": {
         "go": {
           "west": {
@@ -187,7 +209,7 @@
         "climb": {  
           "down": {
             "destination": "Dark Hallway",
-            "is_visible": false,
+            "is_visible": true,
             "is_passable": false,
             "go_refuse_string": "The pole descends into utter darkness. Did you want to slide down?"
           }
