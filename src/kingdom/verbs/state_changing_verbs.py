@@ -43,12 +43,12 @@ class ChangeStateVerbHandler(VerbHandler):
 
 #----------------- the core state-changing verbs -------------------------
 
-    def open(self, target: Optional[Noun] = None,words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
+    def open(self, cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
         
-        keywords = cmd.modifiers
-        target = cmd.direct_object
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object if cmd.direct_object else None
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -68,7 +68,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "open", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "open")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -137,13 +137,13 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
 
 
-    def close(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
+    def close(self, cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
         world = self.world()
         
-        keywords = cmd.modifiers
-        target = cmd.direct_object 
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object  if cmd.direct_object else None
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -161,7 +161,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "close", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "close")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -222,15 +222,10 @@ class ChangeStateVerbHandler(VerbHandler):
 
         return self.build_message(parts)
 
-    def unlock(
-        self,
-        target: Optional[Noun],
-        words: tuple[str, ...],
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def unlock(self, cmd: ExecuteCommand = None) -> str:
 
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -247,7 +242,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "unlock")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -302,14 +297,14 @@ class ChangeStateVerbHandler(VerbHandler):
 
         return self.build_message(parts)
     
-    def light(self, target: Optional[Noun], words: tuple[str, ...], cmd: ExecuteCommand = None) -> str:
+    def light(self, cmd: ExecuteCommand = None) -> str:
 
 
         player = self.player()
         inventory = player.sack.contents
         
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -326,7 +321,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "light", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "light")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -376,10 +371,10 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
 
 
-    def extinguish(self, target: Optional[Noun], words: tuple[str, ...], cmd: ExecuteCommand = None) -> str:
+    def extinguish(self, cmd: ExecuteCommand = None) -> str:
         
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -400,7 +395,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -438,10 +433,10 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
     
 
-    def rub(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
+    def rub(self, cmd: ExecuteCommand = None) -> str:
         
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
@@ -458,7 +453,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "rub", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "rub")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -494,11 +489,11 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
     
 
-    def tie(self, target: Optional[Noun] = None, words: tuple[str, ...] = (), cmd: ExecuteCommand = None) -> str:
+    def tie(self, cmd: ExecuteCommand = None) -> str:
         
         player=self.player()
         current_room=self.room()
-        keywords = cmd.modifiers
+        keywords = cmd.modifiers if cmd.modifiers else []
         target = cmd.direct_object if cmd.direct_object else None  
 
         indirect, indirect_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("to", "onto"))
@@ -524,7 +519,7 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", indirect_obj=indirect)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -585,11 +580,7 @@ class ChangeStateVerbHandler(VerbHandler):
         return self.build_message(parts)
 
 
-    def untie(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-    ) -> str:
+    def untie(self, cmd: ExecuteCommand = None) -> str:
         return self.build_message("Not implemented yet")    
     
  

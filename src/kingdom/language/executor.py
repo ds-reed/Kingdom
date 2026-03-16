@@ -111,7 +111,7 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
         
 # pass old and new verb contract data to verb handler during transition
 
-        result = verb.execute(target, words, cmd=execute_command)
+        result = verb.execute(cmd=execute_command)
 
         outcome = CommandOutcome(
             verb=verb.canonical_name() if verb else 'None',

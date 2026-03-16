@@ -24,7 +24,7 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # DEBUG
     # ------------------------------------------------------------
-    def DEBUG(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None) -> str:
+    def DEBUG(self, cmd: "ExecuteCommand" = None) -> str:
 
 
         def debug_set(noun, field):
@@ -119,10 +119,9 @@ class MetaVerbHandler(VerbHandler):
         keywords = []
         lexicon = self.lexicon()
 
-        if cmd.direct_object:
-            noun = cmd.direct_object
-        elif cmd.direct_object_token:
-            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token)  
+        noun = cmd.direct_object if cmd.direct_object else None
+        if not noun and cmd.direct_object_token:
+            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token) or Room.get_by_name(cmd.direct_object_token) or Player.get_by_name(cmd.direct_object_token)
             if noun is None:
                 keywords = [cmd.direct_object_token]    # if no noun found, treat the noun-like token as a keyword for debugging purposes
         
@@ -186,15 +185,12 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # HELP
     # ------------------------------------------------------------
-    def help(self, target: Noun | None, words: tuple[str, ...] = (), **kwargs) -> str:
+    def help(self, cmd:ExecuteCommand) -> str:
         # Resolve either a noun or keywords of interest
-        result = self.resolve_noun_or_word(
-            words,
-            interest=["commands", "verbs", "all"]
-        )
 
-        keywords = result["keywords"]
-        raw = result["raw"]
+
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object if cmd.direct_object else None
 
         def default_help_text() -> str:
             return(
@@ -232,24 +228,15 @@ class MetaVerbHandler(VerbHandler):
         # Only show for valid target, Don't show for other nouns to avoid spoilers. Can refine with a 'found' flag in the future.
         if target is not None:
             return self.build_message(f"There is no more information available for '{target.display_name()}'.")
-     
-        # If raw words with no matches are present
-        if raw:
-            return self.build_message(f"Help is not available for '{' '.join(raw)}'.")
         
-        # No noun, no keywords, no raw words → default help text
+        # No noun, no keywords → default help text
         return self.build_message(default_help_text())
 
 
     # ------------------------------------------------------------
     # SCORE
     # ------------------------------------------------------------
-    def score(
-        self,
-        target: Noun | None,
-        words: tuple[str, ...] = (),
-        cmd: "ExecuteCommand" = None    
-    ) -> str:
+    def score(self, cmd: "ExecuteCommand" = None) -> str:
         game = self.game()
         keywords = set(cmd.modifiers) if cmd.modifiers else set()
 
@@ -265,7 +252,7 @@ class MetaVerbHandler(VerbHandler):
         return self.build_message(lines)
     
 
-    def enable_debug(self, target: Noun | None, words: tuple[str, ...] = (), cmd: "ExecuteCommand" = None) -> str:
+    def enable_debug(self, cmd: "ExecuteCommand" = None) -> str:
         keywords = set(cmd.modifiers) if cmd.modifiers else set()
         if "please" in keywords:
             self.game().debug_mode = True

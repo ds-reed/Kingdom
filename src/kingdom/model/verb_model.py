@@ -52,8 +52,8 @@ class Verb:
     def all_names(self):
         return (self.name, *self.synonyms)
 
-    def execute(self, target, words, **kwargs):
-        return self.action(target, words, **kwargs)
+    def execute(self, cmd:"ExecuteCommand" = None) -> str:
+        return self.action(cmd)
     
     def canonical_name(self) -> str:
         return self.name

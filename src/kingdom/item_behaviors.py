@@ -61,7 +61,7 @@ def get_behavior(name: str) -> Optional[ItemBehaviorHandler]:
 def try_item_special_handler(
     target: object,
     verb_name: str,
-    words: tuple[str, ...],
+    **kwargs,
 ) -> str | None:
     """
     Unified special-handler lookup and execution.
@@ -83,7 +83,7 @@ def try_item_special_handler(
         return None
 
     # Execute the handler
-    return handler(target, verb_name, words)
+    return handler(target, verb_name, **kwargs)
 
 
 
@@ -127,7 +127,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
 # ----------------- the fish ---------------------------------
 
 @register_item_behavior("eat_fish")
-def eat_fish(item, verb, words):
+def eat_fish(item, verb, **kwargs):
 
     game = get_game() 
     world = getattr(game, "world", None)
@@ -156,7 +156,7 @@ def eat_fish(item, verb, words):
 #--------------------------- eat banana ---------------------------------
 
 @register_item_behavior("eat_banana")
-def eat_banana(item, verb, words):
+def eat_banana(item, verb, **kwargs):
 
     game = get_game()
     player = getattr(game, "current_player", None)
@@ -174,7 +174,7 @@ def eat_banana(item, verb, words):
 #----------------- the Lamp and Djinni ---------------------------------
 
 @register_item_behavior("rub_lamp")
-def rub_lamp(item, verb, words):
+def rub_lamp(item, verb, **kwargs):
 
     game = get_game()
     world = getattr(game, "world", None)
@@ -240,16 +240,16 @@ def rub_lamp(item, verb, words):
 # ----------------- the Djinni ---------------------------------
 
 @register_item_behavior("speak_djinni")
-def speak_djinni(item, verb, words):
-    return _djinni_scripted_action(item, verb, words)
+def speak_djinni(item, verb, **kwargs):
+    return _djinni_scripted_action(item, verb, **kwargs)
 
 
 @register_item_behavior("make_djinni")
-def make_djinni(item, verb, words):
-    return _djinni_scripted_action(item, verb, words)
+def make_djinni(item, verb, **kwargs):
+    return _djinni_scripted_action(item, verb, **kwargs)
 
 
-def _djinni_scripted_action(item, verb, words):
+def _djinni_scripted_action(item, verb, **kwargs):
     """
     The Djinni does not understand English; any SAY or MAKE attempt
     triggers his pre-ordained magical action.
@@ -307,7 +307,7 @@ def _djinni_scripted_action(item, verb, words):
 #---------------------------burning torch!------------------------------
 
 @register_item_behavior("drop_torch")
-def put_torch(item, verb_name, indirect_obj):
+def drop_torch(item, verb_name, indirect_obj = None, **kwargs):
     game = get_game()
     room = getattr(game, "current_room", None)
 

@@ -48,7 +48,7 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, target, words, cmd: ExecuteCommand):
+    def go(self, cmd: ExecuteCommand) -> str:
         direction = cmd.direction
         room = self.room()
 
@@ -80,7 +80,7 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(msgs or f"You can't go {direction} from here.")
 
 
-    def swim(self, target, words, cmd:ExecuteCommand):
+    def swim(self, cmd:ExecuteCommand) -> str:
         room = self.room()
 
         def check_swim_constraints():
@@ -137,7 +137,7 @@ class MovementVerbHandler(VerbHandler):
     #       put the stairs or ladder in the room description.          
     # ------------------------------------------------------------
     
-    def climb(self, target: Noun, words: list[str], cmd: ExecuteCommand):
+    def climb(self, cmd: ExecuteCommand) -> str:
         room = self.room()
 
         target = cmd.direct_object if cmd and cmd.direct_object else None
@@ -188,7 +188,7 @@ class MovementVerbHandler(VerbHandler):
         return self.build_message(f"You can't {verb_token} {final_direction} from here.")
 
 
-    def teleport(self, target: Noun, words: list[str], cmd: "ExecuteCommand"):
+    def teleport(self,  cmd: ExecuteCommand) -> str:
         """Teleport to any room by name or number. No target → list rooms."""
         game = self.game()
         world = self.world()

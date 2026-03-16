@@ -10,18 +10,13 @@ from kingdom.rendering.descriptions import render_current_room, render_item, ren
 
 
 class StatefulVerbHandler(VerbHandler):
-    def eat(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
-        
+    def eat(self, cmd: ExecuteCommand = None) -> str:
+
         player = self.player()
         room = self.room()
 
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -39,7 +34,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "eat", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "eat")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -80,21 +75,16 @@ class StatefulVerbHandler(VerbHandler):
         return self.build_message(parts)
     
 
-    def say(
-        self,
-        target: Optional[Noun] = None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def say(self, cmd: ExecuteCommand = None) -> str:
         
-        target = cmd.direct_object
-        keywords = cmd.modifiers
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
         # ------------------------------------------------------------
         if "wish" in keywords:    # special case for djinni lamp
-            outcome: VerbOutcome | None = try_item_special_handler(target, "say", words)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "say")
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -116,7 +106,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "say", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "say")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "") 
 
@@ -139,12 +129,12 @@ class StatefulVerbHandler(VerbHandler):
         return self.build_message(parts)
                 
 
-    def make(self, target=None, words=(), cmd: ExecuteCommand = None) -> str:
+    def make(self, cmd: ExecuteCommand = None) -> str:
 
         room = self.room()
 
-        target = cmd.direct_object
-        keywords = cmd.modifiers   
+        target = cmd.direct_object if cmd.direct_object else None
+        keywords = cmd.modifiers if cmd.modifiers else []
 
         # ------------------------------------------------------------
         # 1. Verb modifier checks
@@ -156,7 +146,7 @@ class StatefulVerbHandler(VerbHandler):
         if "wish" in keywords:    # special case for djinni lamp
             required = self.lookup_required_item_id("djinni", "make wish")
             if target is None and room.has_item(required): target = required  
-            outcome: VerbOutcome | None = try_item_special_handler(target, "make", words)
+            outcome: VerbOutcome | None = try_item_special_handler(target, "make")
             if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
                 return self.build_message(outcome.message or "") 
             return self.build_message("Nothing happens.")
@@ -170,7 +160,7 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "make", words)
+        outcome: VerbOutcome | None = try_item_special_handler(target, "make")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -190,11 +180,11 @@ class StatefulVerbHandler(VerbHandler):
         # nothing to make yet, so not implementing a state change here.
  
 
-    def look(self, target: Noun | None, words: tuple[str, ...] = (), cmd: ExecuteCommand= None) -> str:
+    def look(self, cmd: ExecuteCommand= None) -> str:
 
         room = self.room()
-        target = cmd.direct_object
-        verb_token = cmd.verb_token 
+        target = cmd.direct_object if cmd.direct_object else None
+        verb_token = cmd.verb_token if cmd and cmd.verb_token else None
 
         dest, dest_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in"))
         if prep and dest:

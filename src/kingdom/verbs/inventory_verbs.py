@@ -5,12 +5,7 @@ from kingdom.verbs.verb_handler import VerbHandler, VerbControl, ExecuteCommand,
 from kingdom.item_behaviors import try_item_special_handler
 
 class InventoryVerbHandler(VerbHandler):
-    def inventory(
-        self,
-        target: Noun | None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def inventory(self, cmd: ExecuteCommand = None) -> str:
         player = self.player()
         inventory = player.get_inventory_items()
 
@@ -28,18 +23,13 @@ class InventoryVerbHandler(VerbHandler):
         )
     
 
-    def take(
-        self,
-        target: Noun | None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def take(self, cmd: ExecuteCommand = None) -> str:
         
         room = self.room()
         player = self.player()
 
-        keywords = cmd.modifiers
-        target = cmd.direct_object
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object if cmd.direct_object else None
 
         source, source_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
 
@@ -74,7 +64,7 @@ class InventoryVerbHandler(VerbHandler):
 
         msgs = []
         for item in inventory_items:
-            outcome = try_item_special_handler(item, "take", words)
+            outcome = try_item_special_handler(item, "take")
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
@@ -98,18 +88,13 @@ class InventoryVerbHandler(VerbHandler):
         return self.build_message(msgs)
 
 
-    def drop(
-        self,
-        target: Noun | None,
-        words: tuple[str, ...] = (),
-        cmd: ExecuteCommand = None
-    ) -> str:
+    def drop(self, cmd: ExecuteCommand = None) -> str:
         room = self.room()
         player = self.player()
 
-        keywords = cmd.modifiers
-        target = cmd.direct_object
-        prep_phrases = cmd.prep_phrases
+        keywords = cmd.modifiers = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object = cmd.direct_object if cmd.direct_object else None
+        prep_phrases = cmd.prep_phrases = cmd.prep_phrases if cmd.prep_phrases else []
         
         dest_handle = None
         dest, dest_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("into", "in"))
@@ -148,7 +133,7 @@ class InventoryVerbHandler(VerbHandler):
         msgs = []
         for item in inventory_items:
             # check special handlers for each item being dropped. This allows items to have custom drop behavior
-            outcome = try_item_special_handler(item, "drop", dest_handle)  # Pass the destination handle as context for the special handler
+            outcome = try_item_special_handler(item, "drop", indirect_obj=dest_handle)  # Pass the destination handle as context for the special handler
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
