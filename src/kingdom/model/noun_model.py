@@ -79,11 +79,15 @@ class Exit:
     # Mutable state
     is_visible: bool = field(default=True, metadata={"persist": "non_default"})
     is_passable: bool = field(default=True, metadata={"persist": "non_default"})
+    is_never_passable: bool = field(default=False, metadata={"persist": "non_default"})
     refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     go_refuse_string: Optional[str] = field(default=None, metadata={"persist": "non_default"})
 
     # Runtime-only (example)
     # temp_flag: bool = field(default=False, metadata={"persist": False})
+
+    def __repr__(self):
+        return f"Exit(movement_type={self.movement_type}, direction={self.direction}, destination={self.destination.canonical_name() if self.destination else None}, is_visible={self.is_visible}, is_passable={self.is_passable}, is_never_passable={self.is_never_passable}, refuse_string={self.refuse_string}, go_refuse_string={self.go_refuse_string})"
 
 
     def set_existing(self, name, value):
@@ -159,19 +163,20 @@ class Noun:
         if getattr(self, "is_lit", False) and getattr(self, "lit_state_description", None):
             desc = self.lit_state_description
 
-        # Open/closed
+        # Open/closed/locked
         if getattr(self, "is_openable", False):
-            if getattr(self, "is_open", False) and getattr(self, "opened_state_description", None):
-                desc = self.opened_state_description
-            elif not getattr(self, "is_open", False) and getattr(self, "closed_state_description", None):
+            open_state = getattr(self, "is_open", False)
+            if open_state:
+                if getattr(self, "opened_state_description", None):      # if open, we don't care if it is locked or not.
+                    desc = self.opened_state_description  
+            elif getattr(self, "is_lockable", False):                    # if not open, check if we have locked/unlocked descriptions
+                locked_state = getattr(self, "is_locked", False)
+                if locked_state and getattr(self, "locked_state_description", None):
+                    desc = self.locked_state_description
+                elif not locked_state and getattr(self, "unlocked_state_description", None):
+                    desc = self.unlocked_state_description
+            elif getattr(self, "closed_state_description", None):        # if not lockable, check for closed description
                 desc = self.closed_state_description
-
-        # Locked/unlocked
-        if getattr(self, "is_lockable", False):
-            if getattr(self, "is_locked", False) and getattr(self, "locked_state_description", None):
-                desc = self.locked_state_description
-            elif not getattr(self, "is_locked", False) and getattr(self, "unlocked_state_description", None):
-                desc = self.unlocked_state_description
 
         # Rubbed
         if getattr(self, "is_rubbed", False) and getattr(self, "rubbed_state_description", None):

@@ -11,10 +11,9 @@ import random
 import sys
 sys.path.append("./src")
 
-from kingdom.terminal_style import TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN, set_terminal_mode
 from kingdom.utilities import SessionLogger, ensure_terminal_session
 
-from kingdom.UI import ui
+from kingdom.UI import ui, set_terminal_mode, TERMINAL_MODE_OLD_SCHOOL, TERMINAL_MODE_MODERN
 
 #  model modules
 from kingdom.model.noun_model import World, Player, Room
@@ -38,7 +37,7 @@ def init_game_state(world_file) -> Game | None:
     Welcome player and initialize game world.
     """
 
-    ui.print("Welcome to Kingdom.","\n", bold=True)
+    ui.print("Welcome to Kingdom.","\n")
     player_name = ui.prompt("Player name> ").strip() or "ralf"
     ui.print(f"Welcome {player_name}!","\n")
     
@@ -218,7 +217,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Kingdom game")
     parser.add_argument(
         "--mode",
-        choices=[TERMINAL_MODE_TRS80, TERMINAL_MODE_MODERN],
+        choices=[TERMINAL_MODE_OLD_SCHOOL, TERMINAL_MODE_MODERN],
         default=TERMINAL_MODE_MODERN,
         help="Terminal presentation mode (default: modern)",
     )

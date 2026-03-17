@@ -115,7 +115,7 @@ Responsible for one-time game initialization and player greeting.
 - Build/load the initial world state (rooms, items, player)  
 - Set up core components (Parser, Resolver, Verb registry, Renderer, UI/Terminal)  
 - Create initial `Game`, `Player`, `GameActionState`, `DispatchContext`  
-- Handle command-line args (e.g., mode: trs80/modern)  
+- Handle command-line args (e.g., mode: OLD_SCHOOL/modern)  
 - Start logging/session if needed  
 
 **Non-Responsibilities**  

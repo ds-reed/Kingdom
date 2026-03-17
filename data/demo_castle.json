@@ -75,7 +75,7 @@
     },
     {
       "name": "Cell Antechamber",
-      "description": "a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room. There is a door to the north that is strongly bolted shut from the outside.",
+      "description": "in a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room. There is a door to the north that is strongly bolted shut from the outside.",
       "items": [
         {
           "name": "trapdoor",
@@ -92,7 +92,8 @@
           "unlocked_state_description": "A closed but unlocked rusty iron trapdoor",
           "unlockable_description": "The trapdoor is locked and you need a key",
           "closed_state_description": "A closed, rusty iron trapdoor",
-          "opened_state_description": "An open trapdoor. A slick fireman's pole leads from it down into the deep darkness below",
+          "opened_state_description": "A slick fireman's pole leads down into the deep darkness below from an open trapdoor that",
+          "open_action_description": "You open the trapdoor, revealing a slick fireman's pole that leads down into the deep darkness below.",
           "open_exit_direction": "down",
           "open_exit_type": "climb"
         },
@@ -121,8 +122,9 @@
           "take_refuse_string": "You can't take the body, but you can search it if you like.",
           "items": [
             {
-              "name": "pack of cigarettes",
+              "name": "cigarettes",
               "description": "an empty crumpled pack of cigarettes",
+              "synonyms": ["cigarette pack", "pack of cigarettes", "pack"],
               "adjectives": ["crumpled"],
               "is_takeable": true
             },
@@ -163,8 +165,8 @@
         },
         {
         "name": "sconce",
-        "description": "a rusty iron wall sconce",
-        "adjectives": ["rusty", "iron", "wall"],
+        "description": "an iron wall sconce",
+        "adjectives": ["iron", "wall"],
         "is_takeable": false,
         "is_openable": false,   
         "is_transparent": true,
@@ -173,7 +175,7 @@
         "items": [
             {
             "name": "torch",
-            "description": "old wooden torch",
+            "description": "an old wooden torch",
             "adjectives": ["old", "wooden"],
             "is_takeable": true,
             "is_lightable": true,
@@ -208,13 +210,194 @@
         },
         "climb": {  
           "down": {
-            "destination": "Dark Hallway",
+            "destination": "Pole Landing",
             "is_visible": true,
             "is_passable": false,
             "go_refuse_string": "The pole descends into utter darkness. Did you want to slide down?"
           }
         }
       }
+    },
+    {
+      "name": "Pole Landing",
+      "description": "in a circular stone chamber with a low ceiling. The greased pole ends here, its metal surface gleaming faintly in the dim light. Dusty footprints lead into a twisting passage where the darkness seems to swallow all sound.",
+      "items": [
+            {   
+            "name": "pole",
+            "description": "a greasy pole.",
+            "adjectives": ["greasy"],
+            "is_takeable": false,
+            "take_refuse_string": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+            "is_climbable": false,
+            "climb_directions": ["up"],
+            "is_visible": false
+            }
+        ],
+      "exits": {
+        "go": {
+            "north": { "destination": "Twisting Passage (South Bend)"}
+        },
+        "climb": {
+        "up": {
+              "destination": "Cell Antechamber",
+              "is_visible": true,
+              "is_passable": false,
+              "is_never_passable": true,
+              "refuse_string": "The pole is extremely slippery and cannot be climbed."
+            }
+        }
+      }
+    },
+    {
+      "name": "Twisting Passage (South Bend)",
+      "description": "in a narrow stone passage that immediately bends out of sight. The walls are slick and uneven, and the floor slopes slightly. Without a light source, it would be dangerously easy to walk straight into the wall.",
+      "is_dark": true,
+      "exits": {
+        "go": {
+          "south": { "destination": "Pole Landing"},
+          "west": { "destination": "Twisting Passage (North Bend)"}
+        }
+      }
+    },
+    {
+      "name": "Twisting Passage (North Bend)",
+      "description": "in a narrow stone passage that turns sharply again here, forming a cramped dogleg. The air is cold and carries faint echoes from somewhere ahead. The stone underfoot is worn smooth by countless footsteps.",
+      "is_dark": true,
+      "exits": {
+        "go": {
+            "east": {"destination": "Twisting Passage (South Bend)"},
+            "north": {"destination": "Guard's Antechamber"},
+            "south": {"destination": "Lamp Chamber"},
+            "west": {"destination": "Blank Chamber"}
+            }
+         }
+    },
+    {
+    "name": "Guard's Antechamber",
+    "description": "in a small stone chamber that feels abandoned and forgotten. A broken bench leans against the wall, and a rusted spear rack stands empty. A faint light comes through a thin horizontal-slit window near the ceiling, casting long, shadows across the room.",
+    "items": [
+        {
+        "name": "victrola",
+        "description": "an old-fashioned Victrola with a large brass horn and a hand crank",
+        "examine_string": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
+        "adjectives": ["old-fashioned", "brass"],
+        "turn_success_string": "You turn the crank, and the Victrola emits a haunting melody that echoes through the passageway.",
+        "is_takeable": false,
+        "is_fixed": true,
+        "special_handlers": { "hit": "hit_victrola" }
+        }
+    ],
+    "features": [
+        {
+        "name": "bench",
+        "description": "a broken wooden bench sits crookedly against the wall",
+        "adjectives": ["broken", "wooden"]
+        },
+        {
+        "name": "rack",
+        "description": "a rusted spear rack stands empty",
+        "adjectives": ["rusted", "empty", "spear"]
+        }
+    ],
+    "exits": {
+        "go": {
+        "south": {"destination": "Twisting Passage (North Bend)"}}
+        }
+    },
+    {
+    "name": "Lamp Chamber",
+    "description": "in a magnificently decorated chamber lit by a soft, unnatural glow. The air hums softly, as though waiting for something to happen.",
+    "items": [],
+    "containers": [
+        {
+        "name": "alcove",
+        "description": "a shallow stone alcove",
+        "examine_string": "The alcove is shallow and carved directly into the stone wall. The interior is faintly illuminated by the strange light as though it holds some hidden secret.",
+        "location_description": "is carved into the far wall",
+        "adjectives": ["shallow", "stone"],
+        "is_takeable": false,
+        "is_open": true,
+        "is_transparent": true,
+        "render_priority" : 500,
+        "is_fixed": true,
+        "items": [
+            {
+              "name": "lamp",
+              "description": "a battered and dull brass lamp",
+              "adjectives": ["battered", "dull", "brass"],
+              "is_rubbable": true,
+              "is_rubbed": false,
+              "is_lightable": true,
+              "is_lit": true,
+              "lit_state_description": "a battered brass lamp that is glowing with a magical light",
+              "is_flamable": false,
+              "rub_success_string": "The lamp grows shiny from rubbing.",
+              "rubbed_state_description": "a battered and shiny brass lamp",
+              "special_handlers": { "rub": "rub_lamp" },
+              "trigger_room": "Blank Chamber"
+            }
+          ]
+        }
+    ],
+    "features": [],
+    "exits": {"go": {"north": {"destination": "Twisting Passage (North Bend)"}}}
+    },
+    {
+      "name": "Blank Chamber",
+      "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+      "discover_points": 10,
+      "is_dark": true,
+      "dark_description": "It is pitch dark. You can't see anything.",
+      "items": [],
+      "features": [
+        {
+          "name": "mural",
+          "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements",
+          "synonyms": ["djinni mural", "wall mural", "painting"]
+        }
+      ],
+      "containers": [],
+      "exits": {
+          "go": {
+            "west": {
+              "destination": "Colossal Cave",
+              "is_visible": false,
+              "is_passable": false,
+              "refuse_string": "You can't travel west here"
+            },
+            "east": {"destination": "Twisting Passage (North Bend)"}
+           }
+        } 
+    },
+    {
+      "name": "Colossal Cave",
+      "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west - you can just make out a narrow ledge on the other side.",
+      "discover_points": 10,
+      "has_water": true,
+      "items": [
+        {
+          "name": "gold",
+          "description": "a heavy solid gold bar",
+          "synonyms": ["gold bar", "bar of gold", "bar"],
+          "adjectives": ["heavy", "solid"],
+          "too_heavy_to_swim": true,
+          "is_flamable": false
+        }
+      ],
+      "containers": [],
+      "exits": {
+        "go": {
+            "east": {"destination": "Blank Chamber"}        
+        },
+        "swim": {
+          "west": {
+            "destination": "Pool Ledge",
+            "is_visible": false,
+            "go_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+          }
+        }
+      }
     }
-  ]
+]
 }
+

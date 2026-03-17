@@ -8,19 +8,25 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 
 from pathlib import Path
 from typing import Any, Sequence
-from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen
+from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen, tty_set_terminal_mode
 from kingdom.model.game_model import get_game
 
+TERMINAL_MODE_OLD_SCHOOL = "OLD_SCHOOL"
+TERMINAL_MODE_MODERN = "modern"
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
+def set_terminal_mode(mode):
+        global ACTIVE_TERMINAL_MODE
+        ACTIVE_TERMINAL_MODE = mode
+        tty_set_terminal_mode(mode)
+        
 
-# kingdom/ui.py
+def get_terminal_mode():
+    return ACTIVE_TERMINAL_MODE
 
 class UI:
     def __init__(self):
         pass
+
 
     def clear_screen(self):
         tty_clear_screen()

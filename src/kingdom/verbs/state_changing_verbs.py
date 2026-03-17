@@ -118,7 +118,9 @@ class ChangeStateVerbHandler(VerbHandler):
 
             reverse_exit = destination.get_exit(getattr(target, "open_exit_type", "go"), reverse_direction) if destination else None
             if reverse_exit:
-                reverse_exit.set_existing("is_passable", True)
+                never_passable = getattr(reverse_exit, "is_never_passable", False)   # sometimes, even an open exit isn't enough (i.e. one way passages)
+                if not never_passable:
+                    reverse_exit.set_existing("is_passable", True)
 
 
         # ------------- Build the final return string ----------------
@@ -132,6 +134,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
         # Opened exit text
         if side_effect_msg:
+            parts.append("")
             parts.append(side_effect_msg)
 
         return self.build_message(parts)
@@ -218,6 +221,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
         # closed exit text
         if side_effect_msg:
+            parts.append("")
             parts.append(side_effect_msg)
 
         return self.build_message(parts)

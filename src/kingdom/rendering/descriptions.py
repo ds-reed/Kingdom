@@ -1,11 +1,13 @@
 # kingdom/renderer.py
 
+from turtle import clear
 from typing import Sequence
 import re
 
 from kingdom.model.noun_model import Room, Item, Container
 from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.game_model import get_game
+from kingdom.UI import ui
 import kingdom.rendering.textutils as tu
 
 
@@ -36,9 +38,69 @@ class RoomRenderer:
 
         # Room description
         if (room.found and not look) or not room.description:
-            lines.append(f"You are in {room.name}.")
+            lines.extend(self.describe_room_concise(room))
+            lines.append("")
         else:
-            lines.append(f"You are {room.description}")
+            lines.extend(self.describe_room_verbose(room))
+            lines.append("")
+
+        return lines
+
+    def describe_room_concise(self, room: Room) -> list[str]:
+        game = get_game()
+        room = game.current_room 
+        lines: list[str] = []
+        lines.append(f"You are in {room.name}.")
+        lines.append("")
+
+        # Items and containers (concise description only)
+        visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
+        visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
+        for container in visible_containers:
+            if container.is_transparent:
+                visible_items.extend(container.contents)
+
+        all_visible_objects = []
+
+        for item in visible_items:
+            all_visible_objects.append(("item", item))
+
+        for container in visible_containers:
+            all_visible_objects.append(("container", container))
+
+        # Sort by render_priority (higher first)
+        all_visible_objects.sort(
+            key=lambda pair: (getattr(pair[1], "render_priority", 0) or 0),
+            reverse=True
+        )
+
+        if all_visible_objects:
+            lines.append("You see:")
+            for _kind, obj in all_visible_objects:
+                lines.append(F"-  {obj.stateful_name()}")
+
+        
+        #now exits
+
+        exits = room.get_all_exits(movement_type="all", visible_only=True)
+        if exits:
+            lines.append("")
+            lines.append("Available exits:")  
+            for _, direction, _ in exits:
+                if isinstance(direction, str):
+                    lines.append(f"- {direction}")
+
+        
+        return lines
+
+    def describe_room_verbose(self, room: Room) -> list[str]:
+
+        game = get_game()
+        lines: list[str] = []
+
+        lines.append(f"You are {room.description}")
+        lines.append("")
+
 
         # Items and containers
         visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
@@ -191,10 +253,12 @@ class RoomRenderer:
         for _, entry in queue:
             if isinstance(entry, str):
                 lines.append(entry)
+                lines.append("")
             else:
                 text = self.describe_presence(entry)
                 if text:
                     lines.append(text)
+                    lines.append("")
 
 
         # --- RENDER EXITS ------------------------------------------------------
@@ -211,7 +275,7 @@ class RoomRenderer:
         desc = getattr(item, "examine_string", None)
         if desc:
             return desc
-        return f"You look at {item.display_name()} carefully."
+        return f"You look at {item.stateful_name()} carefully."
     
     
     def describe_container(self, room: Room, container: Container) -> str:
@@ -220,7 +284,7 @@ class RoomRenderer:
         desc = getattr(container, "examine_string", None)
         if desc:
             return desc
-        return f"You look at {container.display_name()} carefully. There might be something interesting inside."
+        return f"You look at {container.stateful_name()} carefully. There might be something interesting inside."
     
 
     def describe_container_contents(self, room: Room, container: Container) -> str:
@@ -228,13 +292,13 @@ class RoomRenderer:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
         if container.is_openable and not container.is_open:
-            return f"You see {container.canonical_name()} is closed."
+            return f"You see {container.stateful_name()} is closed."
         if not container.contents:
-            return f"You see {container.canonical_name()} is empty."
+            return f"You see {container.stateful_name()} is empty."
         names = []
         for item in container.contents:
             game.update_discover_score(item)            #update discovery score for items inside container when looking inside
-            names.append(item.display_name())
+            names.append(item.stateful_name())
         result = ", ".join(names)
         return f"You see: {result}."
     
@@ -275,8 +339,9 @@ class RoomRenderer:
         return True
 
     def dark_room_message(self, room: Room) -> str:
-        return getattr(room, "dark_description",
-                       "It is pitch black. You can't see a thing.")
+        msg = getattr(room, "dark_description", None)
+        return msg or "It is pitch black. You can't see a thing."
+
     
     #----------------------------------------------------------------------
     # Exit description logic
@@ -353,40 +418,61 @@ class RoomRenderer:
     def describe_presence(self, obj):
         name = obj.stateful_name()
 
-        # 0. Author-provided location description overrides all heuristics
+
+        # Author-provided location_description overrides *location heuristics*
+        # but we still apply other transformations (like transparent container contents).
         loc = getattr(obj, "location_description", None)
-        if loc:
-            name = obj.stateful_name()
-            # Always use definite article for authored location lines
-            return tu.terminate(
-                tu.capitalize_first(tu.add_indefinite_article(f"{name} {loc}"))
-            )
 
-        # Wall items handled separately
-        is_wall, cleaned, phrase = self.extract_wall_phrase(name.lower())
-        if is_wall:
-            return None  # grouped later
-
-        # Containers
+        # Containers get special treatment first — this is the "other transformation"
+        # the user specifically wanted to preserve even when loc is provided.
         if isinstance(obj, Container):
             # Transparent containers show contents inline
             if getattr(obj, "is_transparent", False) and obj.contents:
                 inner = tu.join_with_and(
                     [tu.add_indefinite_article(i.stateful_name()) for i in obj.contents]
                 )
+                if loc:
+                    # Author loc provides the positioning verb; we append the contents
+                    # transformation so it still shows. Example:
+                    # "A glass box rests on the altar holding a ruby and a key"
+                    full_phrase = f"{name} {loc} holding {inner}"
+                else:
+                    full_phrase = f"{name} holding {inner}"
+
                 return tu.terminate(
                     tu.capitalize_first(
-                        f"{tu.add_indefinite_article(name)} holding {inner}"
+                        tu.add_indefinite_article(full_phrase)
                     )
                 )
 
-            # Normal opaque containers
+            # Normal opaque containers — loc overrides the "sits nearby" heuristic
+            if loc:
+                full_phrase = f"{name} {loc}"
+            else:
+                full_phrase = f"{name} sits nearby"
+
             return tu.terminate(
                 tu.capitalize_first(
-                    f"{tu.add_indefinite_article(name)} sits nearby"
+                    tu.add_indefinite_article(full_phrase)
                 )
             )
 
+        # === Non-containers below here ===
+
+        # Wall items handled separately 
+        is_wall, cleaned, phrase = self.extract_wall_phrase(name.lower())
+        if is_wall:
+            return None  # grouped later
+
+
+        # Author-provided loc overrides ALL remaining location heuristics
+        # (trapdoor, fixture, default "is here").
+        if loc:
+            return tu.terminate(
+                tu.capitalize_first(
+                    tu.add_indefinite_article(f"{name} {loc}")
+                )
+            )
 
         # Trapdoor heuristic
         lname = name.lower()
@@ -395,10 +481,9 @@ class RoomRenderer:
                 f"{tu.add_indefinite_article(name)} is set into the floor"
             ))
         
-        #room fixtures (anchored, embedded, fixed, bolted, mounted, set into, etc.) get their own special phrasing to avoid sounding like loose items
+        # Room fixtures (anchored, embedded, etc.)
         if self.classify_fixture(name):
             return tu.terminate(tu.capitalize_first(name))
-
 
         # Default loose item
         return tu.terminate(tu.capitalize_first(
@@ -488,7 +573,7 @@ class RoomRenderer:
 renderer = RoomRenderer()
 
 def render_current_room(room, look=False) -> list[str] | None:
-    return(renderer.describe_room(room, look=look))
+    return renderer.describe_room(room, look=look)
 
 def render_item(room, item) -> list[str] | None:
     return(renderer.describe_item(room, item))

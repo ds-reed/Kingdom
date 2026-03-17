@@ -30,12 +30,23 @@ class InventoryVerbHandler(VerbHandler):
 
         keywords = cmd.modifiers if cmd.modifiers else []
         target = cmd.direct_object if cmd.direct_object else None
+        prep_phrases = cmd.prep_phrases if cmd.prep_phrases else []
+        direct_object_token = cmd.direct_object_token if cmd.direct_object_token else None
+        verb_token = cmd.verb_token if cmd.verb_token else None
 
-        source, source_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("in", "from"))
+        
+
+        source, source_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("in", "from"))
 
         if prep and not source_name:
-            return self.build_message(self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"))
+            return self.build_message(self.missing_target(f"{verb_token} {direct_object_token} {prep}"))
         
+        if verb_token == "loot":            # loot implies taking everyting from a container, so add "all" modifier if loot is used
+            keywords.append("all")
+            if not source:                  # looting direct object same as looting from indirect object, e.g. "loot chest" implies "loot all from chest"
+                source = target
+                target = None
+                   
         if target:
             if target.get_class_name() == "Item":
                 if player.has_item(target):
@@ -58,9 +69,9 @@ class InventoryVerbHandler(VerbHandler):
             else:
                 inventory_items = [item for item in room.all_items() if getattr(item, "is_visible", True)]
         else:
-            if not cmd.direct_object_token:
-                return self.build_message(self.missing_target(cmd.verb_token))
-            return self.build_message(f"You see no {cmd.direct_object_token} here.")
+            if not direct_object_token:
+                return self.build_message(self.missing_target(verb_token))
+            return self.build_message(f"You see no {direct_object_token} here.")
 
         msgs = []
         for item in inventory_items:
@@ -72,7 +83,7 @@ class InventoryVerbHandler(VerbHandler):
                 if outcome.control == VerbControl.SKIP:
                     continue
             if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
-                refuse = item.take_refuse_string or f"You can't {cmd.verb_token} {item.display_name()}."
+                refuse = item.take_refuse_string or f"You can't {verb_token} {item.display_name()}."
                 msgs.append(refuse)
                 continue
 
@@ -81,7 +92,7 @@ class InventoryVerbHandler(VerbHandler):
             else:
                 sack_full_msg=player.take_item_from_room(item, room)
             if not sack_full_msg:
-                msgs.append(f"You {cmd.verb_token} {item.display_name()}.")
+                msgs.append(f"You {verb_token} {item.display_name()}.")
             else:
                 msgs.append(sack_full_msg)
 
@@ -95,7 +106,9 @@ class InventoryVerbHandler(VerbHandler):
         keywords = cmd.modifiers = cmd.modifiers if cmd.modifiers else []
         target = cmd.direct_object = cmd.direct_object if cmd.direct_object else None
         prep_phrases = cmd.prep_phrases = cmd.prep_phrases if cmd.prep_phrases else []
-        
+
+
+     
         dest_handle = None
         dest, dest_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("into", "in"))
 

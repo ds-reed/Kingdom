@@ -1,5 +1,9 @@
 # Kingdom
 
+run_castle_modern.bat runs the castle demo in modern mode
+run_castle_old_school.bat runs the castle demo in a more authentic TRS-80 style
+run_kingdom.bat runs the kingdom framework with the default initial_state.json instead of the castle demo
+
 Kingdom is a command-driven text adventure engine in Python. It loads world state from JSON, builds a runtime lexicon from the current world and verb registry, parses free-text commands, interprets them in context, and dispatches execution through modular verb handlers.
 
 The current codebase is organized around four main areas:
@@ -19,7 +23,7 @@ The current codebase is organized around four main areas:
 - Implicit direction handling for single-token movement such as `west`
 - Support for modifiers such as `all`
 - Item-specific special behaviors in `src/kingdom/item_behaviors.py`
-- Modern and TRS80-style terminal presentation modes
+- Modern and OLD_SCHOOL-style terminal presentation modes
 
 ## Repository Layout
 
@@ -29,8 +33,8 @@ Kingdom/
 ├── pyproject.toml
 ├── README.md
 ├── run_kingdom.bat
-├── run_kingdom_modern.bat
-├── run_kingdom_TRS80.bat
+├── run_castle_modern.bat
+├── run_castle_old_school.bat
 ├── run_state_check.bat
 ├── data/
 │   ├── initial_state.json
@@ -170,14 +174,14 @@ Important parser/runtime behaviors:
 ```bash
 python main.py
 python main.py --mode modern
-python main.py --mode trs80
+python main.py --mode OLD_SCHOOL
 ```
 
 ### Windows launchers
 
 - `run_kingdom.bat`
 - `run_kingdom_modern.bat`
-- `run_kingdom_TRS80.bat`
+- `run_kingdom_OLD_SCHOOL.bat`
 
 ## World Data and Persistence
 

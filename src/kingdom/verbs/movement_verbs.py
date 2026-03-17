@@ -32,7 +32,7 @@ class MovementVerbHandler(VerbHandler):
         game.current_room = destination
 
         # Render
-        lines = [f"You {success_verb_phrase} {direction}."]
+        lines = [f"You {success_verb_phrase} {direction}.", ""]
         lines.extend(render_current_room(destination) or [])
 
         return lines
@@ -51,6 +51,9 @@ class MovementVerbHandler(VerbHandler):
     def go(self, cmd: ExecuteCommand) -> str:
         direction = cmd.direction
         room = self.room()
+
+        if direction is None:
+            return self.build_message("Go where?")
 
         msgs = []
 

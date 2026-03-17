@@ -95,6 +95,15 @@ def register_verbs():
                modifiers=["all", "everything"],
                uses_directions=False),
 
+          Verb("turn", change.turn,
+               synonyms=["rotate"],
+               modifiers=["on", "off", "crank"],
+               uses_directions=False),
+
+          Verb("hit", change.hit,
+               synonyms=["kick", "bash", "smash", "attack", "strike", "club", "smack", "punch"],
+               modifiers=["all", "everything"],
+               uses_directions=False),
 
           # Stateful verbs (require state checks but no changes)
 
@@ -171,7 +180,7 @@ def register_verbs():
                uses_directions=False),
 
           Verb("take", inventory.take,
-               synonyms=["get", "remove"],
+               synonyms=["get", "remove", "loot", "steal"],
                modifiers=["all", "everything", "room"],
                uses_directions=False),
 

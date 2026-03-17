@@ -238,8 +238,8 @@ class VerbHandler:
                 if item is None:
                     continue
                 if isinstance(item, str):
-                    if item.strip():  # skip empty/whitespace-only strings
-                        result.append(item)
+                    # Keep the string even if it's empty (for paragraph breaks)
+                    result.append(item) 
                 elif isinstance(item, (list, tuple)):
                     result.extend(flatten(item))
                 else:
