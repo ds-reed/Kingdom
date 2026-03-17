@@ -51,8 +51,8 @@ class StatefulVerbHandler(VerbHandler):
 
         # state-change pipeline - no state change for eat - just get the message
 
-        if getattr(target, "eaten_success_string", None):
-            result_msg = target.eaten_success_string
+        if getattr(target, "eaten_success_description", None):
+            result_msg = target.eaten_success_description
         else:
             result_msg = f"The {target.canonical_name()} was delicious!"
 
@@ -117,8 +117,8 @@ class StatefulVerbHandler(VerbHandler):
         # ------------- Build the final return string ----------------
         parts: list[str] = []
 
-        if getattr(target, "speak_string", None):
-            parts.append(target.speak_string)
+        if getattr(target, "speak_description", None):
+            parts.append(target.speak_description)
         else:
             parts.append(f"You say something to the {target.canonical_name()}, but it doesn't respond.") 
 

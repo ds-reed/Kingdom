@@ -467,8 +467,6 @@ class ChangeStateVerbHandler(VerbHandler):
         cant_msg = self.basic_checks(
             target,
             capability_attr="is_rubbable",
-            current_state_attr="is_rubbed",
-            desired_state=True,
             verb_phrase="rub",
         )
         if cant_msg:
@@ -499,6 +497,7 @@ class ChangeStateVerbHandler(VerbHandler):
         current_room=self.room()
         keywords = cmd.modifiers if cmd.modifiers else []
         target = cmd.direct_object if cmd.direct_object else None  
+        verb_token = cmd.verb_token if cmd.verb_token else "tie"
 
         indirect, indirect_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("to", "onto"))
       
@@ -513,17 +512,17 @@ class ChangeStateVerbHandler(VerbHandler):
         # 2. Missing target and indirect checks
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("tie"))
+            return self.build_message(self.missing_target(verb_token))
 
         if indirect is None:
             if indirect_name:
-                return self.build_message(f"You don't see any {indirect_name} here to tie the {target.canonical_name()} to.")
-            return self.build_message(f"Tie {target.canonical_name()} to what?")
+                return self.build_message(f"You don't see any {indirect_name} here to {verb_token} the {target.canonical_name()} to.")
+            return self.build_message(f"{verb_token.capitalize()} {target.canonical_name()} to what?")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
-        outcome: VerbOutcome | None = try_item_special_handler(target, "tie", indirect_obj=indirect)
+        outcome: VerbOutcome | None = try_item_special_handler(target, verb_token, indirect_obj=indirect)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
             return self.build_message(outcome.message or "")
 
@@ -535,10 +534,10 @@ class ChangeStateVerbHandler(VerbHandler):
             capability_attr="is_tieable",
             current_state_attr="is_tied",
             desired_state=True,
-            verb_phrase="tie",
+            verb_phrase=verb_token,
             indirect = indirect,
             ind_capability_attr = "can_be_tied_to",
-            ind_phrase = f"tie the {target.canonical_name()} to {indirect_name}" 
+            ind_phrase = f"{verb_token.capitalize()} the {target.canonical_name()} {prep} {indirect_name}" 
         )
         if cant_msg:
             return self.build_message(cant_msg)
@@ -546,11 +545,11 @@ class ChangeStateVerbHandler(VerbHandler):
         # state-change pipeline
         result_msg = self.apply_state_change(
             target=target,
-            verb_phrase="tie",
+            verb_phrase=verb_token,
             state_attr="is_tied",
             desired_state=True,
             indirect=indirect,
-            preposition="to"
+            preposition=prep
         )
 
         # Post-change side effect: enable item for climbing - this is hardcoded for a rope dangling down a cliff at the moment.
@@ -585,6 +584,126 @@ class ChangeStateVerbHandler(VerbHandler):
 
 
     def untie(self, cmd: ExecuteCommand = None) -> str:
-        return self.build_message("Not implemented yet")    
+        return self.build_message("Not implemented yet")   
+    
+    
+    def hit(self, cmd: ExecuteCommand = None) -> str:
+
+
+        player=self.player()
+        current_room=self.room()
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object if cmd.direct_object else None 
+        verb_token = cmd.verb_token if cmd.verb_token else "hit" 
+
+        indirect, indirect_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("on", "of"))
+    
+        if indirect and prep:   # hit top of guard, hit handle of victrola, hit face of guard, etc.
+            target = indirect
+            indirect = None
+
+        if target is None:
+            return self.build_message(self.missing_target(verb_token))
+        
+        outcome: VerbOutcome | None = try_item_special_handler(target, "hit")
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+        
+        # ------------------------------------------------------------
+        # 4. Main logic
+        # ------------------------------------------------------------   
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_hittable",
+            verb_phrase="hit",
+        )
+        if cant_msg:
+            return self.build_message(cant_msg)
+
+        # state-change pipeline
+        result_msg = self.apply_state_change(
+            target=target,
+            verb_phrase="hit",
+            state_attr="is_hit",                 # need to support integers, not just booleans for hit counters.
+            desired_state=True,
+        )   
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        return self.build_message(parts)
+
+
+
+
+    def turn(self, cmd: ExecuteCommand = None) -> str:
+
+
+        current_room=self.room()
+        keywords = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object if cmd.direct_object else None  
+
+        indirect, indirect_name, prep = self.extract_indirect_from_prep_phrases(cmd.prep_phrases, preps=("on", "of"))
+
+        # logic below is not handling on and off case yet as nothing uses it currently, so "on and off" modifiers are ignored right now
+
+        if indirect and prep:
+            target = indirect
+            indirect = None
+        
+        if not target:
+            if "crank" in keywords or "handle" in keywords:
+                items = current_room.items
+                for item in items:
+                    if getattr(item, "has_handle", False):
+                        target = item
+                        break
+
+        if not target:
+            return self.build_message(self.missing_target("turn"))
+        
+
+        outcome: VerbOutcome | None = try_item_special_handler(target, "turn", indirect_obj=indirect)
+        if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
+            return self.build_message(outcome.message or "")
+  
+        cant_msg = self.basic_checks(
+            target,
+            capability_attr="is_turnable",
+            verb_phrase="turn",
+        )
+        if cant_msg:
+            return self.build_message(cant_msg)
+
+        # change the state
+        result_msg  = self.apply_state_change(
+            target=target,
+            verb_phrase="turn",
+            state_attr="is_turned",
+            desired_state=True,
+        )
+
+        # ------------- Build the final return string ----------------
+        parts: list[str] = []
+
+        # Action text (from special handler or state-change)
+        if outcome and outcome.message:
+            parts.append(outcome.message)
+        elif result_msg:
+            parts.append(result_msg)
+
+        return self.build_message(parts)
+        
+
+
+
+
+
+
     
  

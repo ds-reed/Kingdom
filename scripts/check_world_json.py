@@ -43,7 +43,7 @@ class ValidationResult:
         return not self.errors
 
 
-def _is_nonempty_string(value: Any) -> bool:
+def _is_nonempty_description(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
@@ -102,7 +102,7 @@ def _validate_rooms(payload: dict[str, Any], result: ValidationResult) -> None:
             continue
 
         name = room.get("name")
-        if not _is_nonempty_string(name):
+        if not _is_nonempty_description(name):
             result.errors.append(f"{room_label}.name must be a non-empty string.")
             continue
 
@@ -118,14 +118,14 @@ def _validate_rooms(payload: dict[str, Any], result: ValidationResult) -> None:
         if not isinstance(room, dict):
             continue
 
-        room_name = room.get("name") if _is_nonempty_string(room.get("name")) else room_label
+        room_name = room.get("name") if _is_nonempty_description(room.get("name")) else room_label
 
         go_exits = room.get("go_exits", {})
         connection_dirs: set[str] = set()
 
         if isinstance(go_exits, dict):
             for direction, destination in go_exits.items():
-                if not _is_nonempty_string(direction):
+                if not _is_nonempty_description(direction):
                     result.errors.append(f"{room_name}: connection direction keys must be non-empty strings.")
                     continue
 
@@ -188,7 +188,7 @@ def _validate_rooms(payload: dict[str, Any], result: ValidationResult) -> None:
             continue
 
         for item_index, direction in enumerate(hidden_exits):
-            if not _is_nonempty_string(direction):
+            if not _is_nonempty_description(direction):
                 result.errors.append(
                     f"{room_name}: hidden_exits[{item_index}] must be a non-empty direction string."
                 )

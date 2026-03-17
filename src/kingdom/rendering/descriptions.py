@@ -141,7 +141,7 @@ class RoomRenderer:
             "ceiling": 5,
         }
 
-        # This will hold tuples of (bucket_name, object_or_string)
+        # This will hold tuples of (bucket_name, object_or_description)
         render_entries = []
 
 
@@ -272,7 +272,7 @@ class RoomRenderer:
     def describe_item(self, room: Room, item: Item) -> str:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
-        desc = getattr(item, "examine_string", None)
+        desc = getattr(item, "examine_description", None)
         if desc:
             return desc
         return f"You look at {item.stateful_name()} carefully."
@@ -281,7 +281,7 @@ class RoomRenderer:
     def describe_container(self, room: Room, container: Container) -> str:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
-        desc = getattr(container, "examine_string", None)
+        desc = getattr(container, "examine_description", None)
         if desc:
             return desc
         return f"You look at {container.stateful_name()} carefully. There might be something interesting inside."

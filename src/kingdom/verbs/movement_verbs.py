@@ -41,7 +41,7 @@ class MovementVerbHandler(VerbHandler):
         passable = getattr(exit_obj, "is_passable", True)
 
         if not passable:
-            return exit_obj.refuse_string or f"Something is holding you back from {movement_type}ing {direction}."
+            return exit_obj.refuse_description or f"Something is holding you back from {movement_type}ing {direction}."
 
         return None
 
@@ -72,13 +72,13 @@ class MovementVerbHandler(VerbHandler):
                 return self.build_message(movement_refusal)
             return self.build_message(self.perform_movement(go_exit, direction, "go"))   #successful go movement
 
-        # No go exit, but other move types have passable exits in this direction. Collect go_refuse_string(s) if present
+        # No go exit, but other move types have passable exits in this direction. Collect go_refuse_description(s) if present
         else:
             if any_exit:
                 for movement_type in ["swim", "climb"]:
                     exit_obj = room.get_exit(movement_type, direction)
-                    if exit_obj and exit_obj.go_refuse_string:
-                        msgs.append(exit_obj.go_refuse_string if exit_obj.is_passable else f"Something is holding you back from {movement_type}ing {direction}.")
+                    if exit_obj and exit_obj.go_refuse_description:
+                        msgs.append(exit_obj.go_refuse_description if exit_obj.is_passable else f"Something is holding you back from {movement_type}ing {direction}.")
 
         return self.build_message(msgs or f"You can't go {direction} from here.")
 

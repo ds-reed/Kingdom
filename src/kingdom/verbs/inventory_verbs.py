@@ -55,7 +55,8 @@ class InventoryVerbHandler(VerbHandler):
                 if getattr(target, "current_container", None):
                     source = target.current_container
             elif target.get_class_name() == "Container":
-                return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # todo some day..
+                inventory_items = [target]
+  #              return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # todo some day..
         elif "all" in keywords or "everything" in keywords:
             if source:
                 if isinstance(source, Container):
@@ -75,7 +76,7 @@ class InventoryVerbHandler(VerbHandler):
 
         msgs = []
         for item in inventory_items:
-            outcome = try_item_special_handler(item, "take")
+            outcome = try_item_special_handler(item, "take", indirect_obj=source if source else None)  # Pass the source handle as context for the special handler
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
@@ -83,7 +84,7 @@ class InventoryVerbHandler(VerbHandler):
                 if outcome.control == VerbControl.SKIP:
                     continue
             if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
-                refuse = item.take_refuse_string or f"You can't {verb_token} {item.display_name()}."
+                refuse = item.take_refuse_description or f"You can't {verb_token} {item.display_name()}."
                 msgs.append(refuse)
                 continue
 

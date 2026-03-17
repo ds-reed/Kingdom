@@ -69,7 +69,7 @@
                     ],
                     "is_takeable": false,
                     "can_be_spoken_to": true,
-                    "take_refuse_string": "The 10 foot tall djinni glares at you.",
+                    "take_refuse_description": "The 10 foot tall djinni glares at you.",
                     "special_handlers": {
                         "say": "speak_djinni",
                         "make": "make_djinni"
@@ -186,9 +186,9 @@
                                 "cheery",
                                 "orange"
                             ],
-                            "examine_string": "The carrot cheerfully waves hello!",
+                            "examine_description": "The carrot cheerfully waves hello!",
                             "is_edible": true,
-                            "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+                            "eaten_success_description": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
                         },
                         {
                             "name": "fish",
@@ -226,7 +226,7 @@
                             ],
                             "is_rubbable": true,
                             "rubbed_state_description": "a battered and shiny brass lamp.",
-                            "rub_success_string": "The lamp grows shiny from rubbing.",
+                            "rub_success_description": "The lamp grows shiny from rubbing.",
                             "trigger_room": "Blank Chamber",
                             "special_handlers": {
                                 "rub": "rub_lamp"
@@ -242,7 +242,7 @@
                                 "plastic"
                             ],
                             "can_ignite": true,
-                            "ignite_success_string": "You flick the lighter and a small flame appears."
+                            "ignite_success_description": "You flick the lighter and a small flame appears."
                         }
                     ]
                 }
@@ -380,7 +380,7 @@
                     "close_action_description": "You push the wardrobe doors shut.",
                     "open_exit_direction": "west",
                     "open_exit_type": "Narnia",
-                    "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable."
+                    "examine_description": "An old, oversized wooden wardrobe. The doors look stiff, but usable."
                 }
             ],
             "features": [],
@@ -479,7 +479,7 @@
                         "anchored"
                     ],
                     "is_takeable": false,
-                    "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
+                    "examine_description": "This massive iron hook appears as though it could bear a lot of weight.",
                     "can_be_tied_to": true
                 }
             ],

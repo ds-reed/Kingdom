@@ -21,13 +21,13 @@
           "adjectives": ["imposing", "tall"],
           "is_takeable": false,
           "can_be_spoken_to": true,
-          "take_refuse_string": "The 10 foot tall djinni glares at you.",
+          "take_refuse_description": "The 10 foot tall djinni glares at you.",
           "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
         },
         {
           "name": "peel",
           "description": "slippery banana peel",
-          "examine_string": "a slippery banana peel that looks like it could cause a nasty fall if someone stepped on it...",
+          "examine_description": "a slippery banana peel that looks like it could cause a nasty fall if someone stepped on it...",
           "adjectives": ["slippery", "slick"],
           "special_handlers": { "throw": "throw_peel" },
           "discover_points": 10
@@ -68,7 +68,7 @@
             "destination": "Cell Antechamber",
             "is_visible": true,
             "is_passable": false,
-            "refuse_string": "The cell door is firmly shut."
+            "refuse_description": "The cell door is firmly shut."
           }
         }
       }
@@ -100,10 +100,10 @@
         {
           "name": "pole",
           "description": "a greasy pole.",
-          "examine_string": "a firestation-type pole that is slathered in slippery grease",
+          "examine_description": "a firestation-type pole that is slathered in slippery grease",
           "adjectives": ["greasy"],
           "is_takeable": false,
-          "take_refuse_string": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+          "take_refuse_description": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
           "is_climbable": true,
           "climb_directions": ["down"],
           "is_visible": false
@@ -115,11 +115,11 @@
           "description": "a guard's lifeless body",
           "location_description": "lies slumped on the floor.",
           "render_priority": 200,
-          "examine_string": "The lifeless body of a prison guard lies slumped on the floor, his uniform stained with what looks like remains of his lunch.",
+          "examine_description": "The lifeless body of a prison guard lies slumped on the floor, his uniform stained with what looks like remains of his lunch.",
           "adjectives": ["lifeless", "prison", "guard"],
           "synonyms": ["guard", "uniform", "pockets"],
           "is_takeable": false,
-          "take_refuse_string": "You can't take the body, but you can search it if you like.",
+          "take_refuse_description": "You can't take the body, but you can search it if you like.",
           "items": [
             {
               "name": "cigarettes",
@@ -134,7 +134,7 @@
               "adjectives": ["cheap", "plastic"],
               "can_ignite": true,
               "is_flamable": false,
-              "ignite_success_string": "You flick the lighter and a small flame appears."
+              "ignite_success_description": "You flick the lighter and a small flame appears."
             },
             {
               "name": "key",
@@ -191,12 +191,12 @@
             {
             "name": "window",
             "description": "a narrow barred window is set high in the wall, allowing a thin shaft of light to pierce the gloom.",
-            "examine_string": "it is set high in the wall, allowing a thin shaft of light to pierce the gloom. The bars are made of sturdy iron and are firmly embedded into the stone, making escape through the window impossible. "
+            "examine_description": "it is set high in the wall, allowing a thin shaft of light to pierce the gloom. The bars are made of sturdy iron and are firmly embedded into the stone, making escape through the window impossible. "
             },
             {
             "name": "door",
             "description": "a sturdy wooden door is set into the north wall.",
-            "examine_string": "that its surface is scarred with scratches and dents. It is firmly bolted shut from the outside, and there is no handle or keyhole visible.",
+            "examine_description": "that its surface is scarred with scratches and dents. It is firmly bolted shut from the outside, and there is no handle or keyhole visible.",
             "adjectives": ["bolted", "wooden", "north"]
             }
         ],
@@ -213,7 +213,7 @@
             "destination": "Pole Landing",
             "is_visible": true,
             "is_passable": false,
-            "go_refuse_string": "The pole descends into utter darkness. Did you want to slide down?"
+            "go_refuse_description": "The pole descends into utter darkness. Did you want to slide down?"
           }
         }
       }
@@ -227,7 +227,7 @@
             "description": "a greasy pole.",
             "adjectives": ["greasy"],
             "is_takeable": false,
-            "take_refuse_string": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+            "take_refuse_description": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
             "is_climbable": false,
             "climb_directions": ["up"],
             "is_visible": false
@@ -243,7 +243,7 @@
               "is_visible": true,
               "is_passable": false,
               "is_never_passable": true,
-              "refuse_string": "The pole is extremely slippery and cannot be climbed."
+              "refuse_description": "The pole is extremely slippery and cannot be climbed."
             }
         }
       }
@@ -279,9 +279,12 @@
         {
         "name": "victrola",
         "description": "an old-fashioned Victrola with a large brass horn and a hand crank",
-        "examine_string": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
+        "examine_description": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
         "adjectives": ["old-fashioned", "brass"],
-        "turn_success_string": "You turn the crank, and the Victrola emits a haunting melody that echoes through the passageway.",
+        "turn_action_description": "You turn the crank on the victrola and a cloud of dirty black smoke issues from its cone. It groans out a soft magical sounding tone, but obviously (?) this victrola is broken. (?)",
+        "is_turnable": true,
+        "is_turned": false,
+        "has_handle": true,
         "is_takeable": false,
         "is_fixed": true,
         "special_handlers": { "hit": "hit_victrola" }
@@ -312,7 +315,7 @@
         {
         "name": "alcove",
         "description": "a shallow stone alcove",
-        "examine_string": "The alcove is shallow and carved directly into the stone wall. The interior is faintly illuminated by the strange light as though it holds some hidden secret.",
+        "examine_description": "The alcove is shallow and carved directly into the stone wall. The interior is faintly illuminated by the strange light as though it holds some hidden secret.",
         "location_description": "is carved into the far wall",
         "adjectives": ["shallow", "stone"],
         "is_takeable": false,
@@ -331,7 +334,7 @@
               "is_lit": true,
               "lit_state_description": "a battered brass lamp that is glowing with a magical light",
               "is_flamable": false,
-              "rub_success_string": "The lamp grows shiny from rubbing.",
+              "rub_success_description": "The lamp grows shiny from rubbing.",
               "rubbed_state_description": "a battered and shiny brass lamp",
               "special_handlers": { "rub": "rub_lamp" },
               "trigger_room": "Blank Chamber"
@@ -363,7 +366,7 @@
               "destination": "Colossal Cave",
               "is_visible": false,
               "is_passable": false,
-              "refuse_string": "You can't travel west here"
+              "refuse_description": "You can't travel west here"
             },
             "east": {"destination": "Twisting Passage (North Bend)"}
            }
@@ -393,7 +396,60 @@
           "west": {
             "destination": "Pool Ledge",
             "is_visible": false,
-            "go_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+            "go_refuse_description": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+          }
+        }
+      }
+    },
+    {
+      "name": "Pool Ledge",
+      "description": "on a narrow ledge across the pool.",
+      "discover_points": 10,
+      "is_dark": true,
+      "dark_description": "It is pitch dark. You can't see anything.",
+      "has_water": true,
+      "items": [
+        {
+          "name": "lantern",
+          "description": "a lit silver lantern",
+          "adjectives": ["silver"],
+          "light_source": true,
+          "is_lit": true,
+          "is_flamable": false
+        }
+      ],
+      "containers": [
+        {
+          "name": "mermaid",
+          "description": "a beautiful mermaid with shimmering scales and flowing hair",
+          "is_openable": true,
+          "is_open": true,
+          "is_transparent": true,
+          "is_tradable": true,
+          "is_takeable": true,
+          "trade_refuse_description": "The mermaid is not interested in trading for that.",
+          "examine_description": "A beautiful mermaid with shimmering scales and flowing hair.",
+          "special_handlers": { "take": "take_mermaid"},
+          "items": [
+            {
+              "name": "vase",
+              "description": "a magnificent vase carved from a single emerald, with intricate patterns etched into its surface",
+              "adjectives": ["magnificent", "emerald"],
+              "is_takeable": false
+            }
+          ]
+        }
+      ],
+      "exits": {
+        "go": {
+          "north": {
+            "destination": "tunnel"
+          }
+        },
+        "swim": {
+          "east": {
+            "destination": "Colossal Cave",
+            "go_refuse_description": "There is a large pool of water blocking your way east, although you do see solid ground on the other side."
           }
         }
       }

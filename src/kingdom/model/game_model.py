@@ -405,7 +405,7 @@ def _resolve_unified_exits(room, exits_block, room_by_name):
                 is_visible=exit_obj.get("is_visible", True),
                 is_passable=exit_obj.get("is_passable", True),
                 is_never_passable=exit_obj.get("is_never_passable", False),
-                refuse_string=exit_obj.get("refuse_string"),
-                go_refuse_string=exit_obj.get("go_refuse_string")
+                refuse_description=exit_obj.get("refuse_description"),
+                go_refuse_description=exit_obj.get("go_refuse_description")
             )
 

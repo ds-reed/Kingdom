@@ -13,7 +13,8 @@ from typing import Callable, Optional
 from enum import Enum, auto
 
 from kingdom.model.game_model import get_game
-from kingdom.model.noun_model import Item, Noun
+from kingdom.model.noun_model import Item, Noun, Room
+from kingdom.rendering.descriptions import render_current_room
 
 
 class VerbControl(Enum):
@@ -35,7 +36,7 @@ class VerbOutcome:
 # ------------------------------------------------------------
 
 ItemBehaviorHandler = Callable[
-    [object, str, tuple[str, ...], "object | None"],
+    [object, str, "object | None", dict],
     Optional[VerbOutcome] | Optional[str] | None
 ]
 
@@ -61,29 +62,28 @@ def get_behavior(name: str) -> Optional[ItemBehaviorHandler]:
 def try_item_special_handler(
     target: object,
     verb_name: str,
+    indirect_obj: object = None,
     **kwargs,
 ) -> str | None:
-    """
-    Unified special-handler lookup and execution.
-    Returns the handler's result if it overrides the verb,
-    or None if no special handling occurred.
-    """
 
-    if target is None:
+
+    if target is None and indirect_obj is None:
         return None
 
-    # Look up handler name from the item's special_handlers dict
-    handler_name = getattr(target, "special_handlers", {}).get(verb_name)
-    if not handler_name:
-        return None
+    if target and getattr(target, "special_handlers", {}).get(verb_name):
+        handler_name = target.special_handlers[verb_name]
+        handler = get_behavior(handler_name)
+        if handler:
+            return handler(target, verb_name, indirect_obj=indirect_obj, **kwargs)
+        
+    if indirect_obj and getattr(indirect_obj, "special_handlers", {}).get(verb_name):
+        handler_name = indirect_obj.special_handlers[verb_name]
+        handler = get_behavior(handler_name)
+        if handler:
+            return handler(target, verb_name, indirect_obj=indirect_obj, **kwargs)
 
-    # Resolve the behavior function
-    handler = get_behavior(handler_name)
-    if handler is None:
-        return None
+    return None
 
-    # Execute the handler
-    return handler(target, verb_name, **kwargs)
 
 
 
@@ -91,7 +91,7 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_string: str) -> None:
+def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_description: str) -> None:
 
     game=get_game()
     room = getattr(game, "current_room", None)
@@ -108,7 +108,7 @@ def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: st
         name,
         handle=handle,
         is_takeable=is_takeable,
-        take_refuse_string=take_refuse_string,
+        take_refuse_description=take_refuse_description,
         )
     
     room.items.append(new_item)   
@@ -143,7 +143,7 @@ def eat_fish(item, verb, **kwargs):
         name="it looks like someone has been violently ill on a nearby wall",
         handle="vomit",
         is_takeable=False,      
-        take_refuse_string="EW! The nasty vomit just makes your hands dirty."
+        take_refuse_description="EW! The nasty vomit just makes your hands dirty."
     )
 
     # Final message
@@ -224,7 +224,7 @@ def rub_lamp(item, verb, **kwargs):
             message=(
                 "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
                 "The smoke solidifies into a an imposing djinni!\n"
-                "He intones: 'MYPCLY JUBURUAY MIT DE DIGNIC PIC?' and looks at you inquiringly.\n"
+                "He intones: ' \"MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?\"' and looks at you inquiringly.\n"
                 "(This means in magic Arabic, 'I will grant you one wish.')"
             ),
             control=VerbControl.STOP
@@ -334,3 +334,45 @@ def drop_torch(item, verb_name, indirect_obj = None, **kwargs):
 
             return VerbOutcome(message=message, control=VerbControl.STOP)
     return None
+
+
+#----------------------- magic victrola ------------------
+@register_item_behavior("hit_victrola")
+def hit_victrola(item, verb_name, indirect_obj = None, **kwargs):
+    game = get_game()
+    room = getattr(game, "current_room", None)
+
+    message = []
+    message.append("You strike the Victrola with a mighty blow!")
+    message.append("The Victrola shudders violently and begins to play.")
+    message.append("The haunting magical melody swells and seems to fill the room.")
+
+    desired_room_name = game.world.start_room_name
+    desired_room = Room.by_name(desired_room_name)
+    game.current_room = desired_room
+
+    message.append("Suddenly, you find yourself transported back to your starting location!")
+    message.append("")
+
+    message.append(render_current_room(desired_room))
+
+    return VerbOutcome(message=message, control=VerbControl.SKIP)
+
+
+#----------------------- mermaid ------------------
+@register_item_behavior("take_mermaid")
+def take_mermaid(item, verb_name, indirect_obj = None, **kwargs):
+
+    if indirect_obj and indirect_obj.canonical_name() == "mermaid":
+        if item.current_container and item.current_container.canonical_name() == "mermaid":
+            message = f"The mermaid clutches {item.canonical_name()} protectively and refuses to let you take it."
+            return VerbOutcome(message=message, control=VerbControl.SKIP)
+        else:
+            message = f"The mermaid doesn't have {item.canonical_name()}."
+            return VerbOutcome(message=message, control=VerbControl.SKIP)
+    if item.canonical_name() == "mermaid":
+        message = "The mermaid sees your intentions and bares her sharply pointed teeth menacingly."
+        return VerbOutcome(message=message, control=VerbControl.SKIP)
+    return None
+
+    

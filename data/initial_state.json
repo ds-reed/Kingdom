@@ -21,7 +21,7 @@
           "adjectives": ["imposing", "tall"],
           "is_takeable": false,
           "can_be_spoken_to": true,
-          "take_refuse_string": "The 10 foot tall djinni glares at you.",
+          "take_refuse_description": "The 10 foot tall djinni glares at you.",
           "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
         }
       ],
@@ -77,10 +77,10 @@
         {
           "name": "ladder",
           "description": "a magic ladder hums with soft blue light.",
-          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
+          "examine_description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
           "adjectives": ["magic", "glittering", "soft blue"],
           "is_takeable": false,
-          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
+          "take_refuse_description": "The ladder is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["up"],
           "is_visible": false,
@@ -89,10 +89,10 @@
         {
           "name": "pole",
           "description": "a greasy pole.",
-          "examine_string": "a firestation-type pole that is slathered in slippery grease",
+          "examine_description": "a firestation-type pole that is slathered in slippery grease",
           "adjectives": ["greasy"],
           "is_takeable": false,
-          "take_refuse_string": "The pole is firmly anchored to the floor and ceiling",
+          "take_refuse_description": "The pole is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["down"],
           "is_visible": false,
@@ -119,9 +119,9 @@
               "adjectives": ["cheery", "orange"],
               "is_edible": true,
               "can_be_spoken_to": true,
-              "speak_string": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!",
-              "examine_string": "The carrot cheerfully waves hello!",
-              "eaten_success_string": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+              "speak_description": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!",
+              "examine_description": "The carrot cheerfully waves hello!",
+              "eaten_success_description": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
             },
             {
               "name": "fish",
@@ -145,7 +145,7 @@
               "is_rubbable": true,
               "is_rubbed": false,
               "is_flamable": false,
-              "rub_success_string": "The lamp grows shiny from rubbing.",
+              "rub_success_description": "The lamp grows shiny from rubbing.",
               "rubbed_state_description": "a battered and shiny brass lamp",
               "special_handlers": { "rub": "rub_lamp" },
               "trigger_room": "Blank Chamber"
@@ -156,7 +156,7 @@
               "adjectives": ["cheap", "plastic"],
               "can_ignite": true,
               "is_flamable": false,
-              "ignite_success_string": "You flick the lighter and a small flame appears."
+              "ignite_success_description": "You flick the lighter and a small flame appears."
             }
           ]
         }
@@ -165,14 +165,14 @@
         "climb": {
           "up": {
             "destination": "Demo Landing",
-            "go_refuse_string": "You can't walk that direction, did you mean to climb the ladder?"
+            "go_refuse_description": "You can't walk that direction, did you mean to climb the ladder?"
           },
           "down": {
             "destination": "Blank Chamber",
             "is_visible": true,
             "is_passable": false,
-            "refuse_string": "The trapdoor is firmly shut.",
-            "go_refuse_string": "You can't walk that direction, did you want to slide down the greasy pole?"
+            "refuse_description": "The trapdoor is firmly shut.",
+            "go_refuse_description": "You can't walk that direction, did you want to slide down the greasy pole?"
           }
         }
       }
@@ -200,7 +200,7 @@
               "destination": "Colossal Cave",
               "is_visible": false,
               "is_passable": false,
-              "refuse_string": "You can't travel west here"
+              "refuse_description": "You can't travel west here"
             }
           },
           "climb": {
@@ -208,7 +208,7 @@
               "destination": "Tower Cell",
               "is_visible": true,
               "is_passable": false,
-              "refuse_string": "The pole is extremely slippery and cannot be climbed."
+              "refuse_description": "The pole is extremely slippery and cannot be climbed."
             }
 
           }
@@ -240,7 +240,7 @@
           "west": {
             "destination": "Pool Ledge",
             "is_visible": false,
-            "go_refuse_string": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+            "go_refuse_description": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
           }
         }
       }
@@ -272,7 +272,7 @@
           "close_action_description": "You push the wardrobe doors shut.",
           "opened_state_description": "a large wooden wardrobe standing open, packed tightly with old overcoats. Faint, diffuse light seems to filter through from behind them",
           "closed_state_description": "a large wooden wardrobe with its heavy doors closed",
-          "examine_string": "An old, oversized wooden wardrobe. The doors look stiff, but usable",
+          "examine_description": "An old, oversized wooden wardrobe. The doors look stiff, but usable",
           "items": []
         }
       ],
@@ -282,13 +282,13 @@
             "destination": "Narnia",
             "is_visible": false,
             "is_passable": false,
-            "refuse_string": "You can't travel west here"
+            "refuse_description": "You can't travel west here"
           }
         },
         "swim": {
           "east": {
             "destination": "Colossal Cave",
-            "go_refuse_string": "There is a large pool of water blocking your way east, although you do see solid ground on the other side."
+            "go_refuse_description": "There is a large pool of water blocking your way east, although you do see solid ground on the other side."
           }
         }
       }
@@ -314,10 +314,10 @@
        {
           "name": "ladder",
           "description": "a magic ladder hums with soft blue light.",
-          "examine_string": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
+          "examine_description": "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
           "adjectives": ["magic", "glittering", "soft blue"],
           "is_takeable": false,
-          "take_refuse_string": "The ladder is firmly anchored to the floor and ceiling",
+          "take_refuse_description": "The ladder is firmly anchored to the floor and ceiling",
           "is_climbable": true,
           "climb_directions": ["down"],
           "is_visible": false
@@ -342,7 +342,7 @@
         "climb": {
           "down": {
             "destination": "Tower Cell",
-            "go_refuse_string": "You can't walk that direction, did you mean to climb down the ladder?"
+            "go_refuse_description": "You can't walk that direction, did you mean to climb down the ladder?"
           }
         }
       }
@@ -367,7 +367,7 @@
           "name": "hook",
           "description": "an iron hook is firmly anchored into the rock at the ravine's edge",
           "adjectives": ["iron", "anchored"],
-          "examine_string": "This massive iron hook appears as though it could bear a lot of weight.",
+          "examine_description": "This massive iron hook appears as though it could bear a lot of weight.",
           "is_takeable": false,
           "is_tied_to": false,
           "can_be_tied_to": true
@@ -396,8 +396,8 @@
         "climb": {
           "down": {
             "destination": "Clover Rest",
-            "refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
-            "go_refuse_string": "You can't go that way - there's a sheer cliff you need to scale."
+            "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
           }
         }
       }
@@ -430,8 +430,8 @@
         "climb": {
           "up": {
             "destination": "Ravine Edge",
-            "refuse_string": "The ravine wall is too steep - you may need to prepare some equipment.",
-            "go_refuse_string": "You can't go that way - there's a sheer cliff you need to scale."
+            "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
           }
         }
       }

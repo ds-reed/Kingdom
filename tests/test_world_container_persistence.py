@@ -112,7 +112,7 @@ def test_room_features_roundtrip_save_load(tmp_path: Path) -> None:
     feature = Feature(
         name="mural",
         description="a faded mural",
-        examine_string="A faded mural depicts a forgotten king.",
+        examine_description="A faded mural depicts a forgotten king.",
         synonyms=["wall mural", "painting"],
     )
     tower_cell.add_feature(feature)
@@ -127,5 +127,5 @@ def test_room_features_roundtrip_save_load(tmp_path: Path) -> None:
 
     assert loaded is not None
     assert loaded.description == "a faded mural"
-    assert loaded.examine_string == "A faded mural depicts a forgotten king."
+    assert loaded.examine_description == "A faded mural depicts a forgotten king."
     assert "painting" in loaded.synonyms

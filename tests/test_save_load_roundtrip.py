@@ -34,7 +34,7 @@ CONTAINER_FIELDS = [
     "locked_description",
     "open_exit_direction",
     "open_exit_type",
-    "examine_string",
+    "examine_description",
 ]
 
 ITEM_FIELDS = [
@@ -49,7 +49,7 @@ ITEM_FIELDS = [
     "unlit_state_description",
     "open_action_description",
     "close_action_description",
-    "examine_string",
+    "examine_description",
     "open_exit_direction",
     "open_exit_type",
     "is_lockable",
@@ -63,16 +63,16 @@ ITEM_FIELDS = [
     "is_lightable",
     "is_lit",
     "can_ignite",
-    "ignite_success_string",
+    "ignite_success_description",
     "is_rubbable",
     "is_rubbed",
     "rubbed_state_description",
-    "rub_success_string",
+    "rub_success_description",
     "trigger_room",
     "too_heavy_to_swim",
-    "eat_refuse_string",
-    "eaten_success_string",
-    "take_refuse_string",
+    "eat_refuse_description",
+    "eaten_success_description",
+    "take_refuse_description",
     "special_handlers",
 ]
 
@@ -106,8 +106,8 @@ def _exit_snapshot(room: Room) -> dict[str, dict[str, dict[str, object]]]:
                 "destination": exit_obj.destination.name if exit_obj.destination else None,
                 "is_visible": bool(exit_obj.is_visible),
                 "is_passable": bool(exit_obj.is_passable),
-                "refuse_string": exit_obj.refuse_string,
-                "go_refuse_string": exit_obj.go_refuse_string,
+                "refuse_description": exit_obj.refuse_description,
+                "go_refuse_description": exit_obj.go_refuse_description,
             }
         if movement_payload:
             snapshot[movement_type] = movement_payload
@@ -166,7 +166,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         locked_description="The sentinel box is locked tight.",
         open_exit_direction="down",
         open_exit_type=anchor.name,
-        examine_string="A carefully instrumented box.",
+        examine_description="A carefully instrumented box.",
     )
     sentinel_room.add_container(sentinel_container)
 
@@ -182,7 +182,7 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         unlit_state_description="It is unlit.",
         open_action_description="You open it.",
         close_action_description="You close it.",
-        examine_string="Highly instrumented test item.",
+        examine_description="Highly instrumented test item.",
         open_exit_direction="up",
         open_exit_type=anchor.name,
         is_lockable=True,
@@ -196,16 +196,16 @@ def test_save_load_roundtrip_preserves_tracked_room_container_item_fields(tmp_pa
         is_lightable=True,
         is_lit=True,
         can_ignite=True,
-        ignite_success_string="Ignited.",
+        ignite_success_description="Ignited.",
         is_rubbable=True,
         is_rubbed=True,
         rubbed_state_description="Rubbed smooth.",
-        rub_success_string="You rub the item.",
+        rub_success_description="You rub the item.",
         trigger_room=sentinel_room.name,
         too_heavy_to_swim=True,
-        eat_refuse_string="Do not eat this.",
-        eaten_success_string="Crunch.",
-        take_refuse_string="No getting this one.",
+        eat_refuse_description="Do not eat this.",
+        eaten_success_description="Crunch.",
+        take_refuse_description="No getting this one.",
         special_handlers={"rub": "rub_lamp", "eat": "eat_fish"},
     )
     sentinel_room.add_item(sentinel_item)
