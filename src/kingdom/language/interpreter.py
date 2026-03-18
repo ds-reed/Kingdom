@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 
 from kingdom.model.direction_model import DIRECTIONS
+from kingdom.model.game_model import get_game
 from kingdom.model.noun_model import Item, World
 from kingdom.model.verb_model import Verb 
 
@@ -79,6 +80,36 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
     # Internal workflow for a single ParsedAction
     # ----------------------------------------------------------------------
 
+    def _iter_local_target_candidates(world: World):
+        game = get_game()
+        if getattr(game, "current_room", None) is not None:
+
+            yield game.current_room
+            for item in game.current_room.items:
+                yield item
+            for container in game.current_room.containers:
+                yield container
+                if not container.is_openable or container.is_open:
+                    for item in container.contents:
+                        yield item
+            for feature in game.current_room.features:
+                yield feature
+
+        player = getattr(game, "current_player", None)
+        if player is not None:
+            for item in player.sack.contents:
+                yield item
+
+
+    def _resolve_target_noun(world: World, target_name) -> object | None:
+
+        local_candidates = list(_iter_local_target_candidates(world))
+        for candidate in local_candidates:
+            if candidate.matches_reference(target_name):
+                return candidate
+        return None
+
+
     def _interpret_single_action(action: ParsedAction) -> List[InterpretedCommand]:
         """Interpret a single ParsedAction into zero, one, or many InterpretedCommands."""
 
@@ -99,17 +130,21 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             if not action.object_phrases:
                 return None
 
-            # The direct object NP is always the first object phrase
+            # TODO: The direct object NP is always the first object phrase until multi object support is implemented.
             np = action.object_phrases[0]
             head = np["head"]
 
-            noun_entry = lexicon.token_to_noun.get(head)
+            target_candidate = lexicon.token_to_noun.get(head)
+            if target_candidate is not None:
+                target = _resolve_target_noun(world, target_candidate.noun_object.handle) if target_candidate.noun_object else None
+            else:
+                target = None
 
             return InterpretedTarget(
                 token_phrase=np,
                 token_head=head,
                 token_adjectives=np.get("adjectives", []),
-                noun_object=noun_entry.noun_object if noun_entry else None,
+                noun_object=target if target else None,
             )
 
             
