@@ -1,7 +1,9 @@
-# Main → Parse → Interpret → Execute → Render  
-_Architectural Overview of the Command Processing Pipeline_
+# Main -> Parse -> Interpret -> Execute -> Render
+_Current Architectural Overview of the Command Processing Pipeline_
 
-This document defines the high‑level flow of player input through the engine. It establishes the responsibilities and boundaries of each layer: **Main**, **Parser**, **Interpreter**, **Executor**, and **Renderer**. The goal is a clean, rediscoverable architecture where each layer has a single, well‑defined purpose and no layer leaks responsibilities into another.
+This document reflects the current implementation of the command pipeline.
+
+It describes responsibilities and boundaries of Main, Parser, Interpreter, Executor, and Renderer as they exist today.
 
 ---
 
@@ -9,175 +11,184 @@ This document defines the high‑level flow of player input through the engine. 
 
 The engine processes a player command through five sequential layers:
 
-1. **Main** — orchestration only  
-2. **Parser** — syntax extraction  
-3. **Interpreter** — semantic interpretation and disambiguation  
-4. **Executor** — verb behavior and world mutation  
-5. **Renderer** — narrative output
+1. Main (orchestration)
+2. Parser (syntax extraction)
+3. Interpreter (semantic mapping)
+4. Executor (verb execution and world mutation)
+5. Renderer (room/summary text formatting)
 
-The parser may return **multiple ParsedActions** (e.g., “unlock and open trapdoor”).  
-The Interpreter converts each ParsedAction into **zero, one, or many InterpretedCommands**.  
-The Executor executes each InterpretedCommand **one at a time**.
+Important current-state notes:
+
+- parse returns a list of ParsedAction, but current parser implementation produces one ParsedAction per raw command
+- interpret currently produces one InterpretedCommand per ParsedAction
+- execute runs one InterpretedCommand at a time and returns CommandOutcome
+- per-command output is currently printed directly from outcome.message in the orchestration layer
 
 ---
 
 ## 2. Main (Orchestration Layer)
 
-Main is responsible for:
+Main and orchestration live in:
 
-- receiving raw input from the UI  
-- invoking the parser  
-- invoking the interpreter  
-- invoking the executor  
-- invoking the renderer  
-- updating the world state  
-- looping for the next command  
+- main.py
+- src/kingdom/engine/exception_handling.py
 
-Main does **not** interpret syntax, resolve meaning, execute verbs, or render text.
+Responsibilities:
 
-### Main Loop (Conceptual)
+- receive raw input from UI
+- invoke parse -> interpret -> execute
+- print command outcomes
+- handle lifecycle exceptions (SaveGame, LoadGame, QuitGame, GameOver)
+- manage recovery mode behavior
+- loop for next command
+
+Main does not implement parser logic, semantic resolution, or verb rule logic.
+
+### Main Loop (Current Conceptual Shape)
 
 ```python
-raw = ui.get_input()
+raw = ui.prompt("\n> ")
+parsed_actions = parse(raw, lexicon)
+interpreted_commands = interpret(parsed_actions, world, lexicon)
 
-parsed_actions = parser.parse(raw)
-
-Interpreted_commands = interpreter.interpret(parsed_actions, world)
-
-outcomes = []
-for Interpreted in Interpreted_commands:
-    outcomes.append(executor.execute(Interpreted, world))
-
-renderer.render(outcomes, ui)
+for cmd in interpreted_commands:
+    outcome = execute(cmd, world, raw)
+    ui.print(outcome.message if outcome else "Command executed.")
 ```
 
 ---
 
 ## 3. Parser (Syntactic Layer)
 
-The parser converts raw text into one or more **ParsedActions**, each representing a syntactic command fragment.
+Parser module: src/kingdom/language/parser.py
+
+The parser converts raw input text into ParsedAction structures.
 
 ### Responsibilities
 
-- normalize text  
-- tokenize  
-- identify verbs  
-- identify noun phrases  
-- identify prepositional phrases  
-- identify direction tokens  
-- identify modifiers (including “all”)  
-- preserve character spans  
-- attach syntactic diagnostics  
-- split multi‑verb commands (“unlock and open trapdoor”)  
+- normalize and tokenize text
+- identify verb candidates and verb source
+- collect object phrases
+- collect and canonicalize prepositional phrase shape
+- capture direction and modifier tokens
+- track unknown tokens
 
-### Output: `List[ParsedAction]`
+### Output: list[ParsedAction]
 
-Each `ParsedAction` contains:
+Current ParsedAction fields include:
 
-- `primary_verb_token` + canonical verb  
-- `object_phrases`  
-- `prep_phrases`  
-- `direction_tokens`  
-- `modifiers`  
-- `raw_text`  
-- `diagnostics`  
+- raw_text
+- tokens
+- primary_verb
+- primary_verb_token
+- verb_source
+- object_phrases
+- prep_phrases
+- conjunction_groups
+- direction_tokens
+- modifier_tokens
+- unknown_tokens
 
 ---
 
 ## 4. Interpreter (Semantic Layer)
 
-The Interpreter converts each `ParsedAction` into **zero, one, or many InterpretedCommands**.  
-This step is **pure**, **deterministic**, and **side‑effect‑free**.
+Interpreter module: src/kingdom/language/interpreter.py
+
+The interpreter maps ParsedAction into InterpretedCommand for execution.
 
 ### Responsibilities
 
-- confirm and interpret the verb  
-- resolve noun phrases to world objects  
-- detect and resolve ambiguity  
-- interpret direction tokens  
-- classify prepositional phrases  
-- interpret modifiers and quantifiers  
-- enforce verb argument rules  
-- preserve surface forms  
-- attach semantic diagnostics  
-- expand “all” **only if** the verb’s signature allows it  
-  (`verb.supports_all_expansion == True`)  
+- resolve verb object from parsed verb data
+- map direct object token data into interpreted target shape
+- map prepositional targets
+- map direction and modifiers for execution
+- provide implicit movement behavior when no explicit verb is present
 
-### Output: `List[InterpretedCommand]`
+### Output: list[InterpretedCommand]
 
-- **0** → invalid or unresolvable  
-- **1** → normal case  
-- **N** → ALL expansion or multi-target verbs  
+Current behavior:
+
+- one InterpretedCommand per ParsedAction in normal flow
+- no active ALL expansion in interpreter at this time
+- ambiguity handlers are present as placeholders and currently return no expansion
 
 ---
 
 ## 5. Executor (Action Layer)
 
-The Executor takes a single `InterpretedCommand` and applies the verb’s behavior to the world.
+Executor module: src/kingdom/language/executor.py
+
+The executor adapts interpreted commands to the verb-handler contract and executes verb logic.
 
 ### Responsibilities
 
-- invoke the correct verb handler  
-- apply world changes  
-- generate execution messages  
-- generate execution diagnostics  
-- determine whether the room should be re-rendered  
+- build ExecuteCommand payload for verb handlers
+- resolve target objects against current room and inventory context
+- invoke verb.execute with compatibility bridging
+- return CommandOutcome
 
-### Output: `CommandOutcome`
+### Output: CommandOutcome
 
-Contains:
+Current CommandOutcome fields:
 
-- `Interpreted: InterpretedCommand`  
-- `messages: List[str]`  
-- `effects` (world state delta)  
-- `diagnostics`  
-- `should_render_room: bool`  
+- verb: str
+- command: InterpretedCommand
+- message: str
+- effects: list[str]
 
-Renderer does **not** inspect world state or effects.
+Notes:
+
+- diagnostics and should_render_room flags are not currently part of CommandOutcome
+- outcome.message is emitted directly by orchestration via UI print
 
 ---
 
 ## 6. Renderer (Narrative Layer)
 
-The renderer receives a list of **CommandOutcome** objects and produces narrative output.
+Renderer modules:
 
-It uses:
+- src/kingdom/rendering/descriptions.py
+- src/kingdom/rendering/command_results.py
+- src/kingdom/rendering/textutils.py
 
-- the semantic interpretation (`InterpretedCommand`)  
-- the execution results  
-- the exact player‑typed phrases  
+Current renderer role:
 
-Renderer does **not** parse, resolve, or mutate world state.
+- render room descriptions (for startup, load, and recovery transitions)
+- render summary/exit text helpers
+- provide shared text formatting utilities
 
----
+Current architecture note:
 
-## 7. Data Flow Summary
-
-```
-UI Input
-   ↓
-Main
-   ↓
-Parser → ParsedActions (syntax only)
-   ↓
-Interpreter → InterpretedCommands (meaning only)
-   ↓
-Executor → CommandOutcome (execution + messages)
-   ↓
-Renderer
-   ↓
-UI Output
-```
+- there is not yet a dedicated render(outcomes) pass for each command turn
+- most per-turn verb output currently comes from verb handler message strings
 
 ---
 
-## 8. Future Document: Verb Handling Pipeline
+## 7. Data Flow Summary (Current)
 
-The Executor will delegate verb behavior to a dedicated **Verb Handling Pipeline**, which will define:
+```text
+UI input
+  -> Main/process_command
+  -> Parser (ParsedAction list)
+  -> Interpreter (InterpretedCommand list)
+  -> Executor (CommandOutcome)
+  -> UI print outcome.message
 
-- required / optional arguments  
-- whether “all” expansion is allowed  
-- how prepositions and modifiers are interpreted  
-- default success/failure messages  
-- verb handler lookup  
+Room transitions and lifecycle events:
+  model state -> rendering helpers -> UI.render_room
+```
+
+---
+
+## 8. Near-Term Evolution
+
+The current pipeline is functional, with transitional seams still visible.
+
+Likely next cleanup targets:
+
+- split compatibility logic out of executor once all verbs share one contract
+- move more per-turn text assembly into rendering modules
+- formalize multi-action parsing and semantic expansion behavior
+- add richer outcome metadata when renderer-driven turn output is introduced
 
