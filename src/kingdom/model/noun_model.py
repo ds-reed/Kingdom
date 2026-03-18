@@ -367,6 +367,10 @@ class Item(Noun):
     can_be_spoken_to: bool = field(default=False, metadata={"persist": "non_default"})
     speak_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "can_be_spoken_to"})
 
+    # For NPCs as items (specifically Djinni right now, but generalize)
+    annoyed: int = field(default=0, metadata={"persist": "non_default"})
+    was_summoned: bool = field(default=False, metadata={"persist": "non_default"})
+
     # Visibility
     is_visible: bool = field(default=True, metadata={"persist": "non_default"}) 
 
@@ -694,24 +698,29 @@ class Room(Noun):
     def remove_container(self, container):
         if container in self.containers:
             self.containers.remove(container)
-            return True
 
     def remove_feature(self, feature):
         if feature in self.features:
             self.features.remove(feature)
 
-    def has_item(self, item) -> bool:
-        return item in self.items
+    def has_item(self, item) -> Item:
+        if item in self.items:
+            return item
+        return None
     
-    def all_items(self) -> list["Item"]:
+    def all_items(self) -> list[Item]:
         all_items = list(self.items)
         return list(all_items)
     
-    def has_container(self, container) -> bool:
-        return container in self.containers
+    def has_container(self, container) -> Container:
+        if container in self.containers:
+            return container
+        return None
 
-    def has_feature(self, feature) -> bool:
-        return feature in self.features
+    def has_feature(self, feature) -> Feature:
+        if feature in self.features:
+            return feature
+        return None
 
     def find_containing_container(self, item) -> "Container | None":
         for container in self.containers:
@@ -933,6 +942,8 @@ class World:
     rooms: dict | list = field(default_factory=dict)
     start_room_name: Optional[str] = None
     start_room: "Room | None" = None
+    end_room_name: Optional[str] = None
+    end_room: "Room | None" = None
 
 
     def __post_init__(self):

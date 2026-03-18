@@ -231,7 +231,6 @@ Current implementation:
 
 - src/kingdom/model/noun_model.py
 - src/kingdom/model/game_model.py
-- src/kingdom/model/game_persistence.py
 - src/kingdom/model/direction_model.py
 - src/kingdom/model/verb_model.py
 

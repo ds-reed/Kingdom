@@ -142,53 +142,78 @@ class MovementVerbHandler(VerbHandler):
     
     def climb(self, cmd: ExecuteCommand) -> str:
         room = self.room()
-
-        target = cmd.direct_object if cmd and cmd.direct_object else None
-        direction = cmd.direction if cmd and cmd.direction else None
         verb_token = cmd.verb_token if cmd else "climb"
 
-        # Room must have climb exits
+        # No climb exits in room at all → early exit
         climb_exits = room.exits.get("climb", {})
         if not climb_exits:
-            return self.build_message(f"There is nothing to {verb_token} {direction or 'here'}.")
+            return self.build_message(f"There is nothing to {verb_token} here.")
 
-        # If a direction is given, check if any climbable item is present
-        climbable = False
-        if direction is not None:
-            for item in room.items:
-                if getattr(item, "is_climbable", False):
-                    climbable = True
-                    break
+        direction = cmd.direction if cmd else None
+        target = cmd.direct_object if cmd else None
 
-        # If a climbable target is provided instead of a direction, use that to determine direction
-        target_direction = None
-        if direction is None and target is not None:
-            if getattr(target, "is_climbable", False):
-                climbable = True
-                climb_directions = getattr(target, "climb_directions", [])
-                for d in climb_directions:
-                    if d in climb_exits:
-                        target_direction = d
+        print(f"DEBUG: Climb command received. Direction: {direction}, Target: {target.display_name() if target else None}")
+
+        # ───────────────────────────────────────────────
+        # Case 1: Direction given → try to find matching climbable object
+        # ───────────────────────────────────────────────
+        if direction:
+            # Look for any climbable item that supports this direction
+            matching_climbable = None
+            for obj in room.items + room.containers:  # include containers if pole could be inside one
+                if getattr(obj, "is_climbable", False):
+                    climb_dirs = getattr(obj, "climb_directions", [])
+                    if direction in climb_dirs:
+                        matching_climbable = obj
                         break
-                else:
-                    return self.build_message(f"You can't {verb_token} {direction or ''} the {target.display_name()}.")
 
-        # If neither a direction nor a target-derived direction exists
-        if not (direction or target_direction):
-            return self.build_message(f"{verb_token.capitalize()} where?")
+            if matching_climbable:
+                chosen = matching_climbable
+            else:
+                return self.build_message(f"There is nothing here you can {verb_token} {direction}.")
 
-        # Resolve final direction
-        final_direction = direction or target_direction
+        # ───────────────────────────────────────────────
+        # Case 2: No direction, but target given → infer direction from target
+        # ───────────────────────────────────────────────
+        elif target:
+            if not getattr(target, "is_climbable", False):
+                return self.build_message(f"You can't {verb_token} the {target.display_name()}.")
 
-        # Climbing constraint logic
-        exit_obj = room.get_exit("climb", final_direction)
-        if exit_obj:
-            movement_refusal = self.check_movement(exit_obj, "climb", final_direction)
-            if movement_refusal:
-                return self.build_message(movement_refusal)
-            return self.build_message(self.perform_movement(exit_obj, final_direction, verb_token))
-        
-        return self.build_message(f"You can't {verb_token} {final_direction} from here.")
+            climb_dirs = getattr(target, "climb_directions", [])
+            if not climb_dirs:
+                return self.build_message(f"The {target.display_name()} can't be climbed right now.")
+
+            # Find the first direction that actually has a climb exit
+            possible_dirs = [d for d in climb_dirs if d in climb_exits]
+            if not possible_dirs:
+                return self.build_message(f"You can't {verb_token} the {target.display_name()} from here.")
+
+            # Default to the first supported direction 
+            direction = possible_dirs[0]
+            chosen = target  # remember for flavor text if desired
+
+        # ───────────────────────────────────────────────
+        # No direction and no target → ambiguous
+        # ───────────────────────────────────────────────
+        else:
+            return self.build_message(f"{verb_token.capitalize()} what? Or which way?")
+
+        # ───────────────────────────────────────────────
+        # At this point we have a direction → try to move
+        # ───────────────────────────────────────────────
+        exit_obj = room.get_exit("climb", direction)
+        if not exit_obj:
+            return self.build_message(f"You can't {verb_token} {direction} from here.")
+
+        movement_refusal = self.check_movement(exit_obj, "climb", direction)
+        if movement_refusal:
+            return self.build_message(movement_refusal)
+
+
+        # Perform the movement (your existing logic)
+        move_result = self.perform_movement(exit_obj, direction, verb_token)
+
+        return self.build_message(move_result)
 
 
     def teleport(self,  cmd: ExecuteCommand) -> str:

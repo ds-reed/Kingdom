@@ -12,8 +12,8 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
-from kingdom.model.game_model import get_game
-from kingdom.model.noun_model import Item, Noun, Room
+from kingdom.model.game_model import Game, GameOver, get_game
+from kingdom.model.noun_model import Item, Noun, Room, World, Item
 from kingdom.rendering.descriptions import render_current_room
 
 
@@ -91,26 +91,23 @@ def try_item_special_handler(
 # Puzzle helpers 
 # ------------------------------------------------------------
 
-def _spawn_room_item(dispatch_context: "object | None", *, name: str, handle: str, is_takeable: bool,  take_refuse_description: str) -> None:
+def _spawn_room_item(game: Game | None, name = None, **kwargs) -> None:
 
-    game=get_game()
     room = getattr(game, "current_room", None)
     if room is None:
         return
 
     for existing in getattr(room, "items", []):
-        if getattr(existing, "obj_handle", lambda: None)() == handle:
+        if getattr(existing, "obj_handle", lambda: None)() == kwargs.get("handle"):
             return
-
-    from kingdom.model.noun_model import Item
 
     new_item = Item(
         name,
-        handle=handle,
-        is_takeable=is_takeable,
-        take_refuse_description=take_refuse_description,
+        **kwargs
         )
     
+    # need to update lexicon
+
     room.items.append(new_item)   
 
 
@@ -139,7 +136,7 @@ def eat_fish(item, verb, **kwargs):
             return VerbOutcome( message="You made quite a mess here!", control=VerbControl.SKIP )
         
     # spawn vomit if it doesn't already exist
-    _spawn_room_item(world, 
+    _spawn_room_item(game, 
         name="it looks like someone has been violently ill on a nearby wall",
         handle="vomit",
         is_takeable=False,      
@@ -204,22 +201,47 @@ def rub_lamp(item, verb, **kwargs):
     # Only trigger Djinni in the correct room
     if room.name == trigger_room_name:
 
-        # Presence check for list-based room.items
-        djinni_present = any(
-            getattr(obj, "obj_handle", lambda: None)() == "djinni" for obj in room.items
-        )
-
-        if not djinni_present:
-            if world is None:
-                return VerbOutcome(
-                    message="No active world.",
-                    control=VerbControl.STOP
+        # Returns Djinni if already present in the room
+        djinni_here = room.has_item(Item.get_by_name("djinni"))   # if you rub the lamp again while Djinni is in room.
+        if djinni_here:
+            djinni_here.annoyed += 1
+            if djinni_here.annoyed >= 2:
+                raise GameOver(
+                    "The angry Djinni raises itself high into the air and unleashes a mighty thunderbolt at you. You have died. GAME OVER."
                 )
+            return VerbOutcome(
+                message=(
+                    "The djinni looks at you with increasing annoyance as you rub the lamp again.\n"
+                    "He intones: 'TAKHLUB ARRAQ MINTA NAKH!' and glares at you.\n"
+                    "(This means in magic Arabic, 'Stop that, it's really annoying me.')"
+                ),
+                control=VerbControl.STOP
+            )
 
+        if not djinni_here:
             djinni_room, djinni = world.find_item_in_game("djinni")
             if djinni:
                 world.move_item_between_rooms(djinni, djinni_room, room)
-
+                
+        if djinni.was_summoned:            # if you had already summoned the Djinni before and it left, it gets anoyed when you sumon it again
+            if djinni.annoyed >= 2:
+                    raise GameOver(
+                    "The angry Djinni raises itself high into the air and unleashes a mighty thunderbolt at you. You have died. GAME OVER."
+                )
+            else:
+                djinni.annoyed += 1
+                world.move_item_between_rooms(djinni, room, djinni_room)         # move back to djinni_room
+                return VerbOutcome(
+                    message=(
+                        "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
+                        "The smoke solidifies into a an extremely angry looking djinni!\n"
+                        "He intones: 'TAKHLUB ARRAQ MINTA NAKH!', glares at you, then disappears.\n"
+                        "(This means in magic Arabic, 'Stop that, it's really annoying me.')"
+                    ),
+                    control=VerbControl.STOP
+            )
+        else:
+            djinni.was_summoned = True
         return VerbOutcome(
             message=(
                 "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
@@ -249,15 +271,15 @@ def make_djinni(item, verb, **kwargs):
     return _djinni_scripted_action(item, verb, **kwargs)
 
 
-def _djinni_scripted_action(item, verb, **kwargs):
+def _djinni_scripted_action(djinni, verb, **kwargs):
     """
     The Djinni does not understand English; any SAY or MAKE attempt
     triggers his pre-ordained magical action.
     """
 
     game = get_game()
-    room = getattr(game, "current_room", None)
-    world = getattr(game, "world", None)
+    room = game.current_room
+    world = game.world
 
 
     message_lines = [
@@ -293,8 +315,9 @@ def _djinni_scripted_action(item, verb, **kwargs):
     # ------------------------------------------------------------
     # 2. Remove the Djinni from the current room
     # ------------------------------------------------------------
-    if item in room.items:
-        room.items.remove(item)
+    if room.has_item(djinni):
+        djinni_home = world.rooms["Djinni Lair"]  # refresh room reference from world to ensure consistency
+        world.move_item_between_rooms(djinni, room, djinni_home)
 
     # ------------------------------------------------------------
     # 3. Return narrative text
@@ -375,5 +398,33 @@ def take_mermaid(item, verb_name, indirect_obj = None, **kwargs):
         message = "The mermaid sees your intentions and bares her sharply pointed teeth menacingly."
         return VerbOutcome(message=message, control=VerbControl.SKIP)
     return None
+
+
+#----------------------- mushroom ------------------
+@register_item_behavior("eat_mushroom")
+def eat_mushroom(item, verb_name, indirect_obj = None, **kwargs):
+
+    game = get_game()
+    room = getattr(game, "current_room", None)
+
+    message = []
+    message.append("You eat the mushroom. It tastes like a delicious earthy umami flavor with a hint of garlic.")
+    message.append("Suddenly you feel very strange...")
+
+    # spawn a random item in the room to represent the hallucination
+    _spawn_room_item(game, 
+        name="ladder",
+        handle="ladder",
+        description="a magic ladder hums with soft blue light and appears to pass through the ceiling of the cottage.",
+        examine_description =  "it glitters with soft blue light. Runes crawl up the rungs like fireflies trapped in glass",
+        is_climbable=True,
+        is_takeable=False,      
+        take_refuse_description="The ladder slips through your fingers as you try to grab it.",
+        climb_directions = ["up"],
+        is_visible = True,
+    )
+    message.append("You see a magical ladder appear in the room, humming with soft blue light and seemingly passing straight through the ceiling of the cottage.")
+
+    return VerbOutcome(message=message, control=VerbControl.SKIP)
 
     

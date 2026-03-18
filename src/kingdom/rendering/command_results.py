@@ -12,7 +12,7 @@ def exit_message(game: Game) -> str:
     rooms_found = game.rooms_found
     rooms_found_since_load = game.rooms_found_since_load
 
-    lines = [f"Thanks for playing Kingdom {game.player_name}!"]
+    lines = [f"Thanks for playing Kingdom {game.player_name.capitalize()}!"]
 
     if score_since_load == 0:
         lines.append("We're sorry to see you go so soon.")

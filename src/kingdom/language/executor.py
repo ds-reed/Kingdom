@@ -29,7 +29,12 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
     elif command.verb_source == "implicit":
         # Implicit verb - look for noun continuation when supported by verb handler
         if not command.direction:        # if we have a direction, then interpreter has handled as implicit "go"
-            pass # will need to handle noun continuation here
+            return CommandOutcome(
+                verb="None",
+                command=command,
+                message="What would you like to do? (type help for assistance)",
+                effects=[]
+        )
 
     elif command.verb_source == "unknown":
         # User typed something in the verb slot that is not a verb
@@ -49,7 +54,6 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
             effects=[]
         )
 
-
     execute_command =  ExecuteCommand(
         verb_token = command.verb_token,
         direct_object = command.direct.noun_object if command.direct else None,
@@ -58,7 +62,6 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
         direction = command.direction if command.direction else None,
         modifiers = command.modifier_tokens if command.modifier_tokens else [],
         )
-    
 
     result = verb.execute(cmd=execute_command)
 

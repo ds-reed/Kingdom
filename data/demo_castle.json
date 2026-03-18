@@ -5,10 +5,13 @@
     "east": { "reverse": "west", "synonyms": ["e"] },
     "west": { "reverse": "east", "synonyms": ["w"] },
     "up": { "reverse": "down", "synonyms": ["u"] },
-    "down": { "reverse": "up", "synonyms": ["d"] }
+    "down": { "reverse": "up", "synonyms": ["d"] },
+    "inside": { "reverse": "outside", "synonyms": ["enter", "in"] },
+    "outside": { "reverse": "inside", "synonyms": ["exit", "out"] }
   },
   "score": 0,
   "start_room": "Tower Cell",
+  "end_room": "Demo End",
   "rooms": [
     {
       "name": "Djinni Lair",
@@ -21,6 +24,8 @@
           "adjectives": ["imposing", "tall"],
           "is_takeable": false,
           "can_be_spoken_to": true,
+          "annoyed_level": 0,
+          "was_summoned": false,
           "take_refuse_description": "The 10 foot tall djinni glares at you.",
           "special_handlers": { "say": "speak_djinni", "make": "make_djinni" }
         },
@@ -31,6 +36,10 @@
           "adjectives": ["slippery", "slick"],
           "special_handlers": { "throw": "throw_peel" },
           "discover_points": 10
+        },
+        {
+          "name": "ladder",
+          "description": "placeholder object until I fix update lexicon"
         }
       ],
       "containers": [],
@@ -228,7 +237,7 @@
             "adjectives": ["greasy"],
             "is_takeable": false,
             "take_refuse_description": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
-            "is_climbable": false,
+            "is_climbable": true,
             "climb_directions": ["up"],
             "is_visible": false
             }
@@ -441,8 +450,8 @@
       ],
       "exits": {
         "go": {
-          "north": {
-            "destination": "tunnel"
+          "south": {
+            "destination": "South Tunnel"
           }
         },
         "swim": {
@@ -452,7 +461,255 @@
           }
         }
       }
+    },
+    {
+      "name": "South Tunnel",
+      "description": "in a low, echoing tunnel carved by centuries of dripping water. The air grows cooler as the passage slopes steeply upward.",
+      "is_dark": true,
+      "dark_description": "You can feel the tunnel narrowing around you, but you can't see a thing.",
+      "exits": {
+        "go": {
+          "north": {
+            "destination": "Pool Ledge"
+          },
+          "south": {
+            "destination": "Ravine Edge"
+          }
+        }
+      }
+    },
+    {
+      "name": "Ravine Edge",
+      "description": "at the edge of a steep ravine. A narrow stream glitters faintly at the bottom.",
+      "discover_points": 10,
+      "items": [
+        {
+          "name": "rope",
+          "description": "a sturdy length of rope",
+          "adjectives": ["sturdy", "coiled"],
+          "is_takeable": true,
+          "is_tieable": true,
+          "is_tied": false,
+          "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
+          "is_climbable": false,
+          "climb_directions": ["down", "up"]
+        },
+        {
+          "name": "hook",
+          "description": "an iron hook is firmly anchored into the rock at the ravine's edge",
+          "adjectives": ["iron", "anchored"],
+          "examine_description": "This massive iron hook appears as though it could bear a lot of weight.",
+          "is_takeable": false,
+          "is_tied_to": false,
+          "can_be_tied_to": true
+        }
+      ],
+      "features": [
+        {
+          "name": "ravine",
+          "description": "a sheer drop into a rocky gorge with a fast rushing stream running along its bottom.",
+          "adjectives": ["steep", "sheer"],
+          "synonyms": ["gorge", "chasm"]
+        },
+        {
+          "name": "stream",
+          "description": "a narrow ribbon of water glinting far below",
+          "adjectives": ["narrow", "glinting"]
+        }
+      ],
+      "containers": [],
+      "exits": {
+        "go": {
+          "north": {
+            "destination": "Demo Landing"
+          }
+        },
+        "climb": {
+          "down": {
+            "destination": "Clover Rest",
+            "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
+          }
+        }
+      }
+    },
+    {
+      "name": "Clover Rest",
+      "description": "beside a pleasant stream that winds gently south through a bed of soft clover. Sunlight filters down the ravine walls in shifting ribbons, and the air is cool and peaceful.",
+      "discover_points": 10,
+      "has_water": true,
+      "items": [],
+      "features": [
+        {
+          "name": "stream",
+          "description": "a clear, gentle stream flowing over smooth stones",
+          "adjectives": ["clear", "gentle", "flowing"]
+        },
+        {
+          "name": "clover",
+          "description": "a thick bed of soft green clover that looks surprisingly comfortable",
+          "adjectives": ["soft", "green"]
+        },
+        {
+          "name": "ravine walls",
+          "description": "tall stone walls rising steeply above you, too narrow to climb without help",
+          "adjectives": ["tall", "steep", "narrow"]
+        }
+      ],
+      "containers": [],
+      "exits": {
+        "go": {
+          "south": {
+            "destination": "South Meadow"
+          }
+        },
+        "climb": {
+          "up": {
+            "destination": "Ravine Edge",
+            "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+            "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
+          }
+        }
+      }
+    },
+    {
+      "name": "South Meadow",
+      "description": "in a sunlit meadow where tall grasses sway in a gentle breeze. Wildflowers dot the landscape, and clusters of wild carrots grow among the greenery. A small cottage with a crooked chimney stands nearby.",
+      "items": [
+        {
+            "name": "carrot",
+            "description": "a cheery orange carrot",
+            "adjectives": ["cheery", "orange"],
+            "is_edible": true,
+            "can_be_spoken_to": true,
+            "speak_description": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!",
+            "examine_description": "The carrot cheerfully waves hello!",
+            "eaten_success_description": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach."
+          }
+      ],
+      "features": [
+        {
+          "name": "wild carrots",
+          "description": "a patch of wild carrots with feathery green tops",
+          "adjectives": ["wild", "carrot"]
+        },
+        {
+          "name": "grasses",
+          "description": "tall meadow grasses that ripple softly in the breeze",
+          "adjectives": ["tall", "meadow"]
+        },
+        {
+          "name": "wildflowers",
+          "description": "bright wildflowers scattered across the meadow",
+          "adjectives": ["bright", "scattered"]
+        },
+        {
+          "name": "cottage",
+          "description": "a small cottage with a crooked chimney and a weathered wooden door hanging loosely ajar",
+          "adjectives": ["small", "crooked", "weathered"],
+          "synonyms": ["house", "chimney"],
+          "examine_description": "The cottage looks old and worn, but there's a certain charm to it. The wooden door hangs loosely ajar, inviting you to step inside and explore. The crooked chimney suggests that the cottage has seen better days, but it also adds to its character and mystique."
+        }
+      ],
+      "containers": [],
+      "exits": {
+        "go": {
+          "north": {
+            "destination": "Clover Rest"
+          },
+          "inside": {
+            "destination": "Cottage Interior"
+          }
+        }
+      }
+    },
+    {
+      "name": "Cottage Interior",
+      "description": "inside a small, cozy cottage. Sunlight filters through a round window, illuminating a simple wooden table at the center of the room.",
+      "discover_points": 5,
+      "items": [],
+      "containers": [
+        {
+          "name": "table",
+          "description": "a simple wooden table with a pliant clay bowl sitting on top",
+          "adjectives": ["simple", "wooden"],
+          "is_openable": false,
+          "is_transparent": true,
+          "is_takeable": false,
+          "location_description": "stands in the middle of the cottage",
+          "items": [
+              {
+                "name": "onion",
+                "description": "a small white onion with papery skin",
+                "adjectives": ["small", "white"],
+                "is_takeable": true
+              },
+              {
+                "name": "apple",
+                "description": "a crisp red apple",
+                "adjectives": ["crisp", "red"],
+                "is_takeable": true
+              },
+              {
+                "name": "mushroom",
+                "description": "an odd-looking mushroom with a spiraled cap",
+                "adjectives": ["odd-looking", "spiraled"],
+                "is_takeable": true,
+                "special_handlers": { "eat": "eat_mushroom" }
+              }
+            ]
+            }
+          ],
+      "exits": {
+        "go": {
+          "outside": {
+            "destination": "South Meadow"
+          }
+        },
+        "climb": {
+          "up": {
+                "destination": "Demo End",
+                "is_visible": false,
+                "is_passable": true
+              }
+        }
+      }
+    },
+    {
+      "name": "Demo End",
+      "description": "standing on a small, impossibly solid platform of cloud, high above the world. The air is cool and thin, and the land below looks like a painted map. Wisps of cloud drift lazily past at eye level.",
+      "discover_points": 50,
+      "items": [        
+        {
+          "name": "ladder",
+          "description": "ladder down to reality",
+          "is_takeable": false,
+          "is_climbable": true,
+          "climb_directions": ["down"]
+        }],
+      "features": [
+        {
+          "name": "clouds",
+          "description": "soft white clouds drifting slowly past, close enough to touch but somehow always just out of reach",
+          "adjectives": ["soft", "white", "drifting"]
+        },
+        {
+          "name": "world below",
+          "description": "a distant patchwork of forests, rivers, and mountains far beneath your feet",
+          "adjectives": ["distant", "patchwork"]
+        }
+      ],
+      "containers": [],
+      "exits": {
+        "climb": {
+          "down": {
+            "destination": "Cottage Interior",
+            "go_refuse_description": "You peer over the edge and decide it is better to take the ladder. The world below is impossibly far away."
+          }
+        }
+      }
     }
-]
+
+  ]
 }
 

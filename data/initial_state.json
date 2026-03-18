@@ -9,6 +9,7 @@
   },
   "score": 0,
   "start_room": "Tower Cell",
+  "end_room": "Narnia",
   "rooms": [
     {
       "name": "Djinni Lair",
@@ -359,7 +360,7 @@
           "is_takeable": true,
           "is_tieable": true,
           "is_tied": false,
-          "is_tied_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
+          "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
           "is_climbable": false,
           "climb_directions": ["down", "up"]
         },

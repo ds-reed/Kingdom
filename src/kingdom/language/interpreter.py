@@ -14,7 +14,7 @@ from typing import Optional, List
 
 from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.game_model import get_game
-from kingdom.model.noun_model import Item, World
+from kingdom.model.noun_model import Item, World, Room
 from kingdom.model.verb_model import Verb 
 
 @dataclass(frozen=False)
@@ -80,30 +80,28 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
     # Internal workflow for a single ParsedAction
     # ----------------------------------------------------------------------
 
-    def _iter_local_target_candidates(world: World):
-        game = get_game()
-        if getattr(game, "current_room", None) is not None:
+    def _iter_local_target_candidates(room: Room):
 
-            yield game.current_room
-            for item in game.current_room.items:
-                yield item
-            for container in game.current_room.containers:
-                yield container
-                if not container.is_openable or container.is_open:
-                    for item in container.contents:
-                        yield item
-            for feature in game.current_room.features:
-                yield feature
+        yield room
+        for item in room.items:
+            yield item
+        for container in room.containers:
+            yield container
+            if not container.is_openable or container.is_open:
+                for item in container.contents:
+                    yield item
+        for feature in room.features:
+            yield feature
 
-        player = getattr(game, "current_player", None)
+        player = getattr(get_game(), "current_player", None)
         if player is not None:
             for item in player.sack.contents:
                 yield item
 
 
-    def _resolve_target_noun(world: World, target_name) -> object | None:
+    def _resolve_target_noun(room: Room, target_name) -> object | None:
 
-        local_candidates = list(_iter_local_target_candidates(world))
+        local_candidates = list(_iter_local_target_candidates(room))
         for candidate in local_candidates:
             if candidate.matches_reference(target_name):
                 return candidate
@@ -125,21 +123,24 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # Object resolution
         # ----------------------------------------------------------------------
         def _resolve_direct_object(action: ParsedAction) -> List[InterpretedTarget]:
+
             # No direct object at all
 
             if not action.object_phrases:
                 return None
 
-            # TODO: The direct object NP is always the first object phrase until multi object support is implemented.
+            # TODO: The direct object NP is always the first object phrase until multi object support is implemented.  
             np = action.object_phrases[0]
             head = np["head"]
 
+    
             target_candidate = lexicon.token_to_noun.get(head)
             if target_candidate is not None:
-                target = _resolve_target_noun(world, target_candidate.noun_object.handle) if target_candidate.noun_object else None
+                room = get_game().current_room
+                target = _resolve_target_noun(room, target_candidate.noun_object.handle) if target_candidate.noun_object else None
             else:
                 target = None
-
+        
             return InterpretedTarget(
                 token_phrase=np,
                 token_head=head,

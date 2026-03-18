@@ -35,6 +35,9 @@ class SaveGame(Exception):
 class LoadGame(Exception):
     pass
 
+class WinGame(Exception):
+    pass
+
 @dataclass
 class SessionPrefs:
     save_directory: Path = Path("saves")
@@ -73,6 +76,7 @@ class Game:
         self.score_since_load: int = 0
         self.recent_commands: deque[str] = deque(maxlen=10)
         self.debug_mode: bool = False
+        self.continue_after_win: bool = False   # if True, player can keep playing after reaching end room
 
 
     def init_session(
@@ -139,6 +143,10 @@ class Game:
         start_room_name = data.get("start_room")
         self.world.start_room_name = start_room_name
         self.world.start_room = self.world.rooms[start_room_name]
+        end_room_name = data.get("end_room")
+        self.world.end_room_name = end_room_name
+        self.world.end_room = self.world.rooms[end_room_name] 
+
         self.current_room = self.world.start_room
 
         # init lexicon after world is set up, since many entries depend on the world contents
@@ -223,6 +231,12 @@ class Game:
                 if self.world and self.world.start_room_name is not None
                 else (self.world.start_room.name if self.world and self.world.start_room is not None else None)
             ),
+            "end_room": (
+                self.world.end_room_name 
+                if self.world and self.world.end_room_name is not None
+                else (self.world.end_room.name if self.world and self.world.end_room is not None else None)
+            ),
+
             "score": int(self.score),
             "rooms": [room.to_dict() for room in self.world.rooms.values()],
             "prefs": {

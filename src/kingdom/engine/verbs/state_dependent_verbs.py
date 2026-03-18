@@ -30,6 +30,9 @@ class StatefulVerbHandler(VerbHandler):
         # ------------------------------------------------------------
         if target is None:
             return self.build_message(self.missing_target("eat"))
+        
+        if not player.has_item(target):
+            return self.build_message(f"You don't have the {target.canonical_name()}.")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline

@@ -2,6 +2,12 @@
 
 Kingdom is a command-driven text adventure engine in Python. It loads world state from JSON, builds a runtime lexicon from the active world and verb registry, parses free-text commands, interprets them in context, and dispatches execution through modular verb handlers.
 
+## limitations
+- no world builder yet
+- no world sanity checker yet
+- no resolution of name collisions in created objects; world designer responsible for unique names (including synonyms)
+- no handling of multi-objects commands (ie. take banana and egg)
+
 ## Launchers
 
 - run_castle_modern.bat: castle demo in modern mode
@@ -89,7 +95,6 @@ Kingdom/
     |   |-- __init__.py
     |   |-- direction_model.py
     |   |-- game_model.py
-    |   |-- game_persistence.py
     |   |-- noun_model.py
     |   `-- verb_model.py
     `-- rendering/
@@ -148,7 +153,7 @@ python main.py --mode OLD_SCHOOL
 - Demo world: data/demo_castle.json
 - Save files: saves/*.json
 - World/entity models: src/kingdom/model/noun_model.py
-- Save/load I/O: src/kingdom/model/game_persistence.py
+- Save/load I/O: Game.save_game() and Game.load_game() in src/kingdom/model/game_model.py
 
 The world JSON defines rooms, exits (go/swim/climb), items, containers, features, and behavior attributes.
 

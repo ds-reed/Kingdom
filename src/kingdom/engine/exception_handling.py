@@ -12,7 +12,7 @@ import random
 from kingdom.GUI.UI import ui
 from kingdom.rendering.command_results import exit_message
 from kingdom.rendering.descriptions import render_current_room
-from kingdom.model.game_model import Game, Player, GameOver, LoadGame, SaveGame, QuitGame, get_game
+from kingdom.model.game_model import Game, Player, GameOver, LoadGame, SaveGame, QuitGame, WinGame, get_game
 from kingdom.model.noun_model import Room, World
 
 from kingdom.engine.verbs.verb_registration import register_verbs
@@ -142,6 +142,10 @@ def process_command(
         for cmd in interpreted:
             outcome = execute(cmd, world, raw_command)                     #pass orignal command for better error message
             ui.print(outcome.message if outcome else "Command executed.")
+            game = get_game()   
+            if game.current_room == world.end_room:
+                if not game.continue_after_win:
+                    raise WinGame()
 
     except LoadGame:
         path=ui.request_load()
@@ -189,6 +193,16 @@ def process_command(
         if should_quit:
             return True, recovery_mode, exit_message(get_game())
         return False, recovery_mode, None
+    
+    except WinGame:
+        ui.print(f"Congratulations!! You have reached the end of the game!")
+        ui.print("You can quit now or keep exploring if you like.")
+        if ui.request_quit(): 
+            return True, recovery_mode, exit_message(get_game())
+        else: 
+            get_game().continue_after_win = True
+            return False, recovery_mode, "Quit cancelled."
+
 
     except TypeError as e:
         ui.print(f"TypeError: {e}")

@@ -121,7 +121,7 @@ class MetaVerbHandler(VerbHandler):
 
         noun = cmd.direct_object if cmd.direct_object else None
         if not noun and cmd.direct_object_token:
-            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token) or Room.get_by_name(cmd.direct_object_token) or Player.get_by_name(cmd.direct_object_token)
+            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token) or Room.get_by_name(cmd.direct_object_token)
             if noun is None:
                 keywords = [cmd.direct_object_token]    # if no noun found, treat the noun-like token as a keyword for debugging purposes
         
