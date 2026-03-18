@@ -365,7 +365,8 @@ def take_mermaid(item, verb_name, indirect_obj = None, **kwargs):
 
     if indirect_obj and indirect_obj.canonical_name() == "mermaid":
         if item.current_container and item.current_container.canonical_name() == "mermaid":
-            message = f"The mermaid clutches {item.canonical_name()} protectively and refuses to let you take it."
+            message = f"The mermaid clutches {item.canonical_name()} protectively and refuses to let you take it.\n"
+            message += "You notice she eyes your inventory hungrily."
             return VerbOutcome(message=message, control=VerbControl.SKIP)
         else:
             message = f"The mermaid doesn't have {item.canonical_name()}."

@@ -10,7 +10,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
-from kingdom.verbs.verb_registration import register_verbs
+from kingdom.engine.verbs.verb_registration import register_verbs
 from kingdom.model.verb_model import Verb
 from kingdom.model.game_model import (
     Game,

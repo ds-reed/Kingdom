@@ -13,11 +13,11 @@ def register_verbs():
      """
 
      # Import handlers inside the function to avoid circular dependencies
-     from kingdom.verbs.inventory_verbs import InventoryVerbHandler
-     from kingdom.verbs.meta_verbs import MetaVerbHandler
-     from kingdom.verbs.movement_verbs import MovementVerbHandler
-     from kingdom.verbs.state_changing_verbs import ChangeStateVerbHandler
-     from kingdom.verbs.state_dependent_verbs import StatefulVerbHandler
+     from kingdom.engine.verbs.inventory_verbs import InventoryVerbHandler
+     from kingdom.engine.verbs.meta_verbs import MetaVerbHandler
+     from kingdom.engine.verbs.movement_verbs import MovementVerbHandler
+     from kingdom.engine.verbs.state_changing_verbs import ChangeStateVerbHandler
+     from kingdom.engine.verbs.state_dependent_verbs import StatefulVerbHandler
 
      inventory = InventoryVerbHandler()
      meta = MetaVerbHandler()
@@ -187,6 +187,11 @@ def register_verbs():
           Verb("drop", inventory.drop,
                synonyms=["put"],
                modifiers=["all", "everything", "room"],
+               uses_directions=False),
+
+          Verb("give", inventory.give,
+               synonyms=["trade", "offer"],
+               modifiers=["to"],
                uses_directions=False),
 
      ]

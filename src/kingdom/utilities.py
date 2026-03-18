@@ -3,13 +3,28 @@
 Provides TeeStream for multi-stream output and session log management helpers.
 Used for logging game sessions and managing terminal output.
 """
-from datetime import datetime
-from pathlib import Path
-from typing import TextIO
-import sys
-import kingdom.terminal_style as terminal_style
-import argparse
 
+import os
+import sys
+from pathlib import Path
+import argparse
+import subprocess
+from datetime import datetime
+from typing import TextIO
+
+from kingdom.GUI.terminal_style import TERMINAL_MODE_OLD_SCHOOL, TERMINAL_MODE_MODERN
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Kingdom game")
+    parser.add_argument(
+        "--mode",
+        choices=[TERMINAL_MODE_OLD_SCHOOL, TERMINAL_MODE_MODERN],
+        default=TERMINAL_MODE_MODERN,
+        help="Terminal presentation mode (default: modern)",
+    )
+    parser.add_argument("-f", "--file", help="World JSON file to load", default="initial_state.json")
+
+    return parser.parse_args()
 
 
 class TeeStream:
@@ -49,11 +64,10 @@ class SessionLogger:
             sys.stderr = self.original_stderr  # type: ignore
             self.log_file.close()
 
-
-import os
-import sys
-import subprocess
-from pathlib import Path
+    def get_logfile(self) -> TextIO:
+        if not self.log_file:
+            raise RuntimeError("SessionLogger has not been started yet.")
+        return self.log_file
 
 
 def ensure_terminal_session() -> bool:
@@ -142,7 +156,7 @@ def _relaunch_in_terminal() -> None:
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# Gene utilities for Kingdom functions and classes.
+# General utilities for Kingdom functions and classes.
 # ───────────────────────────────────────────────────────────────────────────────
 
 def normalize_key(text: str) -> str:

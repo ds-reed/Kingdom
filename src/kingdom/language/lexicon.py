@@ -240,6 +240,10 @@ def lex() -> Lexicon:
             canonical="under",
             synonyms=["beneath", "underneath"],
         ),
+        "for": PrepositionEntry(
+            canonical="for",
+            synonyms=[],
+        ),
     }
 
     # Build token_to_preposition

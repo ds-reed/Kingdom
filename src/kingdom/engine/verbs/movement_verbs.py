@@ -12,7 +12,7 @@ from kingdom.model.noun_model import Noun, Room
 from kingdom.model.game_model import GameOver
 from kingdom.model.verb_model import Verb
 from kingdom.rendering.descriptions import render_current_room
-from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
+from kingdom.engine.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.direction_model import DIRECTIONS
 
 

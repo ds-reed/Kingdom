@@ -1,8 +1,8 @@
 # inventory Verbs
 
 from kingdom.model.noun_model import Noun, Item, Container
-from kingdom.verbs.verb_handler import VerbHandler, VerbControl, ExecuteCommand, VerbOutcome
-from kingdom.item_behaviors import try_item_special_handler
+from kingdom.engine.verbs.verb_handler import VerbHandler, VerbControl, ExecuteCommand, VerbOutcome
+from kingdom.engine.item_behaviors import try_item_special_handler
 
 class InventoryVerbHandler(VerbHandler):
     def inventory(self, cmd: ExecuteCommand = None) -> str:
@@ -167,3 +167,96 @@ class InventoryVerbHandler(VerbHandler):
                 msgs.append(f"You {cmd.verb_token} {item.display_name()} into the room.")
 
         return self.build_message(msgs)
+    
+
+    def give(self, cmd: ExecuteCommand = None) -> str:                  #give and trade the same for now. Give implies trade if container accepts trades
+        room = self.room()
+        player = self.player()
+
+        keywords = cmd.modifiers = cmd.modifiers if cmd.modifiers else []
+        target = cmd.direct_object = cmd.direct_object if cmd.direct_object else None
+        target_name = cmd.direct_object_token if cmd.direct_object_token else None
+        prep_phrases = cmd.prep_phrases = cmd.prep_phrases if cmd.prep_phrases else []
+        verb_token = cmd.verb_token if cmd.verb_token else None
+
+        source, source_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("to", "with"))
+        trade_item, trade_item_name, _ = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("for",))   # allow "give fish to mermaid for clam" as well as "trade fish to mermaid for clam"
+
+        msgs = []
+
+        # check various constraints
+
+        if target_name:
+            target = Item.get_by_name(target_name)
+            if not player.has_item(target):
+                return self.build_message(f"You don't have {target_name} to {verb_token}.")
+        else:
+            return self.build_message(self.missing_target(verb_token))
+    
+        if not prep:
+            return self.build_message(f"{verb_token} {prep} what?")
+
+        if not source_name:
+            return self.build_message(self.missing_target(f"{verb_token} {cmd.direct_object_token} {prep}"))
+        
+        if not source:    # if source_name and no source, it means source_name was not found in the room``
+            return self.build_message(f"You don't see any {source_name} here to {verb_token} {prep}.")
+        
+        can_trade = getattr(source, "is_tradeable", False)
+        if not can_trade:
+            if verb_token == "trade":      # if you say trade specifically, then the target must be tradeable. 
+                return self.build_message(f"{source.canonical_name().capitalize()} doesn't seem interested in trading.")
+            if target and player.has_item(target):        #othewise, it is just a give action
+                player.remove_from_sack(target)
+                msgs.append(f"You give {target.canonical_name()} to {source.canonical_name()}.")   #later check max items
+
+
+        # finally, the main trade logic - need to work in the special behaviors still, but lets test and see where we are
+        # trade_item_name is set if "for" phrase is used
+        # source is set if to/with phrase is used and resolved to a noun object in the room
+        # target is set if direct object is resolved to an item in room
+        # target_name is availble if a noun was used but wasn't in room
+        # later update for dispatch to special handler on all three items involved (source, target, trade_item) 
+
+        if trade_item_name:
+            trade_item = Item.get_by_name(trade_item_name)
+            if not source.has_item(trade_item):
+                msgs.append(f"{source.canonical_name().capitalize()} doesn't have {trade_item_name} to trade with you.")
+            elif not player.has_item(target):
+                msgs.append(f"You don't have {target.canonical_name()} to trade with {source.canonical_name()}.")
+            else:
+                # make the trade
+                source.remove_item(trade_item)
+                player.add_to_sack(trade_item)
+                player.remove_from_sack(target)
+                source.add_item(target) 
+                msgs.append(f"You receive {trade_item.display_name()} from {source.canonical_name()} in exchange for {target.canonical_name()}.")        
+        else:
+            trade_item = source.contents[0] if getattr(source, "contents", None) else None
+            if not trade_item:
+                msgs.append(f"{source.canonical_name().capitalize()} doesn't have anything to trade with you.")
+            elif not player.has_item(target):
+                msgs.append(f"You don't have {target.canonical_name()} to trade with {source.canonical_name()}.")
+            else:
+                #make the trade
+                source.remove_item(trade_item)
+                player.add_to_sack(trade_item)
+                player.remove_from_sack(target)
+                source.add_item(target) 
+                msgs.append(f"You receive {trade_item.display_name()} from {source.canonical_name()} in exchange for {target.canonical_name()}.")
+
+        return self.build_message(msgs)
+
+
+    
+            
+
+                
+        
+    
+        
+
+
+
+
+

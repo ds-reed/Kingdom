@@ -4,10 +4,10 @@
 
 
 import os
+from pydoc import text
 import sys
 import msvcrt
 from typing import Sequence
-
 
 # ANSI Escape Codes
 RESET = "\033[0m"
@@ -43,6 +43,10 @@ def tty_set_terminal_mode(mode):
         global ACTIVE_TERMINAL_MODE
         ACTIVE_TERMINAL_MODE = mode
 
+def set_session_logger(logger):
+    global session_logger
+    session_logger = logger
+
 
 def _OLD_SCHOOL_sanitize(text: str) -> str:
     return "".join(ch if ch in OLD_SCHOOL_ALLOWED else " " for ch in text)
@@ -64,36 +68,6 @@ def _wrap_width(text: str, width=64) -> list[str]:
         lines.append(current)
 
     return lines
-
-def tty_input_OLD_SCHOOL(prompt="> "):
-    # Print the prompt using TRS-80 styling
-    tty_print(prompt, end="")
-
-    buffer = []
-
-    _show_cursor()
-
-    import msvcrt
-    while True:
-        ch = msvcrt.getwch()
-
-        if ch in ("\r", "\n"):
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-            return "".join(buffer)
-
-        if ch == "\x08":  # backspace
-            if buffer:
-                buffer.pop()
-                sys.stdout.write("\b \b")
-                sys.stdout.flush()
-            continue
-
-        # Normal character
-        up = ch.upper()
-        buffer.append(up)
-        sys.stdout.write(up)
-        sys.stdout.flush()
 
 
 def _slow_print(text: str):
@@ -142,6 +116,9 @@ HALF_RIGHT = "▐"
 
 CURSOR_BLOCK = "█"
 
+
+def tty_get_terminal_mode():
+    return ACTIVE_TERMINAL_MODE
 
 def _apply_mode_case(text) -> str:
     rendered = str(text)
@@ -256,11 +233,31 @@ def tty_input_OLD_SCHOOL(prompt="> "):
 
 def tty_prompt(prompt_text="> "):
     if ACTIVE_TERMINAL_MODE == TERMINAL_MODE_OLD_SCHOOL:
-        return tty_input_OLD_SCHOOL(prompt_text)
+        user_input = tty_input_OLD_SCHOOL(prompt_text)
+    else:
+        styled_prompt = f"{OLD_SCHOOL_WHITE}{_apply_mode_case(prompt_text)}{RESET}"
+        print(styled_prompt, end="", flush=True)
+        user_input = input()                     # <-- terminal echoes once here
 
-    prompt = f"{OLD_SCHOOL_WHITE}{_apply_mode_case(prompt_text)}{RESET}"
-    return input(prompt)
+    # ────────────────────────────────────────────────
+    #          ADD THIS BLOCK (the actual logging)
+    # ────────────────────────────────────────────────
+    if session_logger is not None:
+        try:
+            logfile = session_logger.get_logfile()
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            logfile.write(f"{ts} > {user_input.rstrip()}\n")
+            logfile.flush()
+        except RuntimeError as e:
+            # logger not started → usually safe to ignore
+            pass
+        except Exception as e:
+            # temporary visibility during debugging
+            import sys
+            print(f"[LOG ERROR in tty_prompt] {type(e).__name__}: {e}", file=sys.__stderr__)
 
+    return user_input
 
 def tty_show_room(content_lines: Sequence[str], clear = True, **kwargs):
     if clear is True:

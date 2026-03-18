@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Optional
 
-from kingdom.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
-from kingdom.verbs.verb_handler import ExecuteCommand, VerbHandler
+from kingdom.engine.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
+from kingdom.engine.verbs.verb_handler import ExecuteCommand, VerbHandler
 
 from kingdom.model.noun_model import Noun, Container, Feature
 from kingdom.rendering.descriptions import render_current_room, render_item, render_container, render_container_contents

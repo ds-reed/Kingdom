@@ -309,7 +309,6 @@ class Item(Noun):
     is_takeable: bool = field(default=True, metadata={"persist": "non_default"})
     is_tradeable: bool = field(default=False, metadata={"persist": "non_default"})
     trade_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_tradeable"})
-    trade_refuse_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_tradeable"})
     take_refuse_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
 
     # Open/close mechanics
@@ -489,6 +488,10 @@ class Container(Noun):
     open_exit_direction: Optional[str] = None
     open_exit_type: Optional[str] = None
     examine_description: Optional[str] = None
+
+    # trading
+    is_tradeable: bool = field(default=False, metadata={"persist": "non_default"})
+    trade_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_tradeable"})
     
     # Visibility
     is_visible: bool = field(default=True, metadata={"persist": "non_default"}) 

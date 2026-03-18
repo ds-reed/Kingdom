@@ -5,7 +5,7 @@ from typing import List, Any, Optional
 from kingdom.language.interpreter import InterpretedCommand
 from kingdom.model.noun_model import World
 from kingdom.model.verb_model import Verb
-from kingdom.verbs.verb_handler import ExecuteCommand
+from kingdom.engine.verbs.verb_handler import ExecuteCommand
 from kingdom.model.game_model import get_game
 
 
@@ -51,7 +51,7 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
             return None
 
 #--------- start of old contract verb execution logic, to be removed when all verbs use new structure --------
-
+      
         outcome = None
 
         # Determine verb 
@@ -92,13 +92,6 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
         if command and command.direct:
                 command.direct.noun_object = target         # Over-write direct.noun_object with None if not a valid target for room. maybe handle in interpreter instead?
 
-        # old verb expectation
-        # For implicit verbs (e.g. bare direction "west"), the verb is not in
-        # all_tokens, so pass all tokens unchanged.
-        if command.verb_source == "implicit":
-            words = list(command.all_tokens) if command.all_tokens else []
-        else:
-            words = list(command.all_tokens[1:]) if command.all_tokens else []  # strip off verb token
 
         execute_command =  ExecuteCommand(
             verb_token = command.verb_token,

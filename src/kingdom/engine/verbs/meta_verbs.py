@@ -2,7 +2,7 @@
 
 from kingdom.model.noun_model import Noun, Item, Room, Container, Feature, Player
 from kingdom.model.game_model import QuitGame, SaveGame, LoadGame, GameOver
-from kingdom.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
+from kingdom.engine.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.verb_model import Verb
 
 class MetaVerbHandler(VerbHandler):

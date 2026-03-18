@@ -425,9 +425,8 @@
           "is_openable": true,
           "is_open": true,
           "is_transparent": true,
-          "is_tradable": true,
+          "is_tradeable": true,
           "is_takeable": true,
-          "trade_refuse_description": "The mermaid is not interested in trading for that.",
           "examine_description": "A beautiful mermaid with shimmering scales and flowing hair.",
           "special_handlers": { "take": "take_mermaid"},
           "items": [

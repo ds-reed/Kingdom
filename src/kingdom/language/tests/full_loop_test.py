@@ -11,7 +11,7 @@ from kingdom.language.interpreter import interpret
 from kingdom.language.executor import execute   
 from kingdom.model.game_model import  get_game, setup_world
 from kingdom.model.noun_model import Player, World
-from kingdom.verbs.verb_registration import register_verbs
+from kingdom.engine.verbs.verb_registration import register_verbs
 
 
 def run_full_loop_test():

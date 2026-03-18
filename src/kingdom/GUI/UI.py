@@ -7,26 +7,14 @@ It depends on game models and terminal_style, but NOT on actions or verbs.
 """
 
 from pathlib import Path
-from typing import Any, Sequence
-from kingdom.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen, tty_set_terminal_mode
+from kingdom.GUI.terminal_style import tty_show_room, tty_print, tty_prompt, tty_clear_screen, tty_set_terminal_mode
 from kingdom.model.game_model import get_game
 
-TERMINAL_MODE_OLD_SCHOOL = "OLD_SCHOOL"
-TERMINAL_MODE_MODERN = "modern"
 
-def set_terminal_mode(mode):
-        global ACTIVE_TERMINAL_MODE
-        ACTIVE_TERMINAL_MODE = mode
-        tty_set_terminal_mode(mode)
-        
-
-def get_terminal_mode():
-    return ACTIVE_TERMINAL_MODE
 
 class UI:
     def __init__(self):
         pass
-
 
     def clear_screen(self):
         tty_clear_screen()
@@ -36,7 +24,7 @@ class UI:
 
     def prompt(self,  message, *, default=None, type_=str, validate=None) -> str:
         while True:
-            value = tty_prompt(message)
+            value = tty_prompt(prompt_text=message)
             if not value and default is not None:
                 return default
             if validate is None or validate(value):
@@ -44,14 +32,14 @@ class UI:
             self.print("Invalid input, try again.")
 
     def confirm(self, question: str = "Continue? [y/n] ") -> bool:
-        ans = tty_prompt(question).lower().strip()
+        ans = tty_prompt(prompt_text=question).lower().strip()
         return ans in ("y", "yes", "1", "true")
 
 
     def _prompt_for_filename(self, action_label: str, default_filename: str) -> str:
         while True:
             prompt_text = f"{action_label} file [{default_filename}]: "
-            response = tty_prompt(prompt_text).strip()
+            response = tty_prompt(prompt_text=prompt_text).strip()
             if not response:
                 return default_filename
 

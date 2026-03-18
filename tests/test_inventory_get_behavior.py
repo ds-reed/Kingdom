@@ -12,7 +12,7 @@ from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
 from kingdom.model.game_model import Game, get_game
 from kingdom.model.noun_model import Player, World
-from kingdom.verbs.verb_registration import register_verbs
+from kingdom.engine.verbs.verb_registration import register_verbs
 
 
 def _run_command(game: Game, command: str) -> str:
