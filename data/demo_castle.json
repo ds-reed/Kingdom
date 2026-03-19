@@ -48,6 +48,7 @@
     {
       "name": "Tower Cell",
       "description": "in a cramped stone cell at the top of a lonely tower. The air is hot and dry, and the only light comes from a small barred window high above. The stone walls are rough to the touch, and the mournful sound of a lone crow echoes through the silent room.",
+      "listen_description": "The sound of a lone crow echoes through the otherwise silent room; but what it portends - who can say?",
       "discover_points": 0,
       "items": [
         {
@@ -61,6 +62,7 @@
           "name": "door",
           "description": "iron-clad door with a small barred window",
           "location_description": "is set into the east wall.",
+          "examine_description": "The wooden door is colidly clad in iron and looks extremely sturdy. A small barred window is set into the upper half of the door, potentially allowing a glimpse into the next room. The bars are made of sturdy iron and are firmly embedded into the door, making escape through the window impossible.",
           "adjectives": ["iron-clad", "east"],
           "is_takeable": false,
           "is_openable": true,
@@ -68,9 +70,18 @@
           "open_action_description": "Surprisingly, the cell door is not locked. It creaks open, revealing a small antechamber beyond.",
           "open_exit_direction": "east",
           "open_exit_type": "go",
+          "listen_description": "You press your ear to the door and listen carefully. You hear no signs of life on the other side.",
           "discover_points": 0
         }
       ],
+      "features": [
+          {
+            "name": "window",
+            "synonyms": ["window", "bars", "barred opening"],
+            "description": "a small barred window set into the upper half of the cell door",
+            "examine_description": "Through the narrow bars you can just make out the dim shape of a guard slumped on the floor of the antechamber beyond. He isn't moving."
+          }
+        ],
       "exits": {
         "go": {
           "east": {
@@ -289,6 +300,7 @@
         "name": "victrola",
         "description": "an old-fashioned Victrola with a large brass horn and a hand crank",
         "examine_description": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
+        "synonyms": ["crank", "phonograph", "gramophone", "horn"],
         "adjectives": ["old-fashioned", "brass"],
         "turn_action_description": "You turn the crank on the victrola and a cloud of dirty black smoke issues from its cone. It groans out a soft magical sounding tone, but obviously (?) this victrola is broken. (?)",
         "is_turnable": true,
@@ -365,7 +377,12 @@
         {
           "name": "mural",
           "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements",
-          "synonyms": ["djinni mural", "wall mural", "painting"]
+          "synonyms": ["djinni mural", "wall mural", "painting", "wall"]
+        },
+        {
+          "name": "eyes",
+          "description": "the eyes, though lifelike, are clearly just painted on the wall. Yet the seem to follow your every move around the room",
+          "synonyms": ["mural", "wall mural", "painting"]
         }
       ],
       "containers": [],
@@ -383,9 +400,10 @@
     },
     {
       "name": "Colossal Cave",
-      "description": "in a colossal cave opens before you, its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west - you can just make out a narrow ledge on the other side.",
+      "description": "in a colossal cave, which opens expansively in every direction; its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west and you can just make out a narrow ledge on the other side",
       "discover_points": 10,
       "has_water": true,
+      "listen_description": "The sound of gently lapping water fills the air, tranquilly echoing off the dazzling walls.",
       "items": [
         {
           "name": "gold",
@@ -397,6 +415,20 @@
         }
       ],
       "containers": [],
+      "features": [
+        {
+          "name": "pool",
+          "synonyms": ["crystal pool", "blue pool", "water"],
+          "description": "a large crystal blue pool fills the western half of the cave. The water is clear, cold and placid, yet deep. You can just make out a narrow ledge on the western side",
+          "adjectives": ["large", "crystal", "blue"]
+        },
+        {
+          "name": "walls",
+          "synonyms": ["cave walls", "jewel-studded walls", "jewels"],
+          "description": "the walls of the cave are studded with glittering jewels that catch and reflect the light in dazzling patterns",
+          "adjectives": ["jewel-studded", "glittering"]
+        }
+      ],
       "exits": {
         "go": {
             "east": {"destination": "Blank Chamber"}        
@@ -405,7 +437,7 @@
           "west": {
             "destination": "Pool Ledge",
             "is_visible": false,
-            "go_refuse_description": "There is a large pool of water blocking your way west, although you do see a narrow ledge on the other side."
+            "go_refuse_description": "There is a large pool of water blocking your way west, although you do see a narrow ledge within swimming distance."
           }
         }
       }
@@ -632,6 +664,7 @@
         {
           "name": "table",
           "description": "a simple wooden table with a pliant clay bowl sitting on top",
+          "synonyms": ["bowl", "wooden table", "clay bowl"],
           "adjectives": ["simple", "wooden"],
           "is_openable": false,
           "is_transparent": true,

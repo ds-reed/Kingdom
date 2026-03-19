@@ -12,15 +12,17 @@ class InventoryVerbHandler(VerbHandler):
         if not inventory:
             return self.build_message("You don't have anything.")
 
-        names = [item.display_name() for item in inventory]
+        names = [item.canonical_name() for item in inventory]
 
         count = len(names)
         label = "item" if count == 1 else "items"
 
+        bullet_list = "\n".join(f"- {name}" for name in names)
+
         return self.build_message(
-            f"You have ({count} {label}): "
-            f"{', '.join(names)}"
+            f"You have ({count} {label}):\n{bullet_list}"
         )
+
     
 
     def take(self, cmd: ExecuteCommand = None) -> str:
@@ -34,9 +36,25 @@ class InventoryVerbHandler(VerbHandler):
         direct_object_token = cmd.direct_object_token if cmd.direct_object_token else None
         verb_token = cmd.verb_token if cmd.verb_token else None
 
-        
 
         source, source_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("in", "from"))
+
+        # TODO: more parsing to do. Need to update interpreter so this can all be simplified
+        # this has gotten horifyingly complex and needs to be cleaned up
+        # indirect object resolution belongs to the interpreter, not the verbs.
+        #
+        if source: 
+            if not (room.has_container(source) or room.has_item(source)):
+                return self.build_message(f"You don't see any {source_name} here to take from.")
+            if source.get_class_name() != "Container":
+                return self.build_message(f"You can take things from a {source_name}!")
+     
+        if not target and direct_object_token and source:             #if we have a noun that wasn't resolved to an object in the room, check if it is in the referenced container.  
+            candidate_item = Item.get_by_name(direct_object_token)    #this is the item's object
+            if getattr(candidate_item, "is_visible", False):          #if not visible, don't allow taking.
+                if getattr(source, "is_open", False):                 # is source container open
+                    if candidate_item in source.contents:            # is it in the source container?
+                        target = candidate_item
 
         if prep and not source_name:
             return self.build_message(self.missing_target(f"{verb_token} {direct_object_token} {prep}"))
@@ -52,21 +70,15 @@ class InventoryVerbHandler(VerbHandler):
                 if player.has_item(target):
                     return(self.build_message(f"You already have {target.display_name()}."))
                 inventory_items = [target]
-                if getattr(target, "current_container", None):
-                    source = target.current_container
             elif target.get_class_name() == "Container":
                 inventory_items = [target]
-  #              return self.build_message(f"You can't take {target.display_name()} - taking containers not yet implemented.")    # todo some day..
         elif "all" in keywords or "everything" in keywords:
             if source:
-                if isinstance(source, Container):
-                    if getattr(source, "is_openable", False) and not getattr(source, "is_open", False):
-                        return self.build_message(f"{source.display_name().capitalize()} is closed.")
-                    inventory_items = [item for item in source.all_items() if getattr(item, "is_visible", True)]
-                    if not inventory_items:
-                        return self.build_message(f"The {source.display_name()} is empty.")
-                else:
-                    return self.build_message(f"You don't see any {source_name} here to take from.")
+                if getattr(source, "is_openable", False) and not getattr(source, "is_open", False):
+                    return self.build_message(f"{source.display_name().capitalize()} is closed.")
+                inventory_items = [item for item in source.contents if getattr(item, "is_visible", True)]
+                if not inventory_items:
+                    return self.build_message(f"The {source.display_name()} is empty.")
             else:
                 inventory_items = [item for item in room.all_items() if getattr(item, "is_visible", True)]
         else:
@@ -108,20 +120,26 @@ class InventoryVerbHandler(VerbHandler):
         target = cmd.direct_object = cmd.direct_object if cmd.direct_object else None
         prep_phrases = cmd.prep_phrases = cmd.prep_phrases if cmd.prep_phrases else []
 
-
-     
         dest_handle = None
-        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("into", "in"))
+        dest, dest_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("into", "in", "onto", "on"))   # for drop, only accept prepositions that imply a destination container or surface. fix this logic when we have lexical nouns like "room" for now, use keywords to allow dropping into room as well.
+
+        if dest: 
+            if not room.has_container(dest):
+                return self.build_message(f"You don't see any {dest_name} here to drop into.")
+            if dest.get_class_name() != "Container":
+                return self.build_message(f"You can't put things into {dest_name}!")
 
         # check constraints for drop with a preposition, e.g. "drop lamp into chest"
         # will return if destination is invalid in any way
         if prep_phrases:
-            if not prep:    # preposition found with unrecognized application to drop (eg. "drop lamp beneath fish")
+            if not prep:    # preposition found that has unrecognized applicability to "drop" (eg. "drop lamp beneath fish")
                 return self.build_message(f"I don't understand how to {cmd.verb_token} {next(iter(prep_phrases))['prep']} things.")
-            if "room" not in keywords:   # accept room as a destination if explicitly given. fix this logic when we have lexical nouns like "room" for now, use keywords
+            if "room" not in keywords and "down" not in keywords:   # accept room or down (implies room) as a destination and treat like no preposition phrase was given
                 if not dest:    # no resolved desination noun object
                     if not dest_name:
                         return self.build_message(self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"))
+                    else:
+                        return self.build_message(f"You don't see any {dest_name} here to {cmd.verb_token} {prep} things into.")
                 
                 if dest.get_class_name() != "Container":    #can't drop torch into fish
                     return self.build_message(f"You can't put things into {dest.display_name()}.")
@@ -141,7 +159,6 @@ class InventoryVerbHandler(VerbHandler):
             if not cmd.direct_object_token:
                 return self.build_message(self.missing_target(cmd.verb_token))
             return self.build_message(f"You have no {cmd.direct_object_token}.")
-        
         
         # loop on all resolved inventory items to drop
         msgs = []
@@ -180,7 +197,7 @@ class InventoryVerbHandler(VerbHandler):
         verb_token = cmd.verb_token if cmd.verb_token else None
 
         source, source_name, prep = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("to", "with"))
-        trade_item, trade_item_name, _ = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("for",))   # allow "give fish to mermaid for clam" as well as "trade fish to mermaid for clam"
+        trade_item, trade_item_name, prep2 = self.extract_indirect_from_prep_phrases(prep_phrases, preps=("for",))   # allow "give fish to mermaid for clam" as well as "trade fish to mermaid for clam"
 
         msgs = []
 
@@ -194,7 +211,15 @@ class InventoryVerbHandler(VerbHandler):
             return self.build_message(self.missing_target(verb_token))
     
         if not prep:
-            return self.build_message(f"{verb_token} {prep} what?")
+            if not prep2:
+                return self.build_message(f"{verb_token} what/to whom?")    # if just give/trade with no what or to whom
+            else:
+                for container in room.containers: 
+                    tradeable = getattr(container, "is_tradeable", False)                                # is_tradeable here means a container that will trade items with you
+                    if tradeable and container.has_item(trade_item):                         # we have a traget and a proposed trade good, so see if there is a container that will trade with has and has it
+                        source = container
+                        source_name = container.canonical_name()
+                        break   
 
         if not source_name:
             return self.build_message(self.missing_target(f"{verb_token} {cmd.direct_object_token} {prep}"))

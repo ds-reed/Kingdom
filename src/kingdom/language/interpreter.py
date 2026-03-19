@@ -87,7 +87,7 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             yield item
         for container in room.containers:
             yield container
-            if not container.is_openable or container.is_open:
+            if getattr(container, "is_transparent", False):
                 for item in container.contents:
                     yield item
         for feature in room.features:

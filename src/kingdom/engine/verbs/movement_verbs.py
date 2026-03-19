@@ -152,8 +152,6 @@ class MovementVerbHandler(VerbHandler):
         direction = cmd.direction if cmd else None
         target = cmd.direct_object if cmd else None
 
-        print(f"DEBUG: Climb command received. Direction: {direction}, Target: {target.display_name() if target else None}")
-
         # ───────────────────────────────────────────────
         # Case 1: Direction given → try to find matching climbable object
         # ───────────────────────────────────────────────

@@ -5,7 +5,7 @@ from kingdom.engine.item_behaviors import try_item_special_handler, VerbOutcome,
 from kingdom.engine.verbs.verb_handler import ExecuteCommand, VerbHandler
 
 from kingdom.model.noun_model import Noun, Container, Feature
-from kingdom.rendering.descriptions import render_current_room, render_item, render_container, render_container_contents
+from kingdom.rendering.descriptions import render_current_room, render_item, render_container, render_container_contents, render_feature
 
 
 
@@ -214,10 +214,27 @@ class StatefulVerbHandler(VerbHandler):
             else:
                 return self.build_message(render_current_room(room, look=True))
         
+        lines = []
         if target.get_class_name() == "Item":
-            return self.build_message(render_item(room, target))
+            lines.append(self.build_message(render_item(room, target, look=True)))
+            lines.append("But you don't notice anything else.")
+            return self.build_message(lines)
         elif target.get_class_name() == "Container":
-            return self.build_message(render_container(room, target))
+            lines.append(self.build_message(render_container(room, target, look=True)))
+            lines.append("But you don't notice anything else.")
+            return self.build_message(lines)
         elif isinstance(target, Feature):
-            return self.build_message(f"Looking closely at the {target.canonical_name()}, you see {target.description}")
+            return self.build_message(render_feature(room, target, look=True))
+        
+    def listen(self, cmd: ExecuteCommand = None) -> str:
+        room = self.room()
+        target = cmd.direct_object if cmd.direct_object else None
+
+        if target is None:  #listen to room
+            return self.build_message(room.listen_description  if getattr(room, "listen_description", None) else "You listen carefully but don't hear anything unusual.")
+
+        if getattr(target, "listen_description", None):
+            return self.build_message(target.listen_description)
+        else:
+            return self.build_message(f"You listen to the {target.canonical_name()}, but don't hear anything unusual.")
 

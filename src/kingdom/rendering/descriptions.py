@@ -4,7 +4,7 @@ from turtle import clear
 from typing import Sequence
 import re
 
-from kingdom.model.noun_model import Room, Item, Container
+from kingdom.model.noun_model import Feature, Room, Item, Container
 from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.game_model import get_game
 from kingdom.GUI.UI import ui
@@ -269,25 +269,39 @@ class RoomRenderer:
 
         return lines
 
-    def describe_item(self, room: Room, item: Item) -> str:
+    def describe_item(self, room: Room, item: Item, look: bool = False) -> str:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
-        desc = getattr(item, "examine_description", None)
-        if desc:
-            return desc
-        return f"You look at {item.stateful_name()} carefully."
+        if look:
+            desc = getattr(item, "examine_description", None)
+            if desc:
+                return desc
+            return f"You examine carefully and notice {item.stateful_name()}."
+        return f"You see {item.canonical_name()} here."
     
-    
-    def describe_container(self, room: Room, container: Container) -> str:
+    def describe_feature(self, room: Room, feature: Feature, look: bool = False) -> str:
         if self.is_dark_room(room):
             return self.dark_room_message(room)
-        desc = getattr(container, "examine_description", None)
-        if desc:
-            return desc
-        return f"You look at {container.stateful_name()} carefully. There might be something interesting inside."
+        if look:
+            desc = getattr(feature, "examine_description", None)        #all features should have examine_description, but just in case we have a fall back.
+            if desc:
+                return desc
+            return f"You examine carefully and notice {feature.display_name()}."  # features have no state
+        return f"You see {feature.canonical_name()} here."
+    
+    
+    def describe_container(self, room: Room, container: Container, look: bool = False) -> str:
+        if self.is_dark_room(room):
+            return self.dark_room_message(room)
+        if look:
+            desc = getattr(container, "examine_description", None)
+            if desc:
+                return desc
+            return f"You examine carefully and notice {container.stateful_name()}."
+        return f"You see {container.canonical_name()} here."
     
 
-    def describe_container_contents(self, room: Room, container: Container) -> str:
+    def describe_container_contents(self, room: Room, container: Container, look: bool = False) -> str:
         game = get_game()
         if self.is_dark_room(room):
             return self.dark_room_message(room)
@@ -575,12 +589,18 @@ renderer = RoomRenderer()
 def render_current_room(room, look=False) -> list[str] | None:
     return renderer.describe_room(room, look=look)
 
-def render_item(room, item) -> list[str] | None:
-    return(renderer.describe_item(room, item))
+def render_item(room, item, look=False) -> list[str] | None:
+    return(renderer.describe_item(room, item, look=look))
 
-def render_container(room, item) -> list[str] | None:
-    return(renderer.describe_container(room, item))
+def render_container(room, item, look=False) -> list[str] | None:
+    return(renderer.describe_container(room, item, look=look))
 
-def render_container_contents(room, container) -> list[str] | None:
-    return(renderer.describe_container_contents(room, container))
+def render_container_contents(room, container, look=False) -> list[str] | None:
+    return(renderer.describe_container_contents(room, container, look=look))
 
+def render_container_contents(room, container, look=False) -> list[str] | None:
+    return(renderer.describe_container_contents(room, container, look=look))
+
+
+def render_feature(room, feature, look=False) -> list[str] | None:
+    return(renderer.describe_feature(room, feature, look=look))

@@ -318,7 +318,6 @@ class Item(Noun):
     closed_state_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
     open_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
     close_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
-    examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     open_exit_direction: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
     open_exit_type: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_openable"})
 
@@ -388,6 +387,9 @@ class Item(Noun):
     turn_on_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_switchable"})
     turn_off_action_description: Optional[str] = field(default=None, metadata={"persist": "non_default", "persist_if_parent": "is_switchable"})
 
+    #environment descriptions
+    listen_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
 
     # Special handling
     trigger_room: Optional[str] = field(default=None, metadata={"persist": "non_default"})
@@ -492,6 +494,7 @@ class Container(Noun):
     open_exit_direction: Optional[str] = None
     open_exit_type: Optional[str] = None
     examine_description: Optional[str] = None
+    listen_description: Optional[str] = None
 
     # trading
     is_tradeable: bool = field(default=False, metadata={"persist": "non_default"})
@@ -508,6 +511,10 @@ class Container(Noun):
     # Special handling
     trigger_room: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     special_handlers: Dict[str, str] = field(default_factory=dict, metadata={"persist": "non_default"})
+
+    #environment descriptions
+    listen_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
 
     # Runtime state – never saved
     contents: List["Item"] = field(default_factory=list, init=False)
@@ -644,6 +651,8 @@ class Room(Noun):
     found: bool = field(default=False, metadata={"persist": "non_default"})
     is_dark: bool = field(default=False, metadata={"persist": "non_default"})
     dark_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    listen_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     discover_points: int = field(default=10, metadata={"persist": "non_default"})
     has_water: bool = field(default=False, metadata={"persist": "non_default"})
 
@@ -897,6 +906,7 @@ class Feature(Noun):
     description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    listen_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
     adjectives: list[str] = field(default_factory=list, metadata={"persist": "non_default"})
     found: bool = field(default=False, metadata={"persist": "non_default"})

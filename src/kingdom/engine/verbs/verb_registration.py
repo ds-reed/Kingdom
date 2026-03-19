@@ -108,24 +108,29 @@ def register_verbs():
           # Stateful verbs (require state checks but no changes)
 
           Verb("say", stateful.say,
-               synonyms=["speak", "talk", "shout", "whisper"],
-               modifiers=["wish"],
+               synonyms=["speak", "talk", "shout", "whisper", "wish"],
+               modifiers=[],
                uses_directions=False),
 
           Verb("make", stateful.make,
                synonyms=[],
                hidden=True,
-               modifiers=["wish"],
+               modifiers=["wish","djinni"],
                uses_directions=False),
 
           Verb("look", stateful.look,
-               synonyms=["examine", "inspect", "search"],
+               synonyms=["examine", "inspect", "search", "describe", "view", "peer", "observe"],
                modifiers=[],
                uses_directions=False),
 
           Verb("eat", stateful.eat,
                synonyms=["consume"],
                modifiers=["all", "everything"],
+               uses_directions=False),
+          
+          Verb("listen", stateful.listen,
+               synonyms=["hear"],
+               modifiers=[],
                uses_directions=False),
 
 
@@ -171,6 +176,12 @@ def register_verbs():
                synonyms=["debug_mode", "set_debug", "set_debug_mode"],
                hidden=True,
                modifiers=["please"],
+               uses_directions=False),
+
+          Verb("xyzzy", meta.xyzzy,
+               synonyms=["plugh","plover"],
+               hidden=True,
+               modifiers=[],
                uses_directions=False),
 
           # Inventory verbs
