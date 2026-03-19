@@ -265,4 +265,4 @@ class MetaVerbHandler(VerbHandler):
             return self.build_message("Incorrect magic words.")
         
     def xyzzy(self, cmd: "ExecuteCommand" = None) -> str:
-       return self.build_message("Wdrong game, but nice try)")
+       return self.build_message("Wrong game, but nice try")
