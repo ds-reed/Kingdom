@@ -33,9 +33,18 @@ def init_game_state(world_file) -> Game | None:
     player_name = ui.prompt("Player name> ").strip() or "ralf"
     ui.print(f"Welcome {player_name}!","\n")
     
-    base_dir = Path(__file__).resolve().parent
-    save_path = base_dir / "saves" / f"{player_name}.json"
-    data_path = base_dir / "data" / world_file
+    # exception_handling.py lives under src/kingdom/engine; project root is 3 levels up.
+    project_root = Path(__file__).resolve().parents[3]
+    save_path = project_root / "saves" / f"{player_name}.json"
+
+    requested_world = Path(world_file).expanduser()
+    if requested_world.is_absolute():
+        data_path = requested_world
+    else:
+        # Prefer data/ for short names (e.g., demo_castle.json), but allow repo-relative paths too.
+        data_candidate = project_root / "data" / requested_world
+        repo_candidate = project_root / requested_world
+        data_path = data_candidate if data_candidate.exists() else repo_candidate
     
     try:
 

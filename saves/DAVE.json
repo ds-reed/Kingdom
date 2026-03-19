@@ -1,0 +1,1122 @@
+{
+    "directions": {
+        "down": {
+            "reverse": "up",
+            "synonyms": [
+                "d"
+            ]
+        },
+        "east": {
+            "reverse": "west",
+            "synonyms": [
+                "e"
+            ]
+        },
+        "inside": {
+            "reverse": "outside",
+            "synonyms": [
+                "enter",
+                "in"
+            ]
+        },
+        "north": {
+            "reverse": "south",
+            "synonyms": [
+                "n"
+            ]
+        },
+        "outside": {
+            "reverse": "inside",
+            "synonyms": [
+                "exit",
+                "out"
+            ]
+        },
+        "south": {
+            "reverse": "north",
+            "synonyms": [
+                "s"
+            ]
+        },
+        "up": {
+            "reverse": "down",
+            "synonyms": [
+                "u"
+            ]
+        },
+        "west": {
+            "reverse": "east",
+            "synonyms": [
+                "w"
+            ]
+        }
+    },
+    "player": {
+        "name": "DAVE",
+        "inventory": [
+            {
+                "name": "banana",
+                "description": "a blackened and overripe banana",
+                "handle": "banana",
+                "adjectives": [
+                    "blackened",
+                    "overripe"
+                ],
+                "special_handlers": {
+                    "eat": "eat_banana"
+                },
+                "discover_points": 0,
+                "found": true
+            },
+            {
+                "name": "cigarettes",
+                "description": "an empty crumpled pack of cigarettes",
+                "handle": "cigarettes",
+                "synonyms": [
+                    "cigarette pack",
+                    "pack of cigarettes",
+                    "pack"
+                ],
+                "adjectives": [
+                    "crumpled"
+                ]
+            },
+            {
+                "name": "lighter",
+                "description": "a cheap plastic lighter",
+                "handle": "lighter",
+                "adjectives": [
+                    "cheap",
+                    "plastic"
+                ],
+                "can_ignite": true,
+                "ignite_success_description": "You flick the lighter and a small flame appears.",
+                "is_flamable": false
+            },
+            {
+                "name": "key",
+                "description": "a small brass key",
+                "handle": "key",
+                "adjectives": [
+                    "small",
+                    "brass"
+                ],
+                "unlock_key": "small brass key",
+                "is_flamable": false,
+                "is_edible": true,
+                "eat_refuse_description": null,
+                "eaten_success_description": null
+            },
+            {
+                "name": "torch",
+                "description": "an old wooden torch",
+                "handle": "torch",
+                "adjectives": [
+                    "old",
+                    "wooden"
+                ],
+                "is_lightable": true,
+                "is_lit": true,
+                "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
+                "unlit_state_description": "an unlit, old wooden torch",
+                "special_handlers": {
+                    "drop": "drop_torch"
+                }
+            },
+            {
+                "name": "fish",
+                "description": "a suspicious-looking half-eaten fish",
+                "handle": "fish",
+                "adjectives": [
+                    "suspicious",
+                    "half-eaten"
+                ],
+                "special_handlers": {
+                    "eat": "eat_fish"
+                },
+                "discover_points": 1
+            },
+            {
+                "name": "lamp",
+                "description": "a battered but shiny brass lamp",
+                "handle": "lamp",
+                "adjectives": [
+                    "battered",
+                    "dull",
+                    "brass"
+                ],
+                "is_lightable": true,
+                "is_lit": true,
+                "lit_state_description": "a battered brass lamp that is glowing with a magical light",
+                "unlit_state_description": null,
+                "is_flamable": false,
+                "is_rubbable": true,
+                "is_rubbed": true,
+                "rubbed_state_description": "a battered and shiny brass lamp",
+                "rub_success_description": "The lamp grows shiny from rubbing.",
+                "trigger_room": "Blank Chamber",
+                "special_handlers": {
+                    "rub": "rub_lamp"
+                }
+            }
+        ]
+    },
+    "current_room": "Tower Cell",
+    "start_room": "Tower Cell",
+    "end_room": "Demo End",
+    "score": 94,
+    "rooms": [
+        {
+            "name": "Djinni Lair",
+            "description": "You shouldn't be here, cheater!!!",
+            "handle": "djinni lair",
+            "discover_points": -1000,
+            "exits": {},
+            "items": [
+                {
+                    "name": "djinni",
+                    "description": "an imposing djinni",
+                    "handle": "djinni",
+                    "adjectives": [
+                        "imposing",
+                        "tall"
+                    ],
+                    "is_takeable": false,
+                    "take_refuse_description": "The 10 foot tall djinni glares at you.",
+                    "can_be_spoken_to": true,
+                    "speak_description": null,
+                    "special_handlers": {
+                        "say": "speak_djinni",
+                        "make": "make_djinni"
+                    }
+                },
+                {
+                    "name": "peel",
+                    "description": "slippery banana peel",
+                    "handle": "peel",
+                    "adjectives": [
+                        "slippery",
+                        "slick"
+                    ],
+                    "examine_description": "a slippery banana peel that looks like it could cause a nasty fall if someone stepped on it...",
+                    "special_handlers": {
+                        "throw": "throw_peel"
+                    },
+                    "discover_points": 10
+                },
+                {
+                    "name": "ladder",
+                    "description": "placeholder object until I fix update lexicon",
+                    "handle": "ladder"
+                }
+            ]
+        },
+        {
+            "name": "Tower Cell",
+            "description": "in a cramped stone cell at the top of a lonely tower. The air is hot and dry, and the only light comes from a small barred window high above. The stone walls are rough to the touch, and the mournful sound of a lone crow echoes through the silent room.",
+            "handle": "tower cell",
+            "found": true,
+            "listen_description": "The sound of a lone crow echoes through the otherwise silent room; but what it portends - who can say?",
+            "discover_points": 0,
+            "exits": {
+                "go": {
+                    "east": {
+                        "destination": "Cell Antechamber",
+                        "refuse_description": "The cell door is firmly shut."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "door",
+                    "description": "iron-clad door with a small barred window",
+                    "location_description": "is set into the east wall.",
+                    "handle": "door",
+                    "adjectives": [
+                        "iron-clad",
+                        "east"
+                    ],
+                    "is_takeable": false,
+                    "is_openable": true,
+                    "is_open": true,
+                    "opened_state_description": null,
+                    "closed_state_description": null,
+                    "open_action_description": "Surprisingly, the cell door is not locked. It creaks open, revealing a small antechamber beyond.",
+                    "close_action_description": null,
+                    "open_exit_direction": "east",
+                    "open_exit_type": "go",
+                    "listen_description": "You press your ear to the door and listen carefully. You hear no signs of life on the other side.",
+                    "examine_description": "The wooden door is colidly clad in iron and looks extremely sturdy. A small barred window is set into the upper half of the door, potentially allowing a glimpse into the next room. The bars are made of sturdy iron and are firmly embedded into the door, making escape through the window impossible.",
+                    "discover_points": 0,
+                    "found": true
+                }
+            ],
+            "features": [
+                {
+                    "name": "window",
+                    "description": "a small barred window set into the upper half of the cell door",
+                    "handle": "window",
+                    "examine_description": "Through the narrow bars you can just make out the dim shape of a guard slumped on the floor of the antechamber beyond. He isn't moving.",
+                    "synonyms": [
+                        "window",
+                        "bars",
+                        "barred opening"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Cell Antechamber",
+            "description": "in a small antechamber just outside the tower cell. Light streams in through a narrow window, casting long shadows across the stone floor. The air is cooler here, but an uneasy stillness hangs over the room. There is a door to the north that is strongly bolted shut from the outside.",
+            "handle": "cell antechamber",
+            "found": true,
+            "exits": {
+                "go": {
+                    "west": {
+                        "destination": "Tower Cell"
+                    }
+                },
+                "climb": {
+                    "down": {
+                        "destination": "Pole Landing",
+                        "go_refuse_description": "The pole descends into utter darkness. Did you want to slide down?"
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "trapdoor",
+                    "description": "a rusty iron trapdoor",
+                    "handle": "trapdoor",
+                    "adjectives": [
+                        "rusty",
+                        "iron"
+                    ],
+                    "is_takeable": false,
+                    "is_openable": true,
+                    "is_open": true,
+                    "opened_state_description": "A slick fireman's pole leads down into the deep darkness below from an open trapdoor that",
+                    "closed_state_description": "A closed, rusty iron trapdoor",
+                    "open_action_description": "You open the trapdoor, revealing a slick fireman's pole that leads down into the deep darkness below.",
+                    "close_action_description": null,
+                    "open_exit_direction": "down",
+                    "open_exit_type": "climb",
+                    "is_lockable": true,
+                    "is_locked": false,
+                    "unlock_key": "small brass key",
+                    "locked_state_description": "A closed and locked rusty iron trapdoor",
+                    "unlocked_state_description": "A closed but unlocked rusty iron trapdoor",
+                    "unlockable_description": "The trapdoor is locked and you need a key",
+                    "is_flamable": false,
+                    "found": true
+                },
+                {
+                    "name": "pole",
+                    "description": "a greasy pole.",
+                    "handle": "pole",
+                    "adjectives": [
+                        "greasy"
+                    ],
+                    "is_takeable": false,
+                    "take_refuse_description": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "down"
+                    ],
+                    "is_visible": false,
+                    "examine_description": "a firestation-type pole that is slathered in slippery grease"
+                }
+            ],
+            "containers": [
+                {
+                    "name": "body",
+                    "description": "a guard's lifeless body",
+                    "location_description": "lies slumped on the floor.",
+                    "render_priority": 200,
+                    "handle": "body",
+                    "synonyms": [
+                        "guard",
+                        "uniform",
+                        "pockets"
+                    ],
+                    "adjectives": [
+                        "lifeless",
+                        "prison",
+                        "guard"
+                    ],
+                    "found": true,
+                    "take_refuse_description": "You can't take the body, but you can search it if you like.",
+                    "examine_description": "The lifeless body of a prison guard lies slumped on the floor, his uniform stained with what looks like remains of his lunch."
+                },
+                {
+                    "name": "bag",
+                    "description": "a greasy brown lunch bag",
+                    "handle": "bag",
+                    "adjectives": [
+                        "greasy",
+                        "brown",
+                        "lunch"
+                    ],
+                    "found": true,
+                    "is_openable": true,
+                    "is_open": true
+                },
+                {
+                    "name": "sconce",
+                    "description": "an iron wall sconce",
+                    "render_priority": 500,
+                    "handle": "sconce",
+                    "adjectives": [
+                        "iron",
+                        "wall"
+                    ],
+                    "found": true,
+                    "is_transparent": true,
+                    "items": [
+                        {
+                            "name": "torch",
+                            "description": "an old wooden torch",
+                            "handle": "torch",
+                            "adjectives": [
+                                "old",
+                                "wooden"
+                            ],
+                            "is_lightable": true,
+                            "is_lit": true,
+                            "lit_state_description": "an old wooden torch that is burning brightly, casting flickering shadows on the walls",
+                            "unlit_state_description": "an unlit, old wooden torch",
+                            "special_handlers": {
+                                "drop": "drop_torch"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "features": [
+                {
+                    "name": "window",
+                    "description": "a narrow barred window is set high in the wall, allowing a thin shaft of light to pierce the gloom.",
+                    "handle": "window",
+                    "examine_description": "it is set high in the wall, allowing a thin shaft of light to pierce the gloom. The bars are made of sturdy iron and are firmly embedded into the stone, making escape through the window impossible. "
+                },
+                {
+                    "name": "door",
+                    "description": "a sturdy wooden door is set into the north wall.",
+                    "handle": "door",
+                    "examine_description": "that its surface is scarred with scratches and dents. It is firmly bolted shut from the outside, and there is no handle or keyhole visible.",
+                    "adjectives": [
+                        "bolted",
+                        "wooden",
+                        "north"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Pole Landing",
+            "description": "in a circular stone chamber with a low ceiling. The greased pole ends here, its metal surface gleaming faintly in the dim light. Dusty footprints lead into a twisting passage where the darkness seems to swallow all sound.",
+            "handle": "pole landing",
+            "found": true,
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": "Twisting Passage (South Bend)"
+                    }
+                },
+                "climb": {
+                    "up": {
+                        "destination": "Cell Antechamber",
+                        "is_passable": false,
+                        "refuse_description": "The pole is extremely slippery and cannot be climbed."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "pole",
+                    "description": "a greasy pole.",
+                    "handle": "pole",
+                    "adjectives": [
+                        "greasy"
+                    ],
+                    "is_takeable": false,
+                    "take_refuse_description": "The pole is firmly anchored and your efforts to take it only result in you getting your hands covered in grease.",
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "up"
+                    ],
+                    "is_visible": false
+                }
+            ]
+        },
+        {
+            "name": "Twisting Passage (South Bend)",
+            "description": "in a narrow stone passage that immediately bends out of sight. The walls are slick and uneven, and the floor slopes slightly. Without a light source, it would be dangerously easy to walk straight into the wall.",
+            "handle": "twisting passage (south bend)",
+            "found": true,
+            "is_dark": true,
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "Pole Landing"
+                    },
+                    "west": {
+                        "destination": "Twisting Passage (North Bend)"
+                    }
+                }
+            }
+        },
+        {
+            "name": "Twisting Passage (North Bend)",
+            "description": "in a narrow stone passage that turns sharply again here, forming a cramped dogleg. The air is cold and carries faint echoes from somewhere ahead. The stone underfoot is worn smooth by countless footsteps.",
+            "handle": "twisting passage (north bend)",
+            "found": true,
+            "is_dark": true,
+            "exits": {
+                "go": {
+                    "east": {
+                        "destination": "Twisting Passage (South Bend)"
+                    },
+                    "north": {
+                        "destination": "Guard's Antechamber"
+                    },
+                    "south": {
+                        "destination": "Lamp Chamber"
+                    },
+                    "west": {
+                        "destination": "Blank Chamber"
+                    }
+                }
+            }
+        },
+        {
+            "name": "Guard's Antechamber",
+            "description": "in a small stone chamber that feels abandoned and forgotten. A broken bench leans against the wall, and a rusted spear rack stands empty. A faint light comes through a thin horizontal-slit window near the ceiling, casting long, shadows across the room.",
+            "handle": "guard's antechamber",
+            "found": true,
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "Twisting Passage (North Bend)"
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "victrola",
+                    "description": "an old-fashioned Victrola with a large brass horn and a hand crank",
+                    "handle": "victrola",
+                    "synonyms": [
+                        "crank",
+                        "phonograph",
+                        "gramophone",
+                        "horn"
+                    ],
+                    "adjectives": [
+                        "old-fashioned",
+                        "brass"
+                    ],
+                    "is_takeable": false,
+                    "is_turnable": true,
+                    "is_turned": true,
+                    "has_handle": true,
+                    "turn_action_description": "You turn the crank on the victrola and a cloud of dirty black smoke issues from its cone. It groans out a soft magical sounding tone, but obviously (?) this victrola is broken. (?)",
+                    "examine_description": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
+                    "special_handlers": {
+                        "hit": "hit_victrola"
+                    },
+                    "found": true
+                }
+            ],
+            "features": [
+                {
+                    "name": "bench",
+                    "description": "a broken wooden bench sits crookedly against the wall",
+                    "handle": "bench",
+                    "adjectives": [
+                        "broken",
+                        "wooden"
+                    ]
+                },
+                {
+                    "name": "rack",
+                    "description": "a rusted spear rack stands empty",
+                    "handle": "rack",
+                    "adjectives": [
+                        "rusted",
+                        "empty",
+                        "spear"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Lamp Chamber",
+            "description": "in a magnificently decorated chamber lit by a soft, unnatural glow. The air hums softly, as though waiting for something to happen.",
+            "handle": "lamp chamber",
+            "found": true,
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": "Twisting Passage (North Bend)"
+                    }
+                }
+            },
+            "containers": [
+                {
+                    "name": "alcove",
+                    "description": "a shallow stone alcove",
+                    "location_description": "is carved into the far wall",
+                    "render_priority": 500,
+                    "handle": "alcove",
+                    "adjectives": [
+                        "shallow",
+                        "stone"
+                    ],
+                    "found": true,
+                    "is_open": true,
+                    "examine_description": "The alcove is shallow and carved directly into the stone wall. The interior is faintly illuminated by the strange light as though it holds some hidden secret.",
+                    "is_transparent": true,
+                    "items": [
+                        {
+                            "name": "lamp",
+                            "description": "a battered but shiny brass lamp",
+                            "handle": "lamp",
+                            "adjectives": [
+                                "battered",
+                                "dull",
+                                "brass"
+                            ],
+                            "is_lightable": true,
+                            "is_lit": true,
+                            "lit_state_description": "a battered brass lamp that is glowing with a magical light",
+                            "unlit_state_description": null,
+                            "is_flamable": false,
+                            "is_rubbable": true,
+                            "is_rubbed": true,
+                            "rubbed_state_description": "a battered and shiny brass lamp",
+                            "rub_success_description": "The lamp grows shiny from rubbing.",
+                            "trigger_room": "Blank Chamber",
+                            "special_handlers": {
+                                "rub": "rub_lamp"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Blank Chamber",
+            "description": "in an oddly empty room with smooth stone walls. You see a large mural of an imposing Djinni on the west wall.",
+            "handle": "blank chamber",
+            "found": true,
+            "is_dark": true,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "exits": {
+                "go": {
+                    "west": {
+                        "destination": "Colossal Cave",
+                        "is_visible": false,
+                        "is_passable": false,
+                        "refuse_description": "You can't travel west here"
+                    },
+                    "east": {
+                        "destination": "Twisting Passage (North Bend)"
+                    }
+                }
+            },
+            "features": [
+                {
+                    "name": "mural",
+                    "description": "it depicts an imposing Djinni with unsettlingly lifelike eyes that seem to follow your movements",
+                    "handle": "mural",
+                    "synonyms": [
+                        "djinni mural",
+                        "wall mural",
+                        "painting",
+                        "wall"
+                    ]
+                },
+                {
+                    "name": "eyes",
+                    "description": "the eyes, though lifelike, are clearly just painted on the wall. Yet the seem to follow your every move around the room",
+                    "handle": "eyes",
+                    "synonyms": [
+                        "mural",
+                        "wall mural",
+                        "painting"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Colossal Cave",
+            "description": "in a colossal cave, which opens expansively in every direction; its jewel-studded walls shimmering in reflected light. A large crystal blue pool lies to the west and you can just make out a narrow ledge on the other side",
+            "handle": "colossal cave",
+            "listen_description": "The sound of gently lapping water fills the air, tranquilly echoing off the dazzling walls.",
+            "has_water": true,
+            "exits": {
+                "go": {
+                    "east": {
+                        "destination": "Blank Chamber"
+                    }
+                },
+                "swim": {
+                    "west": {
+                        "destination": "Pool Ledge",
+                        "is_visible": false,
+                        "go_refuse_description": "There is a large pool of water blocking your way west, although you do see a narrow ledge within swimming distance."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "gold",
+                    "description": "a heavy solid gold bar",
+                    "handle": "gold",
+                    "synonyms": [
+                        "gold bar",
+                        "bar of gold",
+                        "bar"
+                    ],
+                    "adjectives": [
+                        "heavy",
+                        "solid"
+                    ],
+                    "is_flamable": false,
+                    "too_heavy_to_swim": true
+                }
+            ],
+            "features": [
+                {
+                    "name": "pool",
+                    "description": "a large crystal blue pool fills the western half of the cave. The water is clear, cold and placid, yet deep. You can just make out a narrow ledge on the western side",
+                    "handle": "pool",
+                    "synonyms": [
+                        "crystal pool",
+                        "blue pool",
+                        "water"
+                    ],
+                    "adjectives": [
+                        "large",
+                        "crystal",
+                        "blue"
+                    ]
+                },
+                {
+                    "name": "walls",
+                    "description": "the walls of the cave are studded with glittering jewels that catch and reflect the light in dazzling patterns",
+                    "handle": "walls",
+                    "synonyms": [
+                        "cave walls",
+                        "jewel-studded walls",
+                        "jewels"
+                    ],
+                    "adjectives": [
+                        "jewel-studded",
+                        "glittering"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Pool Ledge",
+            "description": "on a narrow ledge across the pool.",
+            "handle": "pool ledge",
+            "is_dark": true,
+            "dark_description": "It is pitch dark. You can't see anything.",
+            "has_water": true,
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "South Tunnel"
+                    }
+                },
+                "swim": {
+                    "east": {
+                        "destination": "Colossal Cave",
+                        "go_refuse_description": "There is a large pool of water blocking your way east, although you do see solid ground on the other side."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "lantern",
+                    "description": "a lit silver lantern",
+                    "handle": "lantern",
+                    "adjectives": [
+                        "silver"
+                    ],
+                    "is_lit": true,
+                    "is_flamable": false
+                }
+            ],
+            "containers": [
+                {
+                    "name": "mermaid",
+                    "description": "a beautiful mermaid with shimmering scales and flowing hair",
+                    "handle": "mermaid",
+                    "is_openable": true,
+                    "is_takeable": true,
+                    "is_open": true,
+                    "examine_description": "A beautiful mermaid with shimmering scales and flowing hair.",
+                    "is_tradeable": true,
+                    "trade_action_description": null,
+                    "is_transparent": true,
+                    "special_handlers": {
+                        "take": "take_mermaid"
+                    },
+                    "items": [
+                        {
+                            "name": "vase",
+                            "description": "a magnificent vase carved from a single emerald, with intricate patterns etched into its surface",
+                            "handle": "vase",
+                            "adjectives": [
+                                "magnificent",
+                                "emerald"
+                            ],
+                            "is_takeable": false
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "South Tunnel",
+            "description": "in a low, echoing tunnel carved by centuries of dripping water. The air grows cooler as the passage slopes steeply upward.",
+            "handle": "south tunnel",
+            "is_dark": true,
+            "dark_description": "You can feel the tunnel narrowing around you, but you can't see a thing.",
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": "Pool Ledge"
+                    },
+                    "south": {
+                        "destination": "Ravine Edge"
+                    }
+                }
+            }
+        },
+        {
+            "name": "Ravine Edge",
+            "description": "at the edge of a steep ravine. A narrow stream glitters faintly at the bottom.",
+            "handle": "ravine edge",
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": null
+                    }
+                },
+                "climb": {
+                    "down": {
+                        "destination": "Clover Rest",
+                        "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+                        "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "rope",
+                    "description": "a sturdy length of rope",
+                    "handle": "rope",
+                    "adjectives": [
+                        "sturdy",
+                        "coiled"
+                    ],
+                    "is_tieable": true,
+                    "tied_state_description": "a long sturdy rope is tied securly and dangles down from the edge of the ravine",
+                    "climb_directions": [
+                        "down",
+                        "up"
+                    ]
+                },
+                {
+                    "name": "hook",
+                    "description": "an iron hook is firmly anchored into the rock at the ravine's edge",
+                    "handle": "hook",
+                    "adjectives": [
+                        "iron",
+                        "anchored"
+                    ],
+                    "is_takeable": false,
+                    "can_be_tied_to": true,
+                    "examine_description": "This massive iron hook appears as though it could bear a lot of weight."
+                }
+            ],
+            "features": [
+                {
+                    "name": "ravine",
+                    "description": "a sheer drop into a rocky gorge with a fast rushing stream running along its bottom.",
+                    "handle": "ravine",
+                    "synonyms": [
+                        "gorge",
+                        "chasm"
+                    ],
+                    "adjectives": [
+                        "steep",
+                        "sheer"
+                    ]
+                },
+                {
+                    "name": "stream",
+                    "description": "a narrow ribbon of water glinting far below",
+                    "handle": "stream",
+                    "adjectives": [
+                        "narrow",
+                        "glinting"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Clover Rest",
+            "description": "beside a pleasant stream that winds gently south through a bed of soft clover. Sunlight filters down the ravine walls in shifting ribbons, and the air is cool and peaceful.",
+            "handle": "clover rest",
+            "has_water": true,
+            "exits": {
+                "go": {
+                    "south": {
+                        "destination": "South Meadow"
+                    }
+                },
+                "climb": {
+                    "up": {
+                        "destination": "Ravine Edge",
+                        "refuse_description": "The ravine wall is too steep - you may need to prepare some equipment.",
+                        "go_refuse_description": "You can't go that way - there's a sheer cliff you need to scale."
+                    }
+                }
+            },
+            "features": [
+                {
+                    "name": "stream",
+                    "description": "a clear, gentle stream flowing over smooth stones",
+                    "handle": "stream",
+                    "adjectives": [
+                        "clear",
+                        "gentle",
+                        "flowing"
+                    ]
+                },
+                {
+                    "name": "clover",
+                    "description": "a thick bed of soft green clover that looks surprisingly comfortable",
+                    "handle": "clover",
+                    "adjectives": [
+                        "soft",
+                        "green"
+                    ]
+                },
+                {
+                    "name": "ravine walls",
+                    "description": "tall stone walls rising steeply above you, too narrow to climb without help",
+                    "handle": "ravine walls",
+                    "adjectives": [
+                        "tall",
+                        "steep",
+                        "narrow"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "South Meadow",
+            "description": "in a sunlit meadow where tall grasses sway in a gentle breeze. Wildflowers dot the landscape, and clusters of wild carrots grow among the greenery. A small cottage with a crooked chimney stands nearby.",
+            "handle": "south meadow",
+            "exits": {
+                "go": {
+                    "north": {
+                        "destination": "Clover Rest"
+                    },
+                    "inside": {
+                        "destination": "Cottage Interior"
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "carrot",
+                    "description": "a cheery orange carrot",
+                    "handle": "carrot",
+                    "adjectives": [
+                        "cheery",
+                        "orange"
+                    ],
+                    "is_edible": true,
+                    "eat_refuse_description": null,
+                    "eaten_success_description": "The cheery orange carrot SCREAMS as you force it down your hideous throat. His screams die out to a gurgle as he is driven into the pit of your greedy stomach.",
+                    "can_be_spoken_to": true,
+                    "speak_description": "The carrot is flattered by your attention, but doesn't understand a word you said. It cheerfully waves hello!",
+                    "examine_description": "The carrot cheerfully waves hello!"
+                }
+            ],
+            "features": [
+                {
+                    "name": "wild carrots",
+                    "description": "a patch of wild carrots with feathery green tops",
+                    "handle": "wild carrots",
+                    "adjectives": [
+                        "wild",
+                        "carrot"
+                    ]
+                },
+                {
+                    "name": "grasses",
+                    "description": "tall meadow grasses that ripple softly in the breeze",
+                    "handle": "grasses",
+                    "adjectives": [
+                        "tall",
+                        "meadow"
+                    ]
+                },
+                {
+                    "name": "wildflowers",
+                    "description": "bright wildflowers scattered across the meadow",
+                    "handle": "wildflowers",
+                    "adjectives": [
+                        "bright",
+                        "scattered"
+                    ]
+                },
+                {
+                    "name": "cottage",
+                    "description": "a small cottage with a crooked chimney and a weathered wooden door hanging loosely ajar",
+                    "handle": "cottage",
+                    "examine_description": "The cottage looks old and worn, but there's a certain charm to it. The wooden door hangs loosely ajar, inviting you to step inside and explore. The crooked chimney suggests that the cottage has seen better days, but it also adds to its character and mystique.",
+                    "synonyms": [
+                        "house",
+                        "chimney"
+                    ],
+                    "adjectives": [
+                        "small",
+                        "crooked",
+                        "weathered"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Cottage Interior",
+            "description": "inside a small, cozy cottage. Sunlight filters through a round window, illuminating a simple wooden table at the center of the room.",
+            "handle": "cottage interior",
+            "discover_points": 5,
+            "exits": {
+                "go": {
+                    "outside": {
+                        "destination": "South Meadow"
+                    }
+                },
+                "climb": {
+                    "up": {
+                        "destination": "Demo End",
+                        "is_visible": false
+                    }
+                }
+            },
+            "containers": [
+                {
+                    "name": "table",
+                    "description": "a simple wooden table with a pliant clay bowl sitting on top",
+                    "location_description": "stands in the middle of the cottage",
+                    "handle": "table",
+                    "synonyms": [
+                        "bowl",
+                        "wooden table",
+                        "clay bowl"
+                    ],
+                    "adjectives": [
+                        "simple",
+                        "wooden"
+                    ],
+                    "is_transparent": true,
+                    "items": [
+                        {
+                            "name": "onion",
+                            "description": "a small white onion with papery skin",
+                            "handle": "onion",
+                            "adjectives": [
+                                "small",
+                                "white"
+                            ]
+                        },
+                        {
+                            "name": "apple",
+                            "description": "a crisp red apple",
+                            "handle": "apple",
+                            "adjectives": [
+                                "crisp",
+                                "red"
+                            ]
+                        },
+                        {
+                            "name": "mushroom",
+                            "description": "an odd-looking mushroom with a spiraled cap",
+                            "handle": "mushroom",
+                            "adjectives": [
+                                "odd-looking",
+                                "spiraled"
+                            ],
+                            "special_handlers": {
+                                "eat": "eat_mushroom"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Demo End",
+            "description": "standing on a small, impossibly solid platform of cloud, high above the world. The air is cool and thin, and the land below looks like a painted map. Wisps of cloud drift lazily past at eye level.",
+            "handle": "demo end",
+            "discover_points": 50,
+            "exits": {
+                "climb": {
+                    "down": {
+                        "destination": "Cottage Interior",
+                        "go_refuse_description": "You peer over the edge and decide it is better to take the ladder. The world below is impossibly far away."
+                    }
+                }
+            },
+            "items": [
+                {
+                    "name": "ladder",
+                    "description": "ladder down to reality",
+                    "handle": "ladder",
+                    "is_takeable": false,
+                    "is_climbable": true,
+                    "climb_directions": [
+                        "down"
+                    ]
+                }
+            ],
+            "features": [
+                {
+                    "name": "clouds",
+                    "description": "soft white clouds drifting slowly past, close enough to touch but somehow always just out of reach",
+                    "handle": "clouds",
+                    "adjectives": [
+                        "soft",
+                        "white",
+                        "drifting"
+                    ]
+                },
+                {
+                    "name": "world below",
+                    "description": "a distant patchwork of forests, rivers, and mountains far beneath your feet",
+                    "handle": "world below",
+                    "adjectives": [
+                        "distant",
+                        "patchwork"
+                    ]
+                }
+            ]
+        }
+    ],
+    "prefs": {
+        "save_directory": "C:\\Users\\dreed\\MI_Projects\\projects\\Coding\\python\\Kingdom\\saves",
+        "last_save_filename": "DAVE.json",
+        "player_name": "DAVE"
+    }
+}
