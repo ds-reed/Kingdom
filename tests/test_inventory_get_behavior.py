@@ -11,7 +11,7 @@ from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
 from kingdom.model.game_model import Game, get_game
-from kingdom.model.noun_model import Player, World
+from kingdom.model.noun_model import Feature, Player, World
 from kingdom.engine.verbs.verb_registration import register_verbs
 
 
@@ -79,3 +79,58 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     # Single-item get can implicitly pull from the currently open container.
     assert "fish" in inventory_handles_after_get_fish
     assert "fish" not in bag_handles_after_get_fish
+
+
+def test_get_feature_returns_custom_refusal_without_crashing() -> None:
+    game = get_game()
+    game.reset_all_state()
+
+    world = World()
+    game.world = world
+    game.setup_world(PROJECT_ROOT / "data" / "initial_state.json")
+
+    player = Player("InventoryHero")
+    game.init_session(
+        world=world,
+        current_player=player,
+        player_name=player.name,
+    )
+    register_verbs()
+
+    bench = Feature(
+        "bench",
+        description="a broken bench",
+        handle="bench",
+        take_refuse_description="The bench is too heavy for you to take.",
+    )
+    game.current_room.add_feature(bench)
+
+    result = _run_command(game, "get bench")
+
+    assert isinstance(result, str)
+    assert "too heavy" in result.lower()
+
+
+def test_get_feature_without_custom_refusal_uses_generic_message() -> None:
+    game = get_game()
+    game.reset_all_state()
+
+    world = World()
+    game.world = world
+    game.setup_world(PROJECT_ROOT / "data" / "initial_state.json")
+
+    player = Player("InventoryHero")
+    game.init_session(
+        world=world,
+        current_player=player,
+        player_name=player.name,
+    )
+    register_verbs()
+
+    statue = Feature("statue", description="a marble statue", handle="statue")
+    game.current_room.add_feature(statue)
+
+    result = _run_command(game, "get statue")
+
+    assert isinstance(result, str)
+    assert "you can't get" in result.lower()

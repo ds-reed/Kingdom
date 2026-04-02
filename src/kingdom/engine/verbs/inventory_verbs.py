@@ -56,6 +56,19 @@ class InventoryVerbHandler(VerbHandler):
                     if candidate_item in source.contents:            # is it in the source container?
                         target = candidate_item
 
+        # Backward-compatible convenience: if source was omitted, allow pulling
+        # a single item from the first open room container that contains it.
+        if not target and direct_object_token and not source:
+            for container in room.containers:
+                if getattr(container, "is_openable", False) and not getattr(container, "is_open", False):
+                    continue
+                candidate_item = container.has_item_by_alias(direct_object_token)
+                if candidate_item is not None and getattr(candidate_item, "is_visible", True):
+                    source = container
+                    source_name = container.obj_handle()
+                    target = candidate_item
+                    break
+
         if prep and not source_name:
             return self.build_message(self.missing_target(f"{verb_token} {direct_object_token} {prep}"))
         
@@ -72,6 +85,9 @@ class InventoryVerbHandler(VerbHandler):
                 inventory_items = [target]
             elif target.get_class_name() == "Container":
                 inventory_items = [target]
+            else:
+                refuse = getattr(target, "take_refuse_description", None) or f"You can't {verb_token} {target.display_name()}."
+                return self.build_message(refuse)
         elif "all" in keywords or "everything" in keywords:
             if source:
                 if getattr(source, "is_openable", False) and not getattr(source, "is_open", False):

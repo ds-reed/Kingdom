@@ -12,6 +12,7 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
+from kingdom.language.lexicon import add_noun_to_lexicon
 from kingdom.model.game_model import Game, GameOver, get_game
 from kingdom.model.noun_model import Item, Noun, Room, World, Item
 from kingdom.rendering.descriptions import render_current_room
@@ -105,10 +106,12 @@ def _spawn_room_item(game: Game | None, name = None, **kwargs) -> None:
         name,
         **kwargs
         )
-    
-    # need to update lexicon
 
-    room.items.append(new_item)   
+    room.items.append(new_item)
+
+    lexicon = getattr(game, "lexicon", None)
+    if lexicon is not None:
+        add_noun_to_lexicon(new_item, lexicon)
 
 
 

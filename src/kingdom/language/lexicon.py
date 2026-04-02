@@ -1,7 +1,7 @@
 # lexicon.py
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Callable, Optional
+from typing import List, Dict, Optional, Set
 
 from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.noun_model import Noun
@@ -65,7 +65,7 @@ class Lexicon:
     particles: List[str] = field(default_factory=list)
 
     token_to_verb: Dict[str, VerbEntry] = field(default_factory=dict)
-    token_to_noun: Dict[str, NounEntry] = field(default_factory=dict)
+    noun_tokens: Set[str] = field(default_factory=set)
     token_to_direction: Dict[str, DirectionEntry] = field(default_factory=dict)
 
     # NEW: token → list of canonical prepositions
@@ -135,31 +135,32 @@ def lex() -> Lexicon:
     # Build NOUN entries
     # -----------------------------
 
-    all_tokens = [token for token in Noun._by_name.keys()]
     noun_entries = []
 
-    for token in all_tokens:
-        noun = Noun.get_by_name(token)
-        noun_entries.append(NounEntry(
-            handle=noun.handle,
-            canonical=noun.canonical_name(),
-            display=noun.display_name(),
-            synonyms=list(noun.synonym_names()),
-            category=noun.get_class_name(),
-            adjectives=list(noun.adjectives),
-            noun_object=noun
-        ))
+    for token in Noun._by_name.keys():
+        for noun in Noun.get_all_by_name(token):
+            noun_entries.append(NounEntry(
+                handle=noun.handle,
+                canonical=noun.canonical_name(),
+                display=noun.display_name(),
+                synonyms=list(noun.synonym_names()),
+                category=noun.get_class_name(),
+                adjectives=list(noun.adjectives),
+                noun_object=noun
+            ))
 
 
-    token_to_noun = {}
+    noun_tokens = set()
 
     for entry in noun_entries:
-        # canonical
-        token_to_noun[entry.canonical] = entry
+        noun_tokens.add(_normalize_lex_token(entry.handle))
+        noun_tokens.add(_normalize_lex_token(entry.canonical))
 
         # synonyms
         for syn in entry.synonyms:
-            token_to_noun[syn] = entry
+            noun_tokens.add(_normalize_lex_token(syn))
+
+    noun_tokens = {token for token in noun_tokens if token}
 
     # -----------------------------
     # Build DIRECTION entries
@@ -284,9 +285,51 @@ def lex() -> Lexicon:
         particles=["the", "a", "an"],
 
         token_to_verb=token_to_verb,
-        token_to_noun=token_to_noun,
+        noun_tokens=noun_tokens,
         token_to_direction=token_to_direction,
         token_to_preposition=token_to_preposition,
     )
+
+
+def _normalize_lex_token(value: str | None) -> str:
+    if value is None:
+        return ""
+    return str(value).strip().lower()
+
+
+def add_noun_to_lexicon(noun: Noun, lexicon: Lexicon) -> None:
+    """Patch a spawned noun into the current Lexicon without rebuilding everything."""
+    if noun is None or lexicon is None:
+        return
+
+    entry = NounEntry(
+        handle=noun.obj_handle(),
+        canonical=noun.canonical_name(),
+        display=noun.display_name(),
+        synonyms=list(noun.synonym_names()),
+        category=noun.get_class_name(),
+        adjectives=list(getattr(noun, "adjectives", [])),
+        noun_object=noun,
+    )
+
+    # Keep nouns list stable and idempotent for repeated registrations.
+    already_present = any(getattr(existing, "noun_object", None) is noun for existing in lexicon.nouns)
+    if not already_present:
+        lexicon.nouns.append(entry)
+
+    token_candidates = {
+        _normalize_lex_token(entry.handle),
+        _normalize_lex_token(entry.canonical),
+        _normalize_lex_token(entry.display),
+        *(_normalize_lex_token(syn) for syn in entry.synonyms),
+    }
+
+    for token in token_candidates:
+        if token:
+            lexicon.noun_tokens.add(token)
+
+    for adj in entry.adjectives:
+        if adj not in lexicon.adjectives:
+            lexicon.adjectives.append(adj)
 
 

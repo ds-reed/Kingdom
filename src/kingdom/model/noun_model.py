@@ -102,8 +102,8 @@ class Noun:
     """Parent class for all game world entities (items, containers, rooms)."""
 
     all_nouns: ClassVar[List["Noun"]] = []
-    _by_name: ClassVar[Dict[str, "Noun"]] = {}
-    _by_alias: ClassVar[Dict[str, "Noun"]] = {}
+    _by_name: ClassVar[Dict[str, List["Noun"]]] = {}
+    _by_alias: ClassVar[Dict[str, List["Noun"]]] = {}
 
     def __init__(self):
         self._register_noun()
@@ -115,12 +115,12 @@ class Noun:
         Noun.all_nouns.append(self)
 
         for key in self._registry_keys():
-            Noun._by_name[key] = self
+            Noun._by_name.setdefault(key, []).append(self)
             if hasattr(self, "synonyms"):
                 for alias in self.synonyms:
                     alias_key = normalize_key(alias)
                     if alias_key and alias_key != key:
-                        Noun._by_alias[alias_key] = self
+                        Noun._by_alias.setdefault(alias_key, []).append(self)
 
     def _registry_keys(self) -> list[str]:
         canonical_key = normalize_key(self.canonical_name())
@@ -207,14 +207,27 @@ class Noun:
         if not candidate:
             return None
 
-        noun = Noun._by_name.get(candidate)
-        if noun is None:
+        noun_candidates = Noun._by_name.get(candidate, [])
+        if not noun_candidates:
             return None
 
-        if cls is Noun or isinstance(noun, cls):
-            return noun
+        for noun in noun_candidates:
+            if cls is Noun or isinstance(noun, cls):
+                return noun
 
         return None
+
+    @classmethod
+    def get_all_by_name(cls, name: str) -> List["Noun"]:
+        candidate = normalize_key(name)
+        if not candidate:
+            return []
+
+        noun_candidates = Noun._by_name.get(candidate, [])
+        if cls is Noun:
+            return list(noun_candidates)
+
+        return [noun for noun in noun_candidates if isinstance(noun, cls)]
     
     @classmethod
     def get_by_alias(cls, alias: str) -> "Noun | None":
@@ -222,28 +235,32 @@ class Noun:
         if not candidate:
             return None
 
-        noun = Noun._by_alias.get(candidate)
-        if noun is None:
+        noun_candidates = Noun._by_alias.get(candidate, [])
+        if not noun_candidates:
             return None
 
-        if cls is Noun or isinstance(noun, cls):
-            return noun
+        for noun in noun_candidates:
+            if cls is Noun or isinstance(noun, cls):
+                return noun
 
         return None 
 
     @classmethod
     def get_all(cls):
-        for noun in cls._by_name.values():
-            yield noun
+        for noun_list in cls._by_name.values():
+            for noun in noun_list:
+                if cls is Noun or isinstance(noun, cls):
+                    yield noun
 
     @classmethod
     def iter_by_type(cls, class_name: str) -> Iterator["Noun"]:
         target = str(class_name).strip().lower() if class_name else ""
         if not target:
             return
-        for noun in cls._by_name.values():
-            if noun.get_class_name().lower() == target:
-                yield noun
+        for noun_list in cls._by_name.values():
+            for noun in noun_list:
+                if noun.get_class_name().lower() == target:
+                    yield noun
 
     @classmethod
     def get_typed_by_name(cls, name: str, class_name: str) -> "Noun | None":
@@ -572,6 +589,19 @@ class Container(Noun):
     def has_item(self, item) -> bool:
         return item in self.contents
 
+    def has_item_by_alias(self, name_or_alias: str) -> "Item | None":
+        candidate = " ".join(_normalize_tokens(name_or_alias))
+        if not candidate:
+            return None
+
+        for item in self.contents:
+            if item.matches_reference(candidate):
+                return item
+            for synonym in getattr(item, "synonyms", []):
+                if " ".join(_normalize_tokens(synonym)) == candidate:
+                    return item
+        return None
+
     def remove_item(self, item):
         if item in self.contents:
             self.contents.remove(item)
@@ -654,6 +684,9 @@ class Player:
     def has_item(self, item) -> bool:
         return self.sack.has_item(item)
 
+    def has_item_by_alias(self, name_or_alias: str) -> "Item | None":
+        return self.sack.has_item_by_alias(name_or_alias)
+
     def get_inventory_items(self):
         return list(self.sack.contents)
 
@@ -734,6 +767,19 @@ class Room(Noun):
     def has_item(self, item) -> Item:
         if item in self.items:
             return item
+        return None
+
+    def has_item_by_alias(self, name_or_alias: str) -> "Item | None":
+        candidate = " ".join(_normalize_tokens(name_or_alias))
+        if not candidate:
+            return None
+
+        for item in self.items:
+            if item.matches_reference(candidate):
+                return item
+            for synonym in getattr(item, "synonyms", []):
+                if " ".join(_normalize_tokens(synonym)) == candidate:
+                    return item
         return None
     
     def all_items(self) -> list[Item]:
@@ -924,6 +970,7 @@ class Feature(Noun):
     name: str = field(metadata={"persist": "always"})
     description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     handle: Optional[str] = field(default=None, metadata={"persist": "non_default"})
+    take_refuse_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     examine_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     listen_description: Optional[str] = field(default=None, metadata={"persist": "non_default"})
     synonyms: list[str] = field(default_factory=list, metadata={"persist": "non_default"})

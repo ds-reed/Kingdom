@@ -53,6 +53,83 @@ class InterpretedCommand:
         direction={self.direction}, modifiers={self.modifier_tokens}, all_tokens={self.all_tokens}) \n" 
 
 
+def _iter_local_target_candidates(room: Room):
+    """Yield all noun objects visible from the given room (items, containers, features, player inventory)."""
+    yield room
+    for item in room.items:
+        yield item
+    for container in room.containers:
+        yield container
+        if getattr(container, "is_transparent", False):
+            for item in container.contents:
+                yield item
+    for feature in room.features:
+        yield feature
+
+    player = getattr(get_game(), "current_player", None)
+    if player is not None:
+        for item in player.sack.contents:
+            yield item
+
+
+def _resolve_target_noun(room: Room, target_name: str) -> object | None:
+    """Backward-compatible wrapper that resolves by head noun only."""
+    return _resolve_target_noun_with_adjectives(room, target_name, token_adjectives=[])
+
+
+def _normalize_tokens_for_match(values: List[str]) -> set[str]:
+    normalized: set[str] = set()
+    for value in values:
+        parts = [part for part in str(value).strip().lower().split() if part]
+        if parts:
+            normalized.add(" ".join(parts))
+    return normalized
+
+
+def _score_candidate_by_adjectives(candidate: object, token_adjectives: List[str]) -> int:
+    if not token_adjectives:
+        return 0
+
+    candidate_adjectives = _normalize_tokens_for_match(getattr(candidate, "adjectives", []))
+    if not candidate_adjectives:
+        return 0
+
+    requested_adjectives = _normalize_tokens_for_match(token_adjectives)
+    return sum(1 for adjective in requested_adjectives if adjective in candidate_adjectives)
+
+
+def _resolve_target_noun_with_adjectives(
+    room: Room,
+    target_name: str,
+    token_adjectives: List[str] | None,
+) -> object | None:
+    """Resolve local target with two-pass strategy: head-match, then adjective scoring."""
+    matches = [
+        candidate
+        for candidate in _iter_local_target_candidates(room)
+        if candidate.matches_reference(target_name)
+    ]
+
+    if not matches:
+        return None
+
+    # Preserve historical behavior when we have no ambiguity signal.
+    if not token_adjectives or len(matches) == 1:
+        return matches[0]
+
+    scored = [(_score_candidate_by_adjectives(candidate, token_adjectives), candidate) for candidate in matches]
+    best_score = max(score for score, _ in scored)
+    if best_score <= 0:
+        return matches[0]
+
+    # Deterministic tie-break: keep local iteration order (first among equals).
+    for score, candidate in scored:
+        if score == best_score:
+            return candidate
+
+    return matches[0]
+
+
 def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> List[InterpretedCommand]:
     """Entry point: interpret a list of ParsedActions into InterpretedCommands.
 
@@ -76,34 +153,6 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
     # Internal workflow for a single ParsedAction
     # ----------------------------------------------------------------------
 
-    def _iter_local_target_candidates(room: Room):
-
-        yield room
-        for item in room.items:
-            yield item
-        for container in room.containers:
-            yield container
-            if getattr(container, "is_transparent", False):
-                for item in container.contents:
-                    yield item
-        for feature in room.features:
-            yield feature
-
-        player = getattr(get_game(), "current_player", None)
-        if player is not None:
-            for item in player.sack.contents:
-                yield item
-
-
-    def _resolve_target_noun(room: Room, target_name) -> object | None:
-
-        local_candidates = list(_iter_local_target_candidates(room))
-        for candidate in local_candidates:
-            if candidate.matches_reference(target_name):
-                return candidate
-        return None
-
-
     def _interpret_single_action(action: ParsedAction) -> List[InterpretedCommand]:
         """Interpret a single ParsedAction into zero, one, or many InterpretedCommands."""
 
@@ -120,7 +169,11 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # ----------------------------------------------------------------------
         def _resolve_target(head: Optional[str], token_phrase, token_adjectives: Optional[List[str]] = None) -> InterpretedTarget:
             room = get_game().current_room
-            target = _resolve_target_noun(room, head) if room is not None and head else None
+            target = (
+                _resolve_target_noun_with_adjectives(room, head, token_adjectives or [])
+                if room is not None and head
+                else None
+            )
             return InterpretedTarget(
                 token_phrase=token_phrase,
                 token_head=head,

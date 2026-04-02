@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 
 from kingdom.engine.verbs.verb_registration import register_verbs
-from kingdom.language.interpreter import interpret
-from kingdom.language.lexicon import lex
+from kingdom.language.interpreter import _resolve_target_noun, interpret
+from kingdom.language.lexicon import add_noun_to_lexicon, lex
 from kingdom.language.parser import parse
 from kingdom.model.game_model import get_game
-from kingdom.model.noun_model import Player, World
+from kingdom.model.noun_model import Item, Player, World
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -70,24 +70,13 @@ def test_interpreter_contract_prep_phrase_out_of_context_target_stays_unresolved
     game = interpreter_context["game"]
     lexicon = interpreter_context["lexicon"]
 
-    local_candidates = [game.current_room]
-    local_candidates.extend(game.current_room.items)
-    local_candidates.extend(game.current_room.containers)
-    local_candidates.extend(game.current_room.features)
-    if game.current_player is not None:
-        local_candidates.extend(game.current_player.sack.contents)
-    local_candidate_ids = {id(obj) for obj in local_candidates}
-
     out_of_context_token = None
-    for token, entry in lexicon.token_to_noun.items():
+    for token in lexicon.noun_tokens:
         if " " in token:
             continue
         if token != token.lower():
             continue
-        noun_object = getattr(entry, "noun_object", None)
-        if noun_object is None:
-            continue
-        if id(noun_object) not in local_candidate_ids:
+        if _resolve_target_noun(game.current_room, token) is None:
             out_of_context_token = token
             break
 
@@ -148,3 +137,66 @@ def test_interpreter_contract_unknown_word_is_safe_without_verb(interpreter_cont
     assert cmd.direct is not None
     assert cmd.direct.token_head == "dance"
     assert cmd.direct.noun_object is None
+
+
+def test_interpreter_contract_adjective_disambiguates_same_head_nouns(interpreter_context):
+    game = interpreter_context["game"]
+    lexicon = interpreter_context["lexicon"]
+
+    first = Item("testgem", description="a small test gem", handle="testgem", adjectives=["small"])
+    second = Item("testgem", description="a large test gem", handle="testgem", adjectives=["large"])
+    game.current_room.items.extend([first, second])
+    add_noun_to_lexicon(first, lexicon)
+    add_noun_to_lexicon(second, lexicon)
+
+    cmd = _interpret_one("look large testgem", interpreter_context)
+
+    assert cmd.direct is not None
+    assert cmd.direct.token_head == "testgem"
+    assert cmd.direct.noun_object is second
+
+
+def test_interpreter_contract_same_head_no_adjective_uses_first_match(interpreter_context):
+    game = interpreter_context["game"]
+    lexicon = interpreter_context["lexicon"]
+
+    first = Item("testcoin", description="a small test coin", handle="testcoin", adjectives=["small"])
+    second = Item("testcoin", description="a large test coin", handle="testcoin", adjectives=["large"])
+    game.current_room.items.extend([first, second])
+    add_noun_to_lexicon(first, lexicon)
+    add_noun_to_lexicon(second, lexicon)
+
+    cmd = _interpret_one("look testcoin", interpreter_context)
+
+    assert cmd.direct is not None
+    assert cmd.direct.noun_object is first
+
+
+def test_interpreter_contract_unknown_adjective_falls_back_to_first_match(interpreter_context):
+    game = interpreter_context["game"]
+    lexicon = interpreter_context["lexicon"]
+
+    first = Item("testring", description="a plain test ring", handle="testring", adjectives=["plain"])
+    second = Item("testring", description="a ornate test ring", handle="testring", adjectives=["ornate"])
+    game.current_room.items.extend([first, second])
+    add_noun_to_lexicon(first, lexicon)
+    add_noun_to_lexicon(second, lexicon)
+
+    cmd = _interpret_one("look shiny testring", interpreter_context)
+
+    assert cmd.direct is not None
+    assert cmd.direct.noun_object is first
+
+
+def test_interpreter_contract_single_match_ignores_extra_adjective_noise(interpreter_context):
+    game = interpreter_context["game"]
+    lexicon = interpreter_context["lexicon"]
+
+    only = Item("testidol", description="an ancient idol", handle="testidol", adjectives=["ancient"])
+    game.current_room.items.append(only)
+    add_noun_to_lexicon(only, lexicon)
+
+    cmd = _interpret_one("look gleaming testidol", interpreter_context)
+
+    assert cmd.direct is not None
+    assert cmd.direct.noun_object is only

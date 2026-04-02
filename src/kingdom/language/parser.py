@@ -45,7 +45,7 @@ class ParsedAction:
 
 def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
 
-    def is_noun(tok): return tok in lexicon.token_to_noun
+    def is_noun(tok): return tok in lexicon.noun_tokens
     def is_verb(tok): return tok in lexicon.token_to_verb
     def is_direction(tok): return tok in lexicon.token_to_direction
     def is_preposition(tok): return tok in lexicon.token_to_preposition
@@ -53,7 +53,7 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
     def is_particle(tok): return tok in lexicon.particles
     def is_modifier(tok): return tok in lexicon.modifiers
     def is_unknown(tok): return (
-        tok not in lexicon.token_to_noun and
+        tok not in lexicon.noun_tokens and
         tok not in lexicon.token_to_verb and
         tok not in lexicon.token_to_direction and
         tok not in lexicon.token_to_preposition and
