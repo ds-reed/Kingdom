@@ -258,7 +258,7 @@ Current contracts in code:
 - Verb handler input: ExecuteCommand
 - Persistent runtime/session state: Game and SessionPrefs
 
-These contracts are still evolving, but they are now explicit and module-scoped.
+These contracts are explicit and module-scoped. Verb execution now requires CommandOutcome rather than ad hoc string returns.
 
 ---
 

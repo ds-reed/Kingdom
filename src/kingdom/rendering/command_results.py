@@ -1,7 +1,27 @@
 #command_results.py
 
 from kingdom.model.game_model import Game
+from kingdom.language.outcomes import CommandOutcome, RenderMode
 import kingdom.rendering.textutils as tu
+
+
+def format_command_message(message: str | None) -> str:
+    if not message:
+        return ""
+
+    normalized = str(message).replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.rstrip() for line in normalized.split("\n")]
+    return "\n".join(lines).strip("\n")
+
+
+def format_command_outcome(outcome: CommandOutcome | None) -> str:
+    if outcome is None:
+        return ""
+
+    if outcome.render_mode == RenderMode.RAW:
+        return outcome.message or ""
+
+    return format_command_message(outcome.message)
 
 
 def exit_message(game: Game) -> str:

@@ -4,6 +4,7 @@ from kingdom.model.noun_model import Noun, Item, Room, Container, Feature, Playe
 from kingdom.model.game_model import QuitGame, SaveGame, LoadGame, GameOver
 from kingdom.engine.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.verb_model import Verb
+from kingdom.language.outcomes import CommandOutcome
 
 class MetaVerbHandler(VerbHandler):
 
@@ -24,7 +25,7 @@ class MetaVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # DEBUG
     # ------------------------------------------------------------
-    def DEBUG(self, cmd: "ExecuteCommand" = None) -> str:
+    def DEBUG(self, cmd: "ExecuteCommand" = None) -> CommandOutcome:
 
 
         def debug_set(noun, field):
@@ -110,7 +111,7 @@ class MetaVerbHandler(VerbHandler):
         if not game.debug_mode:
             keywords = set(cmd.modifiers) if cmd.modifiers else set()
             if "please" not in keywords:
-                return self.build_message("Debug not permitted")    
+                return self.outcome_not_available(self.build_message("Debug not permitted"), code="debug_not_permitted")
             
         # Resolve either a noun or keywords of interest
         room = self.room()
@@ -144,48 +145,51 @@ class MetaVerbHandler(VerbHandler):
 
                 field_name: str = input("Enter field to toggle (e.g. 'is_dark'): ").strip()
                 debug_set(target_noun, field_name)
-                return self.build_message(f"Toggled {field_name} on {target_noun.display_name()}.")
+                return self.outcome_success(
+                    self.build_message(f"Toggled {field_name} on {target_noun.display_name()}."),
+                    code="debug_set_toggle",
+                )
             
             if "room" in keywords or "all" in keywords:
                 lines = ["debugging current room..."]
                 return_msg = "No current room." if room is None else debug_noun(room)
                 lines.append(return_msg)
-                return(self.build_message(lines))
+                return self.outcome_raw(self.build_message(lines), code="debug_room")
 
             if "player" in keywords or "all" in keywords:
                 lines = ["debugging current player..."]
                 return_msg = ["No current player."] if player is None else debug_player(player)
                 lines.extend(return_msg)
-                return(self.build_message(lines))
+                return self.outcome_raw(self.build_message(lines), code="debug_player")
             
             if "verbs" in keywords or "commands" in keywords or "all" in keywords:
                 lines = ["debugging all verbs..."]
                 lines.extend(str(verb) for verb in Verb.all_verbs)
-                return(self.build_message(lines))
+                return self.outcome_raw(self.build_message(lines), code="debug_verbs")
 
 
 
             if "lexicon" in keywords:
                 lines = ["debugging lexicon..."]
                 lines.append(str(lexicon))
-                return self.build_message(lines)
+                return self.outcome_raw(self.build_message(lines), code="debug_lexicon")
             
         # Case 2: Noun with no keywords
 
         if noun:
             debug_noun(noun)
-            return self.build_message(debug_noun(noun))
+            return self.outcome_raw(self.build_message(debug_noun(noun)), code="debug_noun")
         
 
         # Nothing to debug - print message
         lines = ["DEBUG: No keywords found to debug. Try 'debug room', 'debug player', 'debug verbs', or 'debug set'."]
-        return self.build_message(lines)
+        return self.outcome_no_op(self.build_message(lines), code="debug_no_target")
 
 
     # ------------------------------------------------------------
     # HELP
     # ------------------------------------------------------------
-    def help(self, cmd:ExecuteCommand) -> str:
+    def help(self, cmd:ExecuteCommand) -> CommandOutcome:
         # Resolve either a noun or keywords of interest
 
 
@@ -221,22 +225,28 @@ class MetaVerbHandler(VerbHandler):
         # If keywords used: "help commands" or "help verbs"
         if keywords:
             if "commands" in keywords or "verbs" in keywords or "all" in keywords:
-                return self.build_message(help_all_verbs())
+                return self.outcome_raw(self.build_message(help_all_verbs()), code="help_commands")
             else:
-                return self.build_message(f"Help is not available for '{' '.join(keywords)}'.")
+                return self.outcome_not_available(
+                    self.build_message(f"Help is not available for '{' '.join(keywords)}'."),
+                    code="help_topic_not_available",
+                )
   
         # Only show for valid target, Don't show for other nouns to avoid spoilers. Can refine with a 'found' flag in the future.
         if target is not None:
-            return self.build_message(f"There is no more information available for '{target.display_name()}'.")
+            return self.outcome_not_available(
+                self.build_message(f"There is no more information available for '{target.display_name()}'."),
+                code="help_noun_not_available",
+            )
         
         # No noun, no keywords → default help text
-        return self.build_message(default_help_text())
+        return self.outcome_raw(self.build_message(default_help_text()), code="help_default")
 
 
     # ------------------------------------------------------------
     # SCORE
     # ------------------------------------------------------------
-    def score(self, cmd: "ExecuteCommand" = None) -> str:
+    def score(self, cmd: "ExecuteCommand" = None) -> CommandOutcome:
         game = self.game()
         keywords = set(cmd.modifiers) if cmd.modifiers else set()
 
@@ -249,20 +259,20 @@ class MetaVerbHandler(VerbHandler):
             lines.append(f"Your current score is: {game.score}.")
             lines.append(f"You have found {game.items_found} items and discovered {game.rooms_found} rooms.")
 
-        return self.build_message(lines)
+        return self.outcome_success(self.build_message(lines), code="score")
     
 
-    def enable_debug(self, cmd: "ExecuteCommand" = None) -> str:
+    def enable_debug(self, cmd: "ExecuteCommand" = None) -> CommandOutcome:
         keywords = set(cmd.modifiers) if cmd.modifiers else set()
         if "please" in keywords:
             self.game().debug_mode = True
-            return self.build_message("Debug mode enabled.")
+            return self.outcome_success(self.build_message("Debug mode enabled."), code="debug_enabled")
         magic: str = input("Enter magic words: ").strip()
         if magic == "please":
             self.game().debug_mode = True
-            return self.build_message("Debug mode enabled.")
+            return self.outcome_success(self.build_message("Debug mode enabled."), code="debug_enabled")
         else:
-            return self.build_message("Incorrect magic words.")
+            return self.outcome_not_available(self.build_message("Incorrect magic words."), code="debug_magic_failed")
         
-    def xyzzy(self, cmd: "ExecuteCommand" = None) -> str:
-       return self.build_message("Wrong game, but nice try")
+    def xyzzy(self, cmd: "ExecuteCommand" = None) -> CommandOutcome:
+       return self.outcome_no_op(self.build_message("Wrong game, but nice try"), code="xyzzy")

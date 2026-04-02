@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, ClassVar
 from kingdom.utilities import normalize_key   
+from kingdom.language.outcomes import CommandOutcome
 
 
 @dataclass(repr=False)
@@ -52,7 +53,7 @@ class Verb:
     def all_names(self):
         return (self.name, *self.synonyms)
 
-    def execute(self, cmd:"ExecuteCommand" = None) -> str:
+    def execute(self, cmd:"ExecuteCommand" = None) -> CommandOutcome:
         return self.action(cmd)
     
     def canonical_name(self) -> str:

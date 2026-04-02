@@ -1,21 +1,54 @@
-from dataclasses import dataclass, field    
-import token
-from typing import List, Any, Optional
+from typing import Any, Dict, List
 
 from kingdom.language.interpreter import InterpretedCommand
+from kingdom.language.outcomes import (
+    CommandOutcome,
+    CommandStatus,
+    RenderMode,
+    make_outcome,
+)
 from kingdom.model.noun_model import World
-from kingdom.model.verb_model import Verb
 from kingdom.engine.verbs.verb_handler import ExecuteCommand
-from kingdom.model.game_model import get_game
+
+def _outcome(
+    *,
+    status: CommandStatus,
+    verb: str,
+    command: InterpretedCommand,
+    message: str,
+    code: str | None = None,
+    details: Dict[str, Any] | None = None,
+    effects: List[str] | None = None,
+    render_mode: RenderMode = RenderMode.NORMALIZE,
+) -> CommandOutcome:
+    return make_outcome(
+        status=status,
+        verb=verb,
+        command=command,
+        message=message,
+        code=code,
+        details=details,
+        effects=effects,
+        render_mode=render_mode,
+    )
 
 
+def _require_command_outcome(
+    result: object,
+    *,
+    verb_name: str,
+    command: InterpretedCommand,
+) -> CommandOutcome:
+    if not isinstance(result, CommandOutcome):
+        raise TypeError(
+            f"Verb '{verb_name}' returned {type(result).__name__}; expected CommandOutcome."
+        )
 
-@dataclass 
-class CommandOutcome:
-    verb: str
-    command: InterpretedCommand
-    message: str
-    effects: List[str]
+    if result.command is None:
+        result.command = command
+    if not result.verb:
+        result.verb = verb_name
+    return result
 
 def execute(command: InterpretedCommand, world: World,  original_command: str ) -> CommandOutcome:
 
@@ -29,29 +62,33 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
     elif command.verb_source == "implicit":
         # Implicit verb - look for noun continuation when supported by verb handler
         if not command.direction:        # if we have a direction, then interpreter has handled as implicit "go"
-            return CommandOutcome(
+            return _outcome(
+                status=CommandStatus.NO_OP,
                 verb="None",
                 command=command,
                 message="What would you like to do? (type help for assistance)",
-                effects=[]
-        )
+                code="implicit_without_direction",
+            )
 
     elif command.verb_source == "unknown":
         # User typed something in the verb slot that is not a verb
-        return CommandOutcome(
+        return _outcome(
+            status=CommandStatus.INVALID_TARGET,
             verb="None",
             command=command,
             message=f"I don't know how to '{original_command}'.",
-            effects=[]
+            code="unknown_verb",
+            details={"original_command": original_command},
         )
 
     else:
         # Empty input or something structurally odd may not be reachable
-        return CommandOutcome(
+        return _outcome(
+            status=CommandStatus.NO_OP,
             verb="None",
             command=command,
             message="What would you like to do? (type help for assistance)",
-            effects=[]
+            code="empty_or_unreachable",
         )
 
     execute_command =  ExecuteCommand(
@@ -65,11 +102,10 @@ def execute(command: InterpretedCommand, world: World,  original_command: str ) 
 
     result = verb.execute(cmd=execute_command)
 
-    outcome = CommandOutcome(
-        verb=verb.canonical_name() if verb else 'None',
+    outcome = _require_command_outcome(
+        result,
+        verb_name=verb.canonical_name() if verb else "None",
         command=command,
-        message=result,
-        effects=[]
     )
 
     return outcome

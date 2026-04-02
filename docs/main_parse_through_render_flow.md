@@ -125,7 +125,7 @@ The executor adapts interpreted commands to the verb-handler contract and execut
 
 - build ExecuteCommand payload for verb handlers
 - resolve target objects against current room and inventory context
-- invoke verb.execute with compatibility bridging
+- invoke verb.execute and require CommandOutcome
 - return CommandOutcome
 
 ### Output: CommandOutcome
@@ -140,7 +140,7 @@ Current CommandOutcome fields:
 Notes:
 
 - diagnostics and should_render_room flags are not currently part of CommandOutcome
-- outcome.message is emitted directly by orchestration via UI print
+- orchestration formats CommandOutcome via rendering.command_results before UI print
 
 ---
 
@@ -161,7 +161,7 @@ Current renderer role:
 Current architecture note:
 
 - there is not yet a dedicated render(outcomes) pass for each command turn
-- most per-turn verb output currently comes from verb handler message strings
+- most per-turn verb output still originates in verb handlers, but now crosses a render boundary through CommandOutcome formatting
 
 ---
 
@@ -173,7 +173,8 @@ UI input
   -> Parser (ParsedAction list)
   -> Interpreter (InterpretedCommand list)
   -> Executor (CommandOutcome)
-  -> UI print outcome.message
+  -> Renderer format_command_outcome(outcome)
+  -> UI print formatted text
 
 Room transitions and lifecycle events:
   model state -> rendering helpers -> UI.render_room
@@ -183,11 +184,10 @@ Room transitions and lifecycle events:
 
 ## 8. Near-Term Evolution
 
-The current pipeline is functional, with transitional seams still visible.
+The current pipeline is functional, with the command outcome contract now enforced end to end.
 
 Likely next cleanup targets:
 
-- split compatibility logic out of executor once all verbs share one contract
 - move more per-turn text assembly into rendering modules
 - formalize multi-action parsing and semantic expansion behavior
 - add richer outcome metadata when renderer-driven turn output is introduced

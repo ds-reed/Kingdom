@@ -10,7 +10,7 @@ sys.path.append("./src")
 import random
 
 from kingdom.GUI.UI import ui
-from kingdom.rendering.command_results import exit_message
+from kingdom.rendering.command_results import exit_message, format_command_outcome
 from kingdom.rendering.descriptions import render_current_room
 from kingdom.model.game_model import Game, Player, GameOver, LoadGame, SaveGame, QuitGame, WinGame, get_game
 from kingdom.model.noun_model import Room, World
@@ -150,7 +150,8 @@ def process_command(
     try:
         for cmd in interpreted:
             outcome = execute(cmd, world, raw_command)                     #pass orignal command for better error message
-            ui.print(outcome.message if outcome else "Command executed.")
+            rendered_output = format_command_outcome(outcome)
+            ui.print(rendered_output if outcome else "Command executed.")
             game = get_game()   
             if game.current_room == world.end_room:
                 if not game.continue_after_win:

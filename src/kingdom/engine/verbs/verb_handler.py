@@ -10,6 +10,12 @@ from kingdom.model.noun_model import Noun, Item, Room, Container, World
 from kingdom.model.game_model import get_game
 from kingdom.engine.item_behaviors import VerbOutcome, VerbControl 
 from kingdom.model.direction_model import DIRECTIONS
+from kingdom.language.outcomes import (
+    CommandOutcome,
+    CommandStatus,
+    RenderMode,
+    make_outcome,
+)
 
 
 @dataclass
@@ -57,6 +63,111 @@ class VerbHandler:
     
     def lexicon(self):
         return get_game().lexicon
+
+    # ------------------------------------------------------------
+    # Structured outcome helpers
+    # ------------------------------------------------------------
+    def outcome(
+        self,
+        *,
+        status: CommandStatus,
+        message: str,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
+        effects: list[str] | None = None,
+        render_mode: RenderMode = RenderMode.NORMALIZE,
+    ) -> CommandOutcome:
+        return make_outcome(
+            status=status,
+            verb="",
+            command=None,
+            message=message,
+            code=code,
+            details=details,
+            effects=effects,
+            render_mode=render_mode,
+        )
+
+    def outcome_success(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
+        effects: list[str] | None = None,
+    ) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.SUCCESS,
+            message=message,
+            code=code,
+            details=details,
+            effects=effects,
+            render_mode=RenderMode.NORMALIZE,
+        )
+
+    def outcome_raw(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.SUCCESS,
+            message=message,
+            code=code,
+            render_mode=RenderMode.RAW,
+        )
+
+    def outcome_missing_target(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.MISSING_TARGET,
+            message=message,
+            code=code,
+        )
+
+    def outcome_missing_prep_target(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.MISSING_PREP_TARGET,
+            message=message,
+            code=code,
+        )
+
+    def outcome_invalid_target(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.INVALID_TARGET,
+            message=message,
+            code=code,
+        )
+
+    def outcome_not_available(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.NOT_AVAILABLE,
+            message=message,
+            code=code,
+        )
+
+    def outcome_precondition_failed(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.PRECONDITION_FAILED,
+            message=message,
+            code=code,
+        )
+
+    def outcome_blocked(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.BLOCKED,
+            message=message,
+            code=code,
+        )
+
+    def outcome_no_op(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.NO_OP,
+            message=message,
+            code=code,
+        )
+
+    def outcome_error(self, message: str, *, code: str | None = None) -> CommandOutcome:
+        return self.outcome(
+            status=CommandStatus.ERROR,
+            message=message,
+            code=code,
+        )
 
     # ------------------------------------------------------------
     # Standard refusal helpers

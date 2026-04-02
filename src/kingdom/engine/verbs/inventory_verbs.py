@@ -3,14 +3,15 @@
 from kingdom.model.noun_model import Noun, Item, Container
 from kingdom.engine.verbs.verb_handler import VerbHandler, VerbControl, ExecuteCommand, VerbOutcome
 from kingdom.engine.item_behaviors import try_item_special_handler
+from kingdom.language.outcomes import CommandOutcome
 
 class InventoryVerbHandler(VerbHandler):
-    def inventory(self, cmd: ExecuteCommand = None) -> str:
+    def inventory(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         player = self.player()
         inventory = player.get_inventory_items()
 
         if not inventory:
-            return self.build_message("You don't have anything.")
+            return self.outcome_not_available(self.build_message("You don't have anything."), code="empty_inventory")
 
         names = [item.canonical_name() for item in inventory]
 
@@ -19,13 +20,15 @@ class InventoryVerbHandler(VerbHandler):
 
         bullet_list = "\n".join(f"- {name}" for name in names)
 
-        return self.build_message(
-            f"You have ({count} {label}):\n{bullet_list}"
+        return self.outcome_success(
+            self.build_message(
+                f"You have ({count} {label}):\n{bullet_list}"
+            )
         )
 
     
 
-    def take(self, cmd: ExecuteCommand = None) -> str:
+    def take(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         
         room = self.room()
         player = self.player()
@@ -45,9 +48,9 @@ class InventoryVerbHandler(VerbHandler):
         #
         if source: 
             if not (room.has_container(source) or room.has_item(source)):
-                return self.build_message(f"You don't see any {source_name} here to take from.")
+                return self.outcome_not_available(f"You don't see any {source_name} here to take from.", code="source_not_here")
             if source.get_class_name() != "Container":
-                return self.build_message(f"You can take things from a {source_name}!")
+                return self.outcome_invalid_target(f"You can take things from a {source_name}!", code="invalid_source_type")
      
         if not target and direct_object_token and source:             #if we have a noun that wasn't resolved to an object in the room, check if it is in the referenced container.  
             candidate_item = Item.get_by_name(direct_object_token)    #this is the item's object
@@ -70,7 +73,10 @@ class InventoryVerbHandler(VerbHandler):
                     break
 
         if prep and not source_name:
-            return self.build_message(self.missing_target(f"{verb_token} {direct_object_token} {prep}"))
+            return self.outcome_missing_prep_target(
+                self.missing_target(f"{verb_token} {direct_object_token} {prep}"),
+                code="missing_indirect_target",
+            )
         
         if verb_token == "loot":            # loot implies taking everyting from a container, so add "all" modifier if loot is used
             keywords.append("all")
@@ -81,26 +87,29 @@ class InventoryVerbHandler(VerbHandler):
         if target:
             if target.get_class_name() == "Item":
                 if player.has_item(target):
-                    return(self.build_message(f"You already have {target.display_name()}."))
+                    return self.outcome_no_op(self.build_message(f"You already have {target.display_name()}."), code="already_in_inventory")
                 inventory_items = [target]
             elif target.get_class_name() == "Container":
                 inventory_items = [target]
             else:
                 refuse = getattr(target, "take_refuse_description", None) or f"You can't {verb_token} {target.display_name()}."
-                return self.build_message(refuse)
+                return self.outcome_blocked(self.build_message(refuse), code="target_not_takeable")
         elif "all" in keywords or "everything" in keywords:
             if source:
                 if getattr(source, "is_openable", False) and not getattr(source, "is_open", False):
-                    return self.build_message(f"{source.display_name().capitalize()} is closed.")
+                    return self.outcome_precondition_failed(
+                        self.build_message(f"{source.display_name().capitalize()} is closed."),
+                        code="source_container_closed",
+                    )
                 inventory_items = [item for item in source.contents if getattr(item, "is_visible", True)]
                 if not inventory_items:
-                    return self.build_message(f"The {source.display_name()} is empty.")
+                    return self.outcome_no_op(self.build_message(f"The {source.display_name()} is empty."), code="source_empty")
             else:
                 inventory_items = [item for item in room.all_items() if getattr(item, "is_visible", True)]
         else:
             if not direct_object_token:
-                return self.build_message(self.missing_target(verb_token))
-            return self.build_message(f"You see no {direct_object_token} here.")
+                return self.outcome_missing_target(self.missing_target(verb_token), code="missing_direct_target")
+            return self.outcome_not_available(f"You see no {direct_object_token} here.", code="direct_target_not_here")
 
         msgs = []
         for item in inventory_items:
@@ -108,7 +117,7 @@ class InventoryVerbHandler(VerbHandler):
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
-                    return self.build_message(msgs)
+                    return self.outcome_success(self.build_message(msgs), code="item_handler_stop")
                 if outcome.control == VerbControl.SKIP:
                     continue
             if not getattr(item, "is_takeable", True):  # if the item is not takeable, either by default or explicitly, refuse the take action. 
@@ -125,10 +134,10 @@ class InventoryVerbHandler(VerbHandler):
             else:
                 msgs.append(sack_full_msg)
 
-        return self.build_message(msgs)
+        return self.outcome_success(self.build_message(msgs))
 
 
-    def drop(self, cmd: ExecuteCommand = None) -> str:
+    def drop(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         room = self.room()
         player = self.player()
 
@@ -141,27 +150,42 @@ class InventoryVerbHandler(VerbHandler):
 
         if dest: 
             if not room.has_container(dest):
-                return self.build_message(f"You don't see any {dest_name} here to drop into.")
+                return self.outcome_not_available(f"You don't see any {dest_name} here to drop into.", code="dest_not_here")
             if dest.get_class_name() != "Container":
-                return self.build_message(f"You can't put things into {dest_name}!")
+                return self.outcome_invalid_target(f"You can't put things into {dest_name}!", code="invalid_dest_type")
 
         # check constraints for drop with a preposition, e.g. "drop lamp into chest"
         # will return if destination is invalid in any way
         if prep_phrases:
             if not prep:    # preposition found that has unrecognized applicability to "drop" (eg. "drop lamp beneath fish")
-                return self.build_message(f"I don't understand how to {cmd.verb_token} {next(iter(prep_phrases))['prep']} things.")
+                return self.outcome_invalid_target(
+                    f"I don't understand how to {cmd.verb_token} {next(iter(prep_phrases))['prep']} things.",
+                    code="unsupported_preposition",
+                )
             if "room" not in keywords and "down" not in keywords:   # accept room or down (implies room) as a destination and treat like no preposition phrase was given
                 if not dest:    # no resolved desination noun object
                     if not dest_name:
-                        return self.build_message(self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"))
+                        return self.outcome_missing_prep_target(
+                            self.missing_target(f"{cmd.verb_token} {cmd.direct_object_token} {prep}"),
+                            code="missing_drop_destination",
+                        )
                     else:
-                        return self.build_message(f"You don't see any {dest_name} here to {cmd.verb_token} {prep} things into.")
+                        return self.outcome_not_available(
+                            f"You don't see any {dest_name} here to {cmd.verb_token} {prep} things into.",
+                            code="drop_destination_not_here",
+                        )
                 
                 if dest.get_class_name() != "Container":    #can't drop torch into fish
-                    return self.build_message(f"You can't put things into {dest.display_name()}.")
+                    return self.outcome_invalid_target(
+                        f"You can't put things into {dest.display_name()}.",
+                        code="drop_destination_invalid",
+                    )
 
                 if getattr(dest, "is_openable", False) and not getattr(dest, "is_open", False):
-                    return self.build_message(f"{dest.display_name().capitalize()} is closed.")
+                    return self.outcome_precondition_failed(
+                        f"{dest.display_name().capitalize()} is closed.",
+                        code="drop_destination_closed",
+                    )
                 dest_handle = [dest.handle]
                 
         # check constraints for drop without a preposition, e.g. "drop lamp"
@@ -170,11 +194,11 @@ class InventoryVerbHandler(VerbHandler):
         elif "all" in keywords or "everything" in keywords:
             inventory_items = player.get_inventory_items()
             if not inventory_items:
-                return self.build_message("You don't have anything!")
+                return self.outcome_not_available(self.build_message("You don't have anything!"), code="empty_inventory")
         else:
             if not cmd.direct_object_token:
-                return self.build_message(self.missing_target(cmd.verb_token))
-            return self.build_message(f"You have no {cmd.direct_object_token}.")
+                return self.outcome_missing_target(self.missing_target(cmd.verb_token), code="missing_direct_target")
+            return self.outcome_not_available(f"You have no {cmd.direct_object_token}.", code="not_in_inventory")
         
         # loop on all resolved inventory items to drop
         msgs = []
@@ -184,7 +208,7 @@ class InventoryVerbHandler(VerbHandler):
             if outcome:
                 msgs.append(outcome.message or "")
                 if outcome.control == VerbControl.STOP: 
-                    return self.build_message(msgs)
+                    return self.outcome_success(self.build_message(msgs), code="item_handler_stop")
                 if outcome.control == VerbControl.SKIP:
                     continue
         
@@ -199,10 +223,10 @@ class InventoryVerbHandler(VerbHandler):
                 player.drop_item_to_room(item, room)
                 msgs.append(f"You {cmd.verb_token} {item.display_name()} into the room.")
 
-        return self.build_message(msgs)
+        return self.outcome_success(self.build_message(msgs))
     
 
-    def give(self, cmd: ExecuteCommand = None) -> str:                  #give and trade the same for now. Give implies trade if container accepts trades
+    def give(self, cmd: ExecuteCommand = None) -> CommandOutcome:                  #give and trade the same for now. Give implies trade if container accepts trades
         room = self.room()
         player = self.player()
 
@@ -222,13 +246,13 @@ class InventoryVerbHandler(VerbHandler):
         if target_name:
             target = Item.get_by_name(target_name)
             if not player.has_item(target):
-                return self.build_message(f"You don't have {target_name} to {verb_token}.")
+                return self.outcome_not_available(f"You don't have {target_name} to {verb_token}.", code="give_item_not_owned")
         else:
-            return self.build_message(self.missing_target(verb_token))
+            return self.outcome_missing_target(self.missing_target(verb_token), code="missing_direct_target")
     
         if not prep:
             if not prep2:
-                return self.build_message(f"{verb_token} what/to whom?")    # if just give/trade with no what or to whom
+                return self.outcome_missing_target(f"{verb_token} what/to whom?", code="missing_give_targets")    # if just give/trade with no what or to whom
             else:
                 for container in room.containers: 
                     tradeable = getattr(container, "is_tradeable", False)                                # is_tradeable here means a container that will trade items with you
@@ -238,15 +262,24 @@ class InventoryVerbHandler(VerbHandler):
                         break   
 
         if not source_name:
-            return self.build_message(self.missing_target(f"{verb_token} {cmd.direct_object_token} {prep}"))
+            return self.outcome_missing_prep_target(
+                self.missing_target(f"{verb_token} {cmd.direct_object_token} {prep}"),
+                code="missing_recipient",
+            )
         
         if not source:    # if source_name and no source, it means source_name was not found in the room``
-            return self.build_message(f"You don't see any {source_name} here to {verb_token} {prep}.")
+            return self.outcome_not_available(
+                f"You don't see any {source_name} here to {verb_token} {prep}.",
+                code="recipient_not_here",
+            )
         
         can_trade = getattr(source, "is_tradeable", False)
         if not can_trade:
             if verb_token == "trade":      # if you say trade specifically, then the target must be tradeable. 
-                return self.build_message(f"{source.canonical_name().capitalize()} doesn't seem interested in trading.")
+                return self.outcome_blocked(
+                    f"{source.canonical_name().capitalize()} doesn't seem interested in trading.",
+                    code="recipient_not_tradeable",
+                )
             if target and player.has_item(target):        #othewise, it is just a give action
                 player.remove_from_sack(target)
                 msgs.append(f"You give {target.canonical_name()} to {source.canonical_name()}.")   #later check max items
@@ -286,7 +319,7 @@ class InventoryVerbHandler(VerbHandler):
                 source.add_item(target) 
                 msgs.append(f"You receive {trade_item.display_name()} from {source.canonical_name()} in exchange for {target.canonical_name()}.")
 
-        return self.build_message(msgs)
+        return self.outcome_success(self.build_message(msgs))
 
 
     

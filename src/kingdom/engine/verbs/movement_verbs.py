@@ -14,6 +14,7 @@ from kingdom.model.verb_model import Verb
 from kingdom.rendering.descriptions import render_current_room
 from kingdom.engine.verbs.verb_handler import VerbHandler, ExecuteCommand, VerbOutcome
 from kingdom.model.direction_model import DIRECTIONS
+from kingdom.language.outcomes import CommandOutcome
 
 
 class MovementVerbHandler(VerbHandler):
@@ -48,12 +49,12 @@ class MovementVerbHandler(VerbHandler):
     # ------------------------------------------------------------
     # GO verb
     # ------------------------------------------------------------
-    def go(self, cmd: ExecuteCommand) -> str:
+    def go(self, cmd: ExecuteCommand) -> CommandOutcome:
         direction = cmd.direction
         room = self.room()
 
         if direction is None:
-            return self.build_message("Go where?")
+            return self.outcome_missing_target(self.build_message("Go where?"), code="missing_direction")
 
         msgs = []
 
@@ -62,15 +63,15 @@ class MovementVerbHandler(VerbHandler):
         any_exit = room.get_all_exits(direction = direction)
 
         if not any_exit:
-            return self.build_message(f"You can't travel {direction} from here.")
+            return self.outcome_not_available(self.build_message(f"You can't travel {direction} from here."), code="no_exit_in_direction")
       
         go_exit = room.get_exit("go", direction)
   
         if go_exit:
             movement_refusal = self.check_movement(go_exit, "go", direction)
             if movement_refusal:
-                return self.build_message(movement_refusal)
-            return self.build_message(self.perform_movement(go_exit, direction, "go"))   #successful go movement
+                return self.outcome_blocked(self.build_message(movement_refusal), code="movement_blocked")
+            return self.outcome_success(self.build_message(self.perform_movement(go_exit, direction, "go")), code="movement_success")   #successful go movement
 
         # No go exit, but other move types have passable exits in this direction. Collect go_refuse_description(s) if present
         else:
@@ -80,10 +81,10 @@ class MovementVerbHandler(VerbHandler):
                     if exit_obj and exit_obj.go_refuse_description:
                         msgs.append(exit_obj.go_refuse_description if exit_obj.is_passable else f"Something is holding you back from {movement_type}ing {direction}.")
 
-        return self.build_message(msgs or f"You can't go {direction} from here.")
+        return self.outcome_not_available(self.build_message(msgs or f"You can't go {direction} from here."), code="no_go_exit")
 
 
-    def swim(self, cmd:ExecuteCommand) -> str:
+    def swim(self, cmd:ExecuteCommand) -> CommandOutcome:
         room = self.room()
 
         def check_swim_constraints():
@@ -103,7 +104,7 @@ class MovementVerbHandler(VerbHandler):
         
         # 1. Room must allow swimming
         if not getattr(room, "has_water", False):
-            return self.build_message("There is nowhere to swim here.")
+            return self.outcome_not_available(self.build_message("There is nowhere to swim here."), code="no_water")
 
         # 2. Drowning / constraint logic
         constraint_error = check_swim_constraints()
@@ -114,20 +115,20 @@ class MovementVerbHandler(VerbHandler):
         direction = cmd.direction if cmd and cmd.direction else None
 
         if direction is None:
-            return self.build_message("You splash around aimlessly.")
+            return self.outcome_no_op(self.build_message("You splash around aimlessly."), code="missing_direction")
 
         exit_obj = room.get_exit("swim", direction)
         if exit_obj is None:
-            return self.build_message(f"You can't swim {direction} from here.")
+            return self.outcome_not_available(self.build_message(f"You can't swim {direction} from here."), code="no_swim_exit")
         
         movement_refusal = self.check_movement(exit_obj, "swim", direction)
         if movement_refusal:
-            return self.build_message(movement_refusal)
+            return self.outcome_blocked(self.build_message(movement_refusal), code="movement_blocked")
 
         result_msg = self.perform_movement(exit_obj=exit_obj, direction=direction, success_verb_phrase="swim"
         )
 
-        return self.build_message(result_msg)
+        return self.outcome_success(self.build_message(result_msg), code="movement_success")
     
 
     # ------------------------------------------------------------
@@ -140,14 +141,14 @@ class MovementVerbHandler(VerbHandler):
     #       put the stairs or ladder in the room description.          
     # ------------------------------------------------------------
     
-    def climb(self, cmd: ExecuteCommand) -> str:
+    def climb(self, cmd: ExecuteCommand) -> CommandOutcome:
         room = self.room()
         verb_token = cmd.verb_token if cmd else "climb"
 
         # No climb exits in room at all → early exit
         climb_exits = room.exits.get("climb", {})
         if not climb_exits:
-            return self.build_message(f"There is nothing to {verb_token} here.")
+            return self.outcome_not_available(self.build_message(f"There is nothing to {verb_token} here."), code="no_climb_exits")
 
         direction = cmd.direction if cmd else None
         target = cmd.direct_object if cmd else None
@@ -168,23 +169,35 @@ class MovementVerbHandler(VerbHandler):
             if matching_climbable:
                 chosen = matching_climbable
             else:
-                return self.build_message(f"There is nothing here you can {verb_token} {direction}.")
+                return self.outcome_not_available(
+                    self.build_message(f"There is nothing here you can {verb_token} {direction}."),
+                    code="no_matching_climbable",
+                )
 
         # ───────────────────────────────────────────────
         # Case 2: No direction, but target given → infer direction from target
         # ───────────────────────────────────────────────
         elif target:
             if not getattr(target, "is_climbable", False):
-                return self.build_message(f"You can't {verb_token} the {target.display_name()}.")
+                return self.outcome_invalid_target(
+                    self.build_message(f"You can't {verb_token} the {target.display_name()}."),
+                    code="target_not_climbable",
+                )
 
             climb_dirs = getattr(target, "climb_directions", [])
             if not climb_dirs:
-                return self.build_message(f"The {target.display_name()} can't be climbed right now.")
+                return self.outcome_not_available(
+                    self.build_message(f"The {target.display_name()} can't be climbed right now."),
+                    code="target_no_climb_directions",
+                )
 
             # Find the first direction that actually has a climb exit
             possible_dirs = [d for d in climb_dirs if d in climb_exits]
             if not possible_dirs:
-                return self.build_message(f"You can't {verb_token} the {target.display_name()} from here.")
+                return self.outcome_not_available(
+                    self.build_message(f"You can't {verb_token} the {target.display_name()} from here."),
+                    code="target_not_climbable_here",
+                )
 
             # Default to the first supported direction 
             direction = possible_dirs[0]
@@ -194,34 +207,40 @@ class MovementVerbHandler(VerbHandler):
         # No direction and no target → ambiguous
         # ───────────────────────────────────────────────
         else:
-            return self.build_message(f"{verb_token.capitalize()} what? Or which way?")
+            return self.outcome_missing_target(
+                self.build_message(f"{verb_token.capitalize()} what? Or which way?"),
+                code="missing_target_or_direction",
+            )
 
         # ───────────────────────────────────────────────
         # At this point we have a direction → try to move
         # ───────────────────────────────────────────────
         exit_obj = room.get_exit("climb", direction)
         if not exit_obj:
-            return self.build_message(f"You can't {verb_token} {direction} from here.")
+            return self.outcome_not_available(
+                self.build_message(f"You can't {verb_token} {direction} from here."),
+                code="no_climb_exit",
+            )
 
         movement_refusal = self.check_movement(exit_obj, "climb", direction)
         if movement_refusal:
-            return self.build_message(movement_refusal)
+            return self.outcome_blocked(self.build_message(movement_refusal), code="movement_blocked")
 
 
         # Perform the movement (your existing logic)
         move_result = self.perform_movement(exit_obj, direction, verb_token)
 
-        return self.build_message(move_result)
+        return self.outcome_success(self.build_message(move_result), code="movement_success")
 
 
-    def teleport(self,  cmd: ExecuteCommand) -> str:
+    def teleport(self,  cmd: ExecuteCommand) -> CommandOutcome:
         """Teleport to any room by name or number. No target → list rooms."""
         game = self.game()
         world = self.world()
         room = self.room()
 
         if not game.debug_mode:
-            return self.build_message("Teleport not permitted")    
+            return self.outcome_not_available(self.build_message("Teleport not permitted"), code="debug_only")
 
         requested_room = cmd.direct_object_token if cmd.direct_object_token else None
 
@@ -235,7 +254,7 @@ class MovementVerbHandler(VerbHandler):
             lines.append("")
             lines.append("Usage: teleport <name or number>")
             lines.append("       goto 7")
-            return "\n".join(lines)
+            return self.outcome_raw("\n".join(lines), code="teleport_list")
 
         requested_room = requested_room.strip().lower()
         desired_room = None
@@ -259,19 +278,31 @@ class MovementVerbHandler(VerbHandler):
                 desired_room = matches[0]
             elif len(matches) > 1:
                 names = ", ".join(r.canonical_name() for r in matches)
-                return self.build_message(f"Ambiguous room name — matches: {names}")
+                return self.outcome_invalid_target(
+                    self.build_message(f"Ambiguous room name - matches: {names}"),
+                    code="ambiguous_room",
+                )
 
         if desired_room is None:
-            return self.build_message("No matching room. Type 'teleport' to list rooms.")
+            return self.outcome_not_available(
+                self.build_message("No matching room. Type 'teleport' to list rooms."),
+                code="room_not_found",
+            )
         
         if desired_room is room:
-            return self.build_message(f"You are already in {room.canonical_name()}.")
+            return self.outcome_no_op(
+                self.build_message(f"You are already in {room.canonical_name()}."),
+                code="already_in_room",
+            )
 
         # Perform the teleport
         game.current_room = desired_room
 
 
-        return(self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)))
+        return self.outcome_success(
+            self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)),
+            code="movement_success",
+        )
 
 
     
