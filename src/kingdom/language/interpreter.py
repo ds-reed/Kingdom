@@ -1,16 +1,12 @@
 # Interpreter.py
-# Converts ParsedActions → InterpretedCommands (zero, one, or many)
+# Converts ParsedActions -> InterpretedCommands (zero, one, or many)
 # Pure, deterministic, no world mutation.
 
-from dataclasses import dataclass
-from email.mime import base
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from kingdom.language.parser import ParsedAction
-from kingdom.language.lexicon import Lexicon, VerbEntry, NounEntry
-
-from dataclasses import dataclass, field
-from typing import Optional, List
+from kingdom.language.lexicon import Lexicon, VerbEntry
 
 from kingdom.model.direction_model import DIRECTIONS
 from kingdom.model.game_model import get_game
@@ -122,7 +118,18 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
         # ----------------------------------------------------------------------
         # Object resolution
         # ----------------------------------------------------------------------
-        def _resolve_direct_object(action: ParsedAction) -> List[InterpretedTarget]:
+        def _resolve_target(head: Optional[str], token_phrase, token_adjectives: Optional[List[str]] = None) -> InterpretedTarget:
+            room = get_game().current_room
+            target = _resolve_target_noun(room, head) if room is not None and head else None
+            return InterpretedTarget(
+                token_phrase=token_phrase,
+                token_head=head,
+                token_adjectives=token_adjectives or [],
+                noun_object=target if target else None,
+            )
+
+
+        def _resolve_direct_object(action: ParsedAction) -> Optional[InterpretedTarget]:
 
             # No direct object at all
 
@@ -133,19 +140,10 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             np = action.object_phrases[0]
             head = np["head"]
 
-    
-            target_candidate = lexicon.token_to_noun.get(head)
-            if target_candidate is not None:
-                room = get_game().current_room
-                target = _resolve_target_noun(room, target_candidate.noun_object.handle) if target_candidate.noun_object else None
-            else:
-                target = None
-        
-            return InterpretedTarget(
+            return _resolve_target(
+                head=head,
                 token_phrase=np,
-                token_head=head,
                 token_adjectives=np.get("adjectives", []),
-                noun_object=target if target else None,
             )
 
             
@@ -155,15 +153,11 @@ def interpret(actions: List[ParsedAction], world: World, lexicon: Lexicon) -> Li
             for pp in action.prep_phrases:
                 prep = pp["prep"]          # canonical preposition
                 head = pp["object"]        # surface noun token
-                
-                # Resolve surface noun → NounEntry
-                noun_entry = lexicon.token_to_noun.get(head)
 
-                target = InterpretedTarget(
+                target = _resolve_target(
+                    head=head,
                     token_phrase=prep,
-                    token_head=head,
                     token_adjectives=[],
-                    noun_object=noun_entry.noun_object if noun_entry else None,
                 )
 
                 resolved.append({

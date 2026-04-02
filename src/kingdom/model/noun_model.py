@@ -103,6 +103,7 @@ class Noun:
 
     all_nouns: ClassVar[List["Noun"]] = []
     _by_name: ClassVar[Dict[str, "Noun"]] = {}
+    _by_alias: ClassVar[Dict[str, "Noun"]] = {}
 
     def __init__(self):
         self._register_noun()
@@ -115,6 +116,11 @@ class Noun:
 
         for key in self._registry_keys():
             Noun._by_name[key] = self
+            if hasattr(self, "synonyms"):
+                for alias in self.synonyms:
+                    alias_key = normalize_key(alias)
+                    if alias_key and alias_key != key:
+                        Noun._by_alias[alias_key] = self
 
     def _registry_keys(self) -> list[str]:
         canonical_key = normalize_key(self.canonical_name())
@@ -209,6 +215,21 @@ class Noun:
             return noun
 
         return None
+    
+    @classmethod
+    def get_by_alias(cls, alias: str) -> "Noun | None":
+        candidate = normalize_key(alias)
+        if not candidate:
+            return None
+
+        noun = Noun._by_alias.get(candidate)
+        if noun is None:
+            return None
+
+        if cls is Noun or isinstance(noun, cls):
+            return noun
+
+        return None 
 
     @classmethod
     def get_all(cls):
@@ -240,8 +261,6 @@ class Noun:
             return typed_match
 
         return None
-
-
 
 
     def matches_reference(self, reference: str) -> bool:

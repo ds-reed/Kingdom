@@ -82,8 +82,6 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
 
         #  Classify each token
         verb_candidates = []
-        noun_candidates = []
-        noun_candidates_tokens = []
         direction_tokens = []
         modifier_tokens = []
         unknown_tokens = []
@@ -105,12 +103,8 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                     primary_verb_entry = v
                     primary_verb_token = tok
                     
-
-            # Noun?
-            n = lexicon.token_to_noun.get(tok)
-            if n:
-                noun_candidates.append(n)
-                noun_candidates_tokens.append(tok)
+            # Noun? Stage 1 should only classify token type, not bind noun entries.
+            if is_noun(tok):
                 matched_any = True
 
 
@@ -154,7 +148,7 @@ def parse(text: str, lexicon: Lexicon) -> list[ParsedAction]:
                 verb_source = "implicit"
                 raw_verb_token = None
 
-            elif len(ps.tokens) == 1 and first in noun_candidates_tokens:
+            elif len(ps.tokens) == 1 and is_noun(first):
                 verb_source = "implicit"
                 raw_verb_token = None
 
