@@ -82,6 +82,7 @@ _NON_NOUN_HEADS = {
     "get", "take", "drop", "put", "open", "close", "unlock", "lock",
     "light", "extinguish", "rub", "turn", "hit", "eat", "give", "loot",
     "go", "swim", "climb", "look", "move", "push", "pull", "throw",
+    "be", "am", "is", "are", "was", "were", "being", "been",
     "getting", "taking", "dropping", "putting", "opening", "closing",
     "unlocking", "locking", "lighting", "extinguishing", "rubbing",
     "turning", "hitting", "eating", "giving", "looting", "going",
@@ -316,7 +317,7 @@ def ensure_trailing_punctuation(line: str) -> str:
     trimmed = line.rstrip()
     if not trimmed:
         return ""
-    if trimmed.endswith((".", "!", "?", ":", "...")):
+    if trimmed.endswith((".", "!", "?", ":", ",", ";", "...")):
         return trimmed
     return trimmed + "."
 
@@ -335,6 +336,7 @@ def normalize_outcome_text(text: str | None) -> str:
         lines.pop()
 
     out_lines: list[str] = []
+    previous_non_empty: str = ""
     for line in lines:
         if not line.strip():
             out_lines.append("")
@@ -348,10 +350,13 @@ def normalize_outcome_text(text: str | None) -> str:
             continue
 
         cleaned = normalize_articles_in_sentence(cleaned)
-        cleaned = sentence_case_line(cleaned)
+        continuation = bool(previous_non_empty.rstrip().endswith((",", ";", ":")))
+        if not continuation:
+            cleaned = sentence_case_line(cleaned)
         cleaned = normalize_terminal_dot_run(cleaned)
         cleaned = ensure_trailing_punctuation(cleaned)
         out_lines.append(cleaned)
+        previous_non_empty = cleaned
 
     return "\n".join(out_lines)
 

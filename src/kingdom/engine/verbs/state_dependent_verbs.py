@@ -240,11 +240,14 @@ class StatefulVerbHandler(VerbHandler):
         lines = []
         if target.get_class_name() == "Item":
             lines.append(self.build_message(render_item(room, target, look=True)))
-            lines.append("But you don't notice anything else.")
+            lines.append("You don't notice anything else.")
             return self.outcome_raw(self.build_message(lines), code="look_item")
         elif target.get_class_name() == "Container":
             lines.append(self.build_message(render_container(room, target, look=True)))
-            lines.append("But you don't notice anything else.")
+            if getattr(target, "is_transparent", False):
+                lines.append(self.build_message(render_container_contents(room, target, look=True)))
+            else:
+                lines.append("You don't notice anything else.")
             return self.outcome_raw(self.build_message(lines), code="look_container")
         elif isinstance(target, Feature):
             return self.outcome_raw(self.build_message(render_feature(room, target, look=True)), code="look_feature")

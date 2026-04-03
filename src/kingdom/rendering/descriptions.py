@@ -19,6 +19,11 @@ _WALL_PATTERN = re.compile(
 
 _WALL_ADJ_PATTERN = re.compile(r"\bwall\s+\w+", re.IGNORECASE)
 
+_POSSESSION_TAIL_PATTERN = re.compile(
+    r"\b(with|holding|clutching|gripping|carrying|cradling|bearing|brandishing)\s*$",
+    re.IGNORECASE,
+)
+
 
 
 class RoomRenderer:
@@ -68,7 +73,7 @@ class RoomRenderer:
                 for item in container.contents:
                     if getattr(item, "is_visible", True):
                         all_visible_objects.append(
-                            ("item", item, f"{item.stateful_name()} in {container_phrase}")
+                            ("item", item, f"{item.stateful_name()} held by {container_phrase}")
                         )
 
         # Sort by render_priority (higher first)
@@ -453,12 +458,9 @@ class RoomRenderer:
                     [tu.add_indefinite_article(i.stateful_name()) for i in obj.contents]
                 )
                 if loc:
-                    # Author loc provides the positioning verb; we append the contents
-                    # transformation so it still shows. Example:
-                    # "A glass box rests on the altar holding a ruby and a key"
-                    full_phrase = f"{name} {loc} holding {inner}"
+                    full_phrase = self._compose_transparent_container_phrase(name, loc, inner)
                 else:
-                    full_phrase = f"{name} holding {inner}"
+                    full_phrase = f"{name} has {inner}"
 
                 return tu.terminate(
                     tu.capitalize_first(
@@ -510,6 +512,18 @@ class RoomRenderer:
         return tu.terminate(tu.capitalize_first(
             f"{tu.add_indefinite_article(name)} is here"
         ))
+
+    def _compose_transparent_container_phrase(self, name: str, loc: str, inner: str) -> str:
+        authored_loc = loc or ""
+        authored_loc_rstrip = authored_loc.rstrip()
+        authored_tail = authored_loc_rstrip.rstrip(",")
+
+        # If the authored location already implies possession, append the object directly.
+        if _POSSESSION_TAIL_PATTERN.search(authored_tail):
+            spacer = "" if authored_loc.endswith(" ") else " "
+            return f"{name} {authored_loc}{spacer}{inner}"
+
+        return f"{name} {authored_loc_rstrip} has {inner}"
 
 
     def group_floor_items(self, items):

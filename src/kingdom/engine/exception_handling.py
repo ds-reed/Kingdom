@@ -10,7 +10,7 @@ sys.path.append("./src")
 import random
 
 from kingdom.GUI.UI import ui
-from kingdom.rendering.command_results import exit_message, format_command_outcome
+from kingdom.rendering.command_results import exit_message, format_command_outcome, format_command_message
 from kingdom.rendering.descriptions import render_current_room
 from kingdom.model.game_model import Game, Player, GameOver, LoadGame, SaveGame, QuitGame, WinGame, get_game
 from kingdom.model.noun_model import Room, World
@@ -84,11 +84,19 @@ def handle_game_over(
     
     Returns: (should_quit: bool, new_recovery_mode: bool)
     """
-    ui.print(str(game_over))
+    ui.print(format_command_message(str(game_over)))
     ui.print("It seems that you ran into a little trouble, didn't you?")
     ui.print("Well there is help. I could try to clone the remains but it will cost you points.")
-    
-    attempt_clone = ui.confirm(question="Shall I try? (y/n): ")
+
+    while True:
+        attempt_clone_raw = ui.prompt("Shall I try? (y/n): ").strip().lower()
+        if attempt_clone_raw in {"y", "yes", "1", "true"}:
+            attempt_clone = True
+            break
+        if attempt_clone_raw in {"n", "no", "0", "false"}:
+            attempt_clone = False
+            break
+        ui.print("Please answer y or n.")
 
     if not attempt_clone:
         ui.print("You may load a saved game or quit.")

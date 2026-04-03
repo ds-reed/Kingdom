@@ -91,6 +91,17 @@ def test_trade_banana_to_mermaid_for_vase_uses_two_prep_phrases(demo_context):
     assert "vase" in (outcome.message or "").lower()
 
 
+def test_examine_transparent_mermaid_renders_contents(demo_context):
+    demo_context["game"].current_room = demo_context["game"].world.rooms["Pool Ledge"]
+
+    outcome = _execute_one("examine mermaid", demo_context)
+    rendered = format_command_outcome(outcome)
+
+    assert outcome is not None
+    assert "vase" in rendered.lower()
+    assert "you don't notice anything else" not in rendered.lower()
+
+
 def test_kick_victrola_transports_player_to_start_room(demo_context):
     game = demo_context["game"]
     game.current_room = game.world.rooms["Guard's Antechamber"]

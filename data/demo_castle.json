@@ -462,18 +462,20 @@
       "containers": [
         {
           "name": "mermaid",
-          "description": "a beautiful mermaid with shimmering scales and flowing hair",
+          "description": "a beautiful mermaid with shimmering hair",
+          "location_description": "lounges gracefully on the narrow ledge, tightly clutching ",
+          "render_priority": 500,
           "is_openable": true,
           "is_open": true,
           "is_transparent": true,
           "is_tradeable": true,
           "is_takeable": true,
-          "examine_description": "A beautiful mermaid with shimmering scales and flowing hair.",
+          "examine_description": "A beautiful mermaid with shimmering hair and silvery scales lounges gracefully on the narrow ledge. She is zealously guarding her sole possession.",
           "special_handlers": { "take": "take_mermaid"},
           "items": [
             {
               "name": "vase",
-              "description": "a magnificent vase carved from a single emerald, with intricate patterns etched into its surface",
+              "description": "a magnificent vase carved from a single emerald",
               "adjectives": ["magnificent", "emerald"],
               "is_takeable": false
             }
@@ -675,19 +677,22 @@
                 "name": "onion",
                 "description": "a small white onion with papery skin",
                 "adjectives": ["small", "white"],
-                "is_takeable": true
+                "is_takeable": true,
+                "is_edible": true
               },
               {
                 "name": "apple",
                 "description": "a crisp red apple",
                 "adjectives": ["crisp", "red"],
-                "is_takeable": true
+                "is_takeable": true,
+                "is_edible": true
               },
               {
                 "name": "mushroom",
                 "description": "an odd-looking mushroom with a spiraled cap",
                 "adjectives": ["odd-looking", "spiraled"],
                 "is_takeable": true,
+                "is_edible": true,
                 "special_handlers": { "eat": "eat_mushroom" }
               }
             ]

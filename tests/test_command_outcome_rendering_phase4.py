@@ -200,6 +200,28 @@ def test_format_command_outcome_does_not_capitalize_inner_you_phrase():
     assert format_command_outcome(outcome) == "You have a feeling of accomplishment as you rub the lamp. It looks shinier now."
 
 
+def test_format_command_outcome_preserves_multiline_continuation_punctuation_and_case():
+    outcome = CommandOutcome(
+        status=CommandStatus.SUCCESS,
+        verb="test",
+        command=None,
+        message=(
+            "The Djinni seems puzzled by your exotic language.\n"
+            "Genies aren't omniscient, just omnipotent!\n"
+            "But seeing that you are at a dead end and wanting to be helpful,\n"
+            "he places a doorway in the west wall and disappears."
+        ),
+        render_mode=RenderMode.NORMALIZE,
+    )
+
+    assert format_command_outcome(outcome) == (
+        "The Djinni seems puzzled by your exotic language.\n"
+        "Genies aren't omniscient, just omnipotent!\n"
+        "But seeing that you are at a dead end and wanting to be helpful,\n"
+        "he places a doorway in the west wall and disappears."
+    )
+
+
 def test_format_command_outcome_preserves_infinitive_phrases_and_direction_bullets():
     outcome = CommandOutcome(
         status=CommandStatus.SUCCESS,

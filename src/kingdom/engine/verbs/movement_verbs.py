@@ -97,7 +97,7 @@ class MovementVerbHandler(VerbHandler):
             )
             if heavy_item is not None:
                 raise GameOver(
-                    f"{heavy_item.canonical_name()} drags you under as you try to swim. You drown. GAME OVER."
+                    f"The {heavy_item.canonical_name()} drags you under as you try to swim. You drown. GAME OVER."
                 )
 
             return None

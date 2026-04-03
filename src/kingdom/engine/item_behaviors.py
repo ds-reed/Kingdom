@@ -238,7 +238,7 @@ def rub_lamp(item, verb, **kwargs):
                     message=(
                         "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
                         "The smoke solidifies into a an extremely angry looking djinni!\n"
-                        "He intones: 'TAKHLUB ARRAQ MINTA NAKH!', glares at you, then disappears.\n"
+                        "He intones: 'TAKHLUB ARRAQ MINTA NAKH!' and glares at you.\n"
                         "(This means in magic Arabic, 'Stop that, it's really annoying me.')"
                     ),
                     control=VerbControl.STOP
@@ -249,7 +249,7 @@ def rub_lamp(item, verb, **kwargs):
             message=(
                 "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
                 "The smoke solidifies into a an imposing djinni!\n"
-                "He intones: ' \"MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?\"' and looks at you inquiringly.\n"
+                "He intones: 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly.\n"
                 "(This means in magic Arabic, 'I will grant you one wish.')"
             ),
             control=VerbControl.STOP
@@ -287,8 +287,8 @@ def _djinni_scripted_action(djinni, verb, **kwargs):
 
     message_lines = [
         "The Djinni seems puzzled by your exotic language.",
-        "Genies aren't omniscient, just omnipotent!",
-        "But seeing that you are at a dead end and wanting to be helpful,",
+        "Genies aren't omniscient, just omnipotent.",
+        "But seeing that you are at a dead end, and wanting to be helpful,",
         "he places a doorway in the west wall and disappears."
     ]
 
