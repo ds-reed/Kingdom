@@ -231,7 +231,7 @@
         "climb": {  
           "down": {
             "destination": "Pole Landing",
-            "is_visible": true,
+            "is_visible": false,
             "is_passable": false,
             "go_refuse_description": "The pole descends into utter darkness. Did you want to slide down?"
           }

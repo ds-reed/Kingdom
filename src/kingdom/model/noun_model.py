@@ -285,7 +285,14 @@ class Noun:
         if not candidate:
             return False
 
-        return candidate in self._normalized_identity_tokens()
+        if candidate in self._normalized_identity_tokens():
+            return True
+
+        for synonym in getattr(self, "synonyms", []):
+            if " ".join(_normalize_tokens(synonym)) == candidate:
+                return True
+
+        return False
 
     def handle_verb(self, verb_name: str, *args, **kwargs) -> str | None:
         dispatch_context = kwargs.get("dispatch_context")
