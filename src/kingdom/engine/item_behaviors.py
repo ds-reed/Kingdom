@@ -374,7 +374,12 @@ def hit_victrola(item, verb_name, indirect_obj = None, **kwargs):
     message.append("The haunting magical melody swells and seems to fill the room.")
 
     desired_room_name = game.world.start_room_name
-    desired_room = Room.by_name(desired_room_name)
+    desired_room = game.world.start_room or game.world.rooms.get(desired_room_name)
+    if desired_room is None:
+        return VerbOutcome(
+            message="The Victrola groans ominously, but nothing else happens.",
+            control=VerbControl.STOP,
+        )
     game.current_room = desired_room
 
     message.append("Suddenly, you find yourself transported back to your starting location!")

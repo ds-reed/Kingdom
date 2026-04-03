@@ -6,12 +6,7 @@ import kingdom.rendering.textutils as tu
 
 
 def format_command_message(message: str | None) -> str:
-    if not message:
-        return ""
-
-    normalized = str(message).replace("\r\n", "\n").replace("\r", "\n")
-    lines = [line.rstrip() for line in normalized.split("\n")]
-    return "\n".join(lines).strip("\n")
+    return tu.normalize_outcome_text(message)
 
 
 def format_command_outcome(outcome: CommandOutcome | None) -> str:

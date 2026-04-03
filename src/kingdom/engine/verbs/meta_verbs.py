@@ -120,9 +120,49 @@ class MetaVerbHandler(VerbHandler):
         keywords = []
         lexicon = self.lexicon()
 
+        def resolve_debug_noun(token: str):
+            candidates = Noun.get_all_by_name(token)
+            if not candidates:
+                return None, []
+            if len(candidates) == 1:
+                return candidates[0], []
+
+            preferred = []
+
+            if room is not None:
+                local_refs = [room, *getattr(room, "items", []), *getattr(room, "containers", []), *getattr(room, "features", [])]
+                for candidate in candidates:
+                    if candidate in local_refs and candidate not in preferred:
+                        preferred.append(candidate)
+
+            if player is not None:
+                inventory = list(getattr(player, "get_inventory_items", lambda: [])())
+                for candidate in candidates:
+                    if candidate in inventory and candidate not in preferred:
+                        preferred.append(candidate)
+
+            if len(preferred) == 1:
+                return preferred[0], []
+
+            unresolved = preferred if preferred else candidates
+            return None, unresolved
+
         noun = cmd.direct_object if cmd.direct_object else None
         if not noun and cmd.direct_object_token:
-            noun = Item.get_by_name(cmd.direct_object_token) or Feature.get_by_name(cmd.direct_object_token) or Container.get_by_name(cmd.direct_object_token) or Room.get_by_name(cmd.direct_object_token)
+            noun, ambiguous = resolve_debug_noun(cmd.direct_object_token)
+            if ambiguous:
+                labels = [f"{candidate.display_name()} ({candidate.get_class_name()})" for candidate in ambiguous]
+                return self.outcome_no_op(
+                    self.build_message(
+                        [
+                            f"Debug target '{cmd.direct_object_token}' is ambiguous.",
+                            "Possible matches:",
+                            *[f"  - {label}" for label in labels],
+                            "Try a more specific phrase.",
+                        ]
+                    ),
+                    code="debug_ambiguous_target",
+                )
             if noun is None:
                 keywords = [cmd.direct_object_token]    # if no noun found, treat the noun-like token as a keyword for debugging purposes
         

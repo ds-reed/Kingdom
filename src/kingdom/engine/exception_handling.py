@@ -194,7 +194,7 @@ def process_command(
         else: return False, recovery_mode, "Quit cancelled."
         
     except GameOver as game_over:
-        start_room = Room.by_name(world.start_room_name)
+        start_room = world.start_room or world.rooms.get(world.start_room_name)
         should_quit, recovery_mode = handle_game_over(
             game_over,
             world,

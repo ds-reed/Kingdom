@@ -71,7 +71,7 @@ class MovementVerbHandler(VerbHandler):
             movement_refusal = self.check_movement(go_exit, "go", direction)
             if movement_refusal:
                 return self.outcome_blocked(self.build_message(movement_refusal), code="movement_blocked")
-            return self.outcome_success(self.build_message(self.perform_movement(go_exit, direction, "go")), code="movement_success")   #successful go movement
+            return self.outcome_raw(self.build_message(self.perform_movement(go_exit, direction, "go")), code="movement_success")   #successful go movement
 
         # No go exit, but other move types have passable exits in this direction. Collect go_refuse_description(s) if present
         else:
@@ -128,7 +128,7 @@ class MovementVerbHandler(VerbHandler):
         result_msg = self.perform_movement(exit_obj=exit_obj, direction=direction, success_verb_phrase="swim"
         )
 
-        return self.outcome_success(self.build_message(result_msg), code="movement_success")
+        return self.outcome_raw(self.build_message(result_msg), code="movement_success")
     
 
     # ------------------------------------------------------------
@@ -230,7 +230,7 @@ class MovementVerbHandler(VerbHandler):
         # Perform the movement (your existing logic)
         move_result = self.perform_movement(exit_obj, direction, verb_token)
 
-        return self.outcome_success(self.build_message(move_result), code="movement_success")
+        return self.outcome_raw(self.build_message(move_result), code="movement_success")
 
 
     def teleport(self,  cmd: ExecuteCommand) -> CommandOutcome:
@@ -299,7 +299,7 @@ class MovementVerbHandler(VerbHandler):
         game.current_room = desired_room
 
 
-        return self.outcome_success(
+        return self.outcome_raw(
             self.build_message(self.perform_movement(exit_obj=None, direction="magically", success_verb_phrase="teleport", destination=desired_room)),
             code="movement_success",
         )

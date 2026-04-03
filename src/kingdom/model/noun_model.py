@@ -305,7 +305,7 @@ class Noun:
         return None
 
     @classmethod
-    def by_name(cls, name: str, *, exact: bool = False) -> "Noun | None":
+    def by_name(cls, name: str, *, exact: bool = False) -> "Noun | list[Noun] | None":
         candidate = " ".join(_normalize_tokens(name))
         if not candidate:
             return None

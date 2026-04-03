@@ -56,17 +56,20 @@ class RoomRenderer:
         # Items and containers (concise description only)
         visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
         visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
-        for container in visible_containers:
-            if container.is_transparent:
-                visible_items.extend(container.contents)
-
         all_visible_objects = []
 
         for item in visible_items:
-            all_visible_objects.append(("item", item))
+            all_visible_objects.append(("item", item, item.stateful_name()))
 
         for container in visible_containers:
-            all_visible_objects.append(("container", container))
+            all_visible_objects.append(("container", container, container.stateful_name()))
+            if container.is_transparent:
+                container_phrase = tu.add_definite_article(container.stateful_name())
+                for item in container.contents:
+                    if getattr(item, "is_visible", True):
+                        all_visible_objects.append(
+                            ("item", item, f"{item.stateful_name()} in {container_phrase}")
+                        )
 
         # Sort by render_priority (higher first)
         all_visible_objects.sort(
@@ -76,8 +79,12 @@ class RoomRenderer:
 
         if all_visible_objects:
             lines.append("You see:")
-            for _kind, obj in all_visible_objects:
-                lines.append(F"-  {obj.stateful_name()}")
+            for _kind, obj, label in all_visible_objects:
+                lines.append(
+                    tu.capitalize_bullet_line(
+                        f"- {tu.add_indefinite_article(label)}"
+                    )
+                )
 
         
         #now exits
@@ -88,7 +95,7 @@ class RoomRenderer:
             lines.append("Available exits:")  
             for _, direction, _ in exits:
                 if isinstance(direction, str):
-                    lines.append(f"- {direction}")
+                    lines.append(tu.capitalize_bullet_line(f"- {direction}"))
 
         
         return lines

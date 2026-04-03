@@ -9,6 +9,7 @@ from kingdom.language.executor import CommandStatus, execute
 from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
+from kingdom.rendering.command_results import format_command_outcome
 from kingdom.model.game_model import get_game
 from kingdom.model.noun_model import Player, World
 
@@ -88,3 +89,38 @@ def test_trade_banana_to_mermaid_for_vase_uses_two_prep_phrases(demo_context):
     assert outcome.status == CommandStatus.SUCCESS
     assert "receive" in (outcome.message or "").lower()
     assert "vase" in (outcome.message or "").lower()
+
+
+def test_kick_victrola_transports_player_to_start_room(demo_context):
+    game = demo_context["game"]
+    game.current_room = game.world.rooms["Guard's Antechamber"]
+
+    outcome = _execute_one("kick victrola", demo_context)
+
+    assert outcome is not None
+    assert outcome.status == CommandStatus.SUCCESS
+    assert game.current_room == game.world.start_room
+    assert "transported back to your starting location" in (outcome.message or "").lower()
+
+
+def test_get_bag_refusal_uses_definite_article(demo_context):
+    _run_to_antechamber(demo_context)
+
+    outcome = _execute_one("get bag", demo_context)
+    rendered = format_command_outcome(outcome)
+
+    assert outcome is not None
+    assert outcome.status == CommandStatus.SUCCESS
+    assert "you can't get the greasy brown lunch bag" in rendered.lower()
+
+
+def test_debug_window_prefers_current_room_feature_when_name_is_global(demo_context):
+    game = demo_context["game"]
+    game.current_room = game.world.rooms["Cell Antechamber"]
+
+    outcome = _execute_one("debug window", demo_context)
+
+    assert outcome is not None
+    assert outcome.status == CommandStatus.SUCCESS
+    assert "class: feature" in (outcome.message or "").lower()
+    assert "thin shaft of light" in (outcome.message or "").lower()

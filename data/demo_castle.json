@@ -302,7 +302,7 @@
         "examine_description": "The Victrola looks somewhat out of place here. Its brass horn is dented, but the hand crank appears intact.",
         "synonyms": ["crank", "phonograph", "gramophone", "horn"],
         "adjectives": ["old-fashioned", "brass"],
-        "turn_action_description": "You turn the crank on the victrola and a cloud of dirty black smoke issues from its cone. It groans out a soft magical sounding tone, but obviously (?) this victrola is broken. (?)",
+        "turn_action_description": "You turn the crank on the victrola and a cloud of dirty black smoke issues from its cone. It groans out a soft magical sounding tone, but obviously (?) this victrola is broken.",
         "is_turnable": true,
         "is_turned": false,
         "has_handle": true,

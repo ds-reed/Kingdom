@@ -22,7 +22,7 @@ class InventoryVerbHandler(VerbHandler):
 
         return self.outcome_success(
             self.build_message(
-                f"You have ({count} {label}):\n{bullet_list}"
+                f"You have {count} {label}:\n{bullet_list}"
             )
         )
 
