@@ -125,6 +125,17 @@ def test_get_bag_refusal_uses_definite_article(demo_context):
     assert "you can't get the greasy brown lunch bag" in rendered.lower()
 
 
+def test_get_torch_can_pull_from_transparent_sconce_without_named_source(demo_context):
+    _run_to_antechamber(demo_context)
+
+    outcome = _execute_one("get torch", demo_context)
+
+    assert outcome is not None
+    assert outcome.status == CommandStatus.SUCCESS
+    assert "you get" in (outcome.message or "").lower()
+    assert "torch" in (outcome.message or "").lower()
+
+
 def test_debug_window_prefers_current_room_feature_when_name_is_global(demo_context):
     game = demo_context["game"]
     game.current_room = game.world.rooms["Cell Antechamber"]

@@ -246,6 +246,18 @@ class Noun:
         return None 
 
     @classmethod
+    def get_all_by_alias(cls, alias: str) -> List["Noun"]:
+        candidate = normalize_key(alias)
+        if not candidate:
+            return []
+
+        noun_candidates = Noun._by_alias.get(candidate, [])
+        if cls is Noun:
+            return list(noun_candidates)
+
+        return [noun for noun in noun_candidates if isinstance(noun, cls)]
+
+    @classmethod
     def get_all(cls):
         for noun_list in cls._by_name.values():
             for noun in noun_list:
@@ -305,23 +317,24 @@ class Noun:
         return None
 
     @classmethod
-    def by_name(cls, name: str, *, exact: bool = False) -> "Noun | list[Noun] | None":
-        candidate = " ".join(_normalize_tokens(name))
+    def by_name(cls, name: str, *, exact: bool = False) -> "Noun | None":
+        """Legacy scalar compatibility wrapper.
+
+        Historical callers used `by_name` as a singular lookup. Keep that
+        contract explicit so callers choose `get_all_by_name` when they need
+        multi-match behavior.
+        """
+        candidate = normalize_key(name)
         if not candidate:
             return None
 
-        direct = cls._by_name.get(candidate)
-        if direct is not None:
-            return direct
+        if exact:
+            for noun in cls.get_all_by_name(candidate):
+                if normalize_key(noun.canonical_name()) == candidate:
+                    return noun
+            return None
 
-        for noun in cls.all_nouns:
-            if exact:
-                if " ".join(_normalize_tokens(noun.canonical_name())) == candidate:
-                    return noun
-            else:
-                if noun.matches_reference(name):
-                    return noun
-        return None
+        return cls.get_by_name(candidate)
     
     def set_existing(self, name, value):
         if not hasattr(self, name):

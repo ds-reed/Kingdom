@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
 from kingdom.language.executor import execute
+from kingdom.language.interpreter import InterpretedCommand
 from kingdom.language.interpreter import interpret
 from kingdom.language.lexicon import lex
 from kingdom.language.parser import parse
@@ -71,12 +72,15 @@ def test_get_all_skips_open_container_contents_but_get_single_pulls_from_open_co
     assert "fish" in bag_handles_after_get_all
 
     get_fish_result = _run_command(game, "get fish")
-    assert "you get" in get_fish_result.lower() and "fish" in get_fish_result.lower()
+    assert "you see no fish here" in get_fish_result.lower()
+
+    get_fish_from_bag_result = _run_command(game, "get fish from lunch bag")
+    assert "you get" in get_fish_from_bag_result.lower() and "fish" in get_fish_from_bag_result.lower()
 
     inventory_handles_after_get_fish = {item.obj_handle() for item in player.get_inventory_items()}
     bag_handles_after_get_fish = {item.obj_handle() for item in bag.contents}
 
-    # Single-item get can implicitly pull from the currently open container.
+    # Opaque-container contents require an explicit source.
     assert "fish" in inventory_handles_after_get_fish
     assert "fish" not in bag_handles_after_get_fish
 
@@ -134,3 +138,50 @@ def test_get_feature_without_custom_refusal_uses_generic_message() -> None:
 
     assert isinstance(result, str)
     assert "you can't get" in result.lower()
+
+
+def test_take_uses_roles_source_when_prep_phrases_are_absent() -> None:
+    game = get_game()
+    game.reset_all_state()
+
+    world = World()
+    game.world = world
+    game.setup_world(PROJECT_ROOT / "data" / "initial_state.json")
+
+    player = Player("InventoryHero")
+    game.init_session(
+        world=world,
+        current_player=player,
+        player_name=player.name,
+    )
+    register_verbs()
+
+    bag = next((container for container in game.current_room.containers if container.obj_handle() == "bag"), None)
+    assert bag is not None
+    bag.is_open = True
+
+    lexicon = lex()
+    parsed = parse("get fish from lunch bag", lexicon)
+    interpreted = interpret(parsed, game, lexicon)
+    assert len(interpreted) == 1
+
+    original = interpreted[0]
+    cmd_without_prep = InterpretedCommand(
+        verb=original.verb,
+        verb_token=original.verb_token,
+        all_tokens=original.all_tokens,
+        verb_source=original.verb_source,
+        direct=original.direct,
+        direct_object_token=original.direct_object_token,
+        prep_phrases=[],
+        roles=dict(original.roles),
+        direction=original.direction,
+        direction_tokens=original.direction_tokens,
+        modifier_tokens=original.modifier_tokens,
+    )
+
+    outcome = execute(cmd_without_prep, game, "get fish from lunch bag")
+
+    assert outcome.status.name == "SUCCESS"
+    assert "you get" in (outcome.message or "").lower()
+    assert "fish" in (outcome.message or "").lower()

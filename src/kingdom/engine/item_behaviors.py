@@ -342,7 +342,13 @@ def drop_torch(item, verb_name, indirect_obj = None, **kwargs):
         if not indirect_obj:
             return None
 
-        container = Noun.get_by_name(indirect_obj[0])
+        container = None
+        container_token = indirect_obj[0] if isinstance(indirect_obj, (list, tuple)) and indirect_obj else indirect_obj
+        if room is not None and container_token:
+            for candidate in getattr(room, "containers", []):
+                if candidate.matches_reference(container_token):
+                    container = candidate
+                    break
         if container and getattr(container, "is_flamable", False):
             message.append(f"As you put the burning torch into {container.display_name()} it catches on fire!")
             for contained_item in list(container.contents):

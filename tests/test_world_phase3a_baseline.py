@@ -76,16 +76,15 @@ def test_same_handle_two_rooms_resolves_room_local():
 # ---------------------------------------------------------------------------
 
 def test_spawn_gap_handle_not_registered_in_lexicon(game_session):
-    """After spawning an item, its handle and synonyms are absent from lexicon.noun_tokens.
+    """Spawned items can resolve locally even when lexicon noun tokens are stale.
 
     The lexicon is built once at setup_world(). Runtime-spawned items register in Noun._by_name
     via __post_init__ but never update lexicon.noun_tokens, so is_noun() returns False for
     their tokens. This means the parser classifies them as unknown rather than known nouns,
-    and synonyms are completely invisible to the parser's noun-classification path.
+    even though the interpreter/local resolver can still match them by identity.
 
     The interpreter's resolver (room.items iteration) works independently of the lexicon,
-    so handle-based resolution still works. Synonym-based resolution does not currently
-    resolve for Item objects in this path.
+    so handle-based and synonym-based local resolution both work.
 
     Phase 3C will fix this by wiring add_noun_to_lexicon() into _spawn_room_item().
     """
@@ -101,7 +100,7 @@ def test_spawn_gap_handle_not_registered_in_lexicon(game_session):
 
     # The interpreter's resolver DOES find the item (it iterates room.items, not lexicon)
     assert _resolve_target_noun(game.current_room, "phantomblade") is spawned
-    assert _resolve_target_noun(game.current_room, "phantomsword") is None
+    assert _resolve_target_noun(game.current_room, "phantomsword") is spawned
 
 
 # ---------------------------------------------------------------------------
@@ -248,3 +247,36 @@ def test_noun_registry_get_by_name_remains_singular_wrapper():
 
     assert resolved in all_matches
     assert len(all_matches) >= 2
+
+
+def test_noun_registry_by_name_is_legacy_scalar_wrapper():
+    first = Item("legacycoin3d", description="Legacy Coin One", handle="legacycoin3d_one")
+    second = Item("legacycoin3d", description="Legacy Coin Two", handle="legacycoin3d_two")
+
+    resolved = Item.by_name("legacycoin3d")
+    all_matches = Item.get_all_by_name("legacycoin3d")
+
+    assert resolved in all_matches
+    assert not isinstance(resolved, list)
+    assert len(all_matches) >= 2
+
+
+def test_noun_registry_get_all_by_alias_returns_all_duplicates():
+    first = Item(
+        "aliascoin3d_one",
+        description="Alias Coin One",
+        handle="aliascoin3d_one",
+        synonyms=["shiny alias coin"],
+    )
+    second = Item(
+        "aliascoin3d_two",
+        description="Alias Coin Two",
+        handle="aliascoin3d_two",
+        synonyms=["shiny alias coin"],
+    )
+
+    matches = Item.get_all_by_alias("shiny alias coin")
+
+    assert first in matches
+    assert second in matches
+    assert len(matches) >= 2
