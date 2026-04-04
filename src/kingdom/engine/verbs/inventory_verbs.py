@@ -63,6 +63,8 @@ class InventoryVerbHandler(VerbHandler):
         # a single item from the first open room container that contains it.
         if not target and direct_object_token and not source:
             for container in room.containers:
+                if not getattr(container, "is_transparent", False):
+                    continue
                 if getattr(container, "is_openable", False) and not getattr(container, "is_open", False):
                     continue
                 candidate_item = container.has_item_by_alias(direct_object_token)

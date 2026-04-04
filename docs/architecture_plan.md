@@ -254,25 +254,27 @@ This keeps verb semantics clean and avoids duplication.
 
 Each verb may declare the prepositions it accepts and the semantic roles they map to.
 
+These declarations belong to the verb surface in `verb_registration.py` and are stored on `Verb` instances in the verb model. The interpreter reads that metadata when assigning semantic roles.
+
 Example:
 
 ```python
-VERB_SLOTS = {
-    "give": {
-        "recipient": ["to", "with"],
-        "trade_item": ["for"],
-    },
-    "take": {
-        "source": ["from", "in"],
-    },
-    "put": {
-        "destination": ["into", "in"],
-        "surface": ["on", "onto"],
-    }
-}
+Verb("give", inventory.give, role_slots={
+  "recipient": ["to", "with"],
+  "trade_item": ["for"],
+})
+
+Verb("take", inventory.take, role_slots={
+  "source": ["from", "in"],
+})
+
+Verb("put", inventory.drop, role_slots={
+  "destination": ["into", "in"],
+  "surface": ["on", "onto"],
+})
 ```
 
-The interpreter uses these declarations to assign roles automatically.
+The interpreter uses this registered verb metadata to assign roles automatically.
 
 This removes preposition‑parsing logic from verb handlers.
 
