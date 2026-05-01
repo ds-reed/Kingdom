@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from kingdom.engine import exception_handling
+from kingdom.engine import orchestration
 from kingdom.language.outcomes import CommandOutcome, CommandStatus, RenderMode
 from kingdom.rendering.command_results import format_command_outcome
 
@@ -55,10 +55,10 @@ def test_process_command_prints_formatted_outcome(monkeypatch):
     dummy_game = _DummyGame()
     dummy_world = _DummyWorld()
 
-    monkeypatch.setattr(exception_handling, "parse", lambda raw, lexicon: ["parsed"])
-    monkeypatch.setattr(exception_handling, "interpret", lambda parsed, world, lexicon: [_DummyCommand()])
+    monkeypatch.setattr(orchestration, "parse", lambda raw, lexicon: ["parsed"])
+    monkeypatch.setattr(orchestration, "interpret", lambda parsed, world, lexicon: [_DummyCommand()])
     monkeypatch.setattr(
-        exception_handling,
+        orchestration,
         "execute",
         lambda cmd, world, raw: CommandOutcome(
             status=CommandStatus.SUCCESS,
@@ -68,10 +68,10 @@ def test_process_command_prints_formatted_outcome(monkeypatch):
             render_mode=RenderMode.NORMALIZE,
         ),
     )
-    monkeypatch.setattr(exception_handling, "get_game", lambda: dummy_game)
-    monkeypatch.setattr(exception_handling.ui, "print", lambda *args, **kwargs: printed.append(" ".join(str(arg) for arg in args)))
+    monkeypatch.setattr(orchestration, "get_game", lambda: dummy_game)
+    monkeypatch.setattr(orchestration.ui, "print", lambda *args, **kwargs: printed.append(" ".join(str(arg) for arg in args)))
 
-    should_quit, recovery_mode, output = exception_handling.process_command(
+    should_quit, recovery_mode, output = orchestration.process_command(
         raw_command="look",
         world=dummy_world,
         lexicon=object(),
