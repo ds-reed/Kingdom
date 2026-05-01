@@ -3,6 +3,7 @@ from typing import  Optional
 
 from kingdom.engine.item_behaviors import try_item_special_handler, VerbOutcome, VerbControl
 from kingdom.engine.verbs.verb_handler import ExecuteCommand, VerbHandler
+from kingdom.language.outcomes import CommandOutcome
 
 from kingdom.model.noun_model import Noun
 
@@ -43,7 +44,7 @@ class ChangeStateVerbHandler(VerbHandler):
 
 #----------------- the core state-changing verbs -------------------------
 
-    def open(self, cmd: ExecuteCommand = None) -> str:
+    def open(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
         room = self.room()
         
@@ -55,22 +56,22 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
 
         if "sesame" in keywords:
-            return self.build_message("Nothing happens.")
+            return self.outcome_no_op(self.build_message("Nothing happens."), code="open_sesame_no_effect")
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("One at a time, please.")
+            return self.outcome_no_op(self.build_message("One at a time, please."), code="open_all_not_supported")
         
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("open"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("open")), code="missing_direct_target")
         
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "open")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -85,13 +86,16 @@ class ChangeStateVerbHandler(VerbHandler):
             already_msg="open",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="open_not_allowed")
         
         # Lock check 
         if getattr(target, "is_locked", False):
-            return self.build_message(
-                getattr(target, "locked_description", None)
-                or f"The {target.canonical_name()} is locked."
+            return self.outcome_precondition_failed(
+                self.build_message(
+                    getattr(target, "locked_description", None)
+                    or f"The {target.canonical_name()} is locked."
+                ),
+                code="open_target_locked",
             )
 
         # change the state
@@ -137,10 +141,10 @@ class ChangeStateVerbHandler(VerbHandler):
             parts.append("")
             parts.append(side_effect_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="open_success")
 
 
-    def close(self, cmd: ExecuteCommand = None) -> str:
+    def close(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
         room = self.room()
         world = self.world()
@@ -153,20 +157,20 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
 
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("One at a time, please.")
+            return self.outcome_no_op(self.build_message("One at a time, please."), code="close_all_not_supported")
         
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("close"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("close")), code="missing_direct_target")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "close")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -180,7 +184,7 @@ class ChangeStateVerbHandler(VerbHandler):
             already_msg="closed",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="close_not_allowed")
 
         # change the state
         result_msg  = self.apply_state_change(
@@ -224,9 +228,9 @@ class ChangeStateVerbHandler(VerbHandler):
             parts.append("")
             parts.append(side_effect_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="close_success")
 
-    def unlock(self, cmd: ExecuteCommand = None) -> str:
+    def unlock(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
         target = cmd.direct_object if cmd.direct_object else None
         keywords = cmd.modifiers if cmd.modifiers else []
@@ -235,20 +239,20 @@ class ChangeStateVerbHandler(VerbHandler):
         # 1. Verb modifier checks
         # ------------------------------------------------------------
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("One at a time, please.")
+            return self.outcome_no_op(self.build_message("One at a time, please."), code="unlock_all_not_supported")
 
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("unlock"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("unlock")), code="missing_direct_target")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "unlock")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
 
         # ------------------------------------------------------------
@@ -264,11 +268,12 @@ class ChangeStateVerbHandler(VerbHandler):
         )
 
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="unlock_not_allowed")
         
 
         #  Required key (if any)
         key_name = getattr(target, "unlock_key", None)
+        no_key_msg = None
 
         if key_name:
             no_key_msg = self.require_item(
@@ -279,7 +284,7 @@ class ChangeStateVerbHandler(VerbHandler):
                 indirect="key",
             )
         if no_key_msg:                
-            return self.build_message(no_key_msg)
+            return self.outcome_precondition_failed(self.build_message(no_key_msg), code="unlock_missing_required_item")
 
         # Change the state
         result_msg = self.apply_state_change(
@@ -299,9 +304,9 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="unlock_success")
     
-    def light(self, cmd: ExecuteCommand = None) -> str:
+    def light(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
 
         player = self.player()
@@ -314,20 +319,23 @@ class ChangeStateVerbHandler(VerbHandler):
         # 1. Verb modifier checks
         # ------------------------------------------------------------
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("You manically try to light everything at once, but soon calm down and focus on one thing at a time.")
+            return self.outcome_no_op(
+                self.build_message("You manically try to light everything at once, but soon calm down and focus on one thing at a time."),
+                code="light_all_not_supported",
+            )
         
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("light"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("light")), code="missing_direct_target")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "light")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -341,7 +349,7 @@ class ChangeStateVerbHandler(VerbHandler):
             already_msg="lit",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="light_not_allowed")
 
         # Required ignition source
         ignition_source = next(
@@ -350,7 +358,10 @@ class ChangeStateVerbHandler(VerbHandler):
             None
         )
         if not ignition_source:
-            return self.build_message(f"You have nothing to light the {target.canonical_name()} with.")
+            return self.outcome_precondition_failed(
+                self.build_message(f"You have nothing to light the {target.canonical_name()} with."),
+                code="missing_ignition_source",
+            )
         
         lighter_name = ignition_source.display_name()
 
@@ -372,10 +383,10 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="light_success")
 
 
-    def extinguish(self, cmd: ExecuteCommand = None) -> str:
+    def extinguish(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         
         target = cmd.direct_object if cmd.direct_object else None
         keywords = cmd.modifiers if cmd.modifiers else []
@@ -385,23 +396,23 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
 
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("One at a time, please.")
+            return self.outcome_no_op(self.build_message("One at a time, please."), code="extinguish_all_not_supported")
         
         if "hands" in keywords or "hand" in keywords:
-            return self.build_message("Ouch! You decide that's a bad idea.")
+            return self.outcome_blocked(self.build_message("Ouch! You decide that's a bad idea."), code="unsafe_extinguish_method")
         
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("extinguish"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("extinguish")), code="missing_direct_target")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "extinguish")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -415,7 +426,7 @@ class ChangeStateVerbHandler(VerbHandler):
             already_msg="extinguished",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="extinguish_not_allowed")
 
         # change the state
         result_msg = self.apply_state_change(
@@ -434,10 +445,10 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="extinguish_success")
     
 
-    def rub(self, cmd: ExecuteCommand = None) -> str:
+    def rub(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         
         target = cmd.direct_object if cmd.direct_object else None
         keywords = cmd.modifiers if cmd.modifiers else []
@@ -446,20 +457,20 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
 
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("Hmmm...")
+            return self.outcome_no_op(self.build_message("Hmmm..."), code="rub_all_not_supported")
 
         # ------------------------------------------------------------
         # 2. Missing target check
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target("rub"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("rub")), code="missing_direct_target")
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, "rub")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -470,7 +481,7 @@ class ChangeStateVerbHandler(VerbHandler):
             verb_phrase="rub",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="rub_not_allowed")
 
         # state-change pipeline
         result_msg = self.apply_state_change(
@@ -488,10 +499,10 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="rub_success")
     
 
-    def tie(self, cmd: ExecuteCommand = None) -> str:
+    def tie(self, cmd: ExecuteCommand = None) -> CommandOutcome:
         
         player=self.player()
         current_room=self.room()
@@ -506,25 +517,34 @@ class ChangeStateVerbHandler(VerbHandler):
         # ------------------------------------------------------------
 
         if "all" in keywords or "everything" in keywords:
-            return self.build_message("you run around frantically waving the rope than calm down to reassess what you really want to do")
+            return self.outcome_no_op(
+                self.build_message("you run around frantically waving the rope than calm down to reassess what you really want to do"),
+                code="tie_all_not_supported",
+            )
 
         # ------------------------------------------------------------
         # 2. Missing target and indirect checks
         # ------------------------------------------------------------
         if target is None:
-            return self.build_message(self.missing_target(verb_token))
+            return self.outcome_missing_target(self.build_message(self.missing_target(verb_token)), code="missing_direct_target")
 
         if indirect is None:
             if indirect_name:
-                return self.build_message(f"You don't see any {indirect_name} here to {verb_token} the {target.canonical_name()} to.")
-            return self.build_message(f"{verb_token.capitalize()} {target.canonical_name()} to what?")
+                return self.outcome_not_available(
+                    self.build_message(f"You don't see any {indirect_name} here to {verb_token} the {target.canonical_name()} to."),
+                    code="indirect_target_not_here",
+                )
+            return self.outcome_missing_prep_target(
+                self.build_message(f"{verb_token.capitalize()} {target.canonical_name()} to what?"),
+                code="missing_indirect_target",
+            )
 
         # ------------------------------------------------------------
         # 3. Special handler pipeline
         # ------------------------------------------------------------
         outcome: VerbOutcome | None = try_item_special_handler(target, verb_token, indirect_obj=indirect)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
 
         # ------------------------------------------------------------
         # 4. Main logic
@@ -540,7 +560,7 @@ class ChangeStateVerbHandler(VerbHandler):
             ind_phrase = f"{verb_token.capitalize()} the {target.canonical_name()} {prep} {indirect_name}" 
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="tie_not_allowed")
 
         # state-change pipeline
         result_msg = self.apply_state_change(
@@ -580,14 +600,14 @@ class ChangeStateVerbHandler(VerbHandler):
         if side_effect_msg:
             parts.append(side_effect_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="tie_success")
 
 
-    def untie(self, cmd: ExecuteCommand = None) -> str:
-        return self.build_message("Not implemented yet")   
+    def untie(self, cmd: ExecuteCommand = None) -> CommandOutcome:
+        return self.outcome_no_op(self.build_message("Not implemented yet"), code="untie_not_implemented")
     
     
-    def hit(self, cmd: ExecuteCommand = None) -> str:
+    def hit(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
 
         player=self.player()
@@ -603,11 +623,11 @@ class ChangeStateVerbHandler(VerbHandler):
             indirect = None
 
         if target is None:
-            return self.build_message(self.missing_target(verb_token))
+            return self.outcome_missing_target(self.build_message(self.missing_target(verb_token)), code="missing_direct_target")
         
         outcome: VerbOutcome | None = try_item_special_handler(target, "hit")
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
         
         # ------------------------------------------------------------
         # 4. Main logic
@@ -618,7 +638,7 @@ class ChangeStateVerbHandler(VerbHandler):
             verb_phrase="hit",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="hit_not_allowed")
 
         # state-change pipeline
         result_msg = self.apply_state_change(
@@ -636,12 +656,12 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="hit_success")
 
 
 
 
-    def turn(self, cmd: ExecuteCommand = None) -> str:
+    def turn(self, cmd: ExecuteCommand = None) -> CommandOutcome:
 
 
         current_room=self.room()
@@ -665,12 +685,12 @@ class ChangeStateVerbHandler(VerbHandler):
                         break
 
         if not target:
-            return self.build_message(self.missing_target("turn"))
+            return self.outcome_missing_target(self.build_message(self.missing_target("turn")), code="missing_direct_target")
         
 
         outcome: VerbOutcome | None = try_item_special_handler(target, "turn", indirect_obj=indirect)
         if outcome and outcome.control in (VerbControl.STOP, VerbControl.SKIP):
-            return self.build_message(outcome.message or "")
+            return self.outcome_success(self.build_message(outcome.message or ""), code="item_handler_stop")
   
         cant_msg = self.basic_checks(
             target,
@@ -678,7 +698,7 @@ class ChangeStateVerbHandler(VerbHandler):
             verb_phrase="turn",
         )
         if cant_msg:
-            return self.build_message(cant_msg)
+            return self.outcome_blocked(self.build_message(cant_msg), code="turn_not_allowed")
 
         # change the state
         result_msg  = self.apply_state_change(
@@ -697,7 +717,7 @@ class ChangeStateVerbHandler(VerbHandler):
         elif result_msg:
             parts.append(result_msg)
 
-        return self.build_message(parts)
+        return self.outcome_success(self.build_message(parts), code="turn_success")
         
 
 

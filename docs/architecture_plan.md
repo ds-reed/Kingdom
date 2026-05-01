@@ -1,276 +1,334 @@
-# Kingdom Engine Architecture: Layer Responsibilities and Data Flow
+# Kingdom Engine Architecture  
+### **Layer Responsibilities, Data Flow, and Updated Continuation Model**
 
-This document describes the current conceptual layers of the Kingdom text-adventure engine and the responsibilities of each layer.
+This document describes the conceptual layers of the Kingdom text‑adventure engine and the responsibilities of each layer.  
+It incorporates the updated architecture we refined through discussion — especially the clarified roles of the **interpreter**, **executor**, **verb handlers**, and the **noun model**.
 
-The primary goals are:
+The goals remain:
 
-- maintain separation of concerns
-- reduce architectural leaks
-- support both OLD_SCHOOL and modern presentation modes
+- maintain separation of concerns  
+- reduce architectural leaks  
+- support both OLD_SCHOOL and modern presentation modes  
+- support multi‑turn commands, ambiguity resolution, and continuation input  
+- keep world mutation centralized in the model layer  
 
-The engine is organized into eight cooperating layers:
+The engine is organized into **eight cooperating layers**, plus two important cross‑cutting subsystems:
 
-1. Terminal Layer (device I/O primitives)
-2. Input Layer (UI interaction)
-3. Renderer Layer (text composition)
-4. Main Loop Layer (orchestration)
-5. Parser Layer (syntax)
-6. Semantic Interpretation Layer (resolution)
-7. Verb Execution Layer (action behavior)
-8. Game Model Layer (world state and persistence)
+1. Terminal Layer  
+2. Input Layer  
+3. Renderer Layer  
+4. Main Loop Layer  
+5. Parser Layer  
+6. Semantic Interpretation Layer  
+7. Verb Execution Layer  
+8. Game Model Layer  
 
-Each layer should communicate through structured data contracts, not ad hoc raw strings.
+**Cross‑cutting subsystems:**
+
+- **State‑Changing Verb Framework** (within Verb Execution Layer)  
+- **Conversation‑State Executor** (continuation + ambiguity resolution)  
+
+Each layer communicates through structured data contracts, not ad‑hoc strings.
 
 ---
 
-## Current Module Map
+# 🧭 Turn Flow Overview
 
-```text
-main.py
-|-- kingdom.utilities (args/session helpers)
-|-- kingdom.GUI.terminal_style (terminal mode + low-level tty I/O)
-|-- kingdom.GUI.UI (user interaction facade)
-`-- kingdom.engine.exception_handling
-	|-- init_game_state (startup/init)
-	`-- process_command (single-turn orchestration)
-		|-- kingdom.language.parse
-		|-- kingdom.language.interpret
-		|-- kingdom.language.execute
-		`-- kingdom.engine.verbs.*
-			`-- kingdom.model.*
+**Input path:**
 
-rendering branch:
-kingdom.rendering.descriptions
-kingdom.rendering.command_results
-kingdom.rendering.textutils
+```
+UI → main loop → parser → interpreter → executor → verb handlers → model
 ```
 
-### Turn Flow
+**Output path:**
 
-Input path:
-
-```text
-UI -> main loop -> parser -> interpreter -> executor -> verb handlers -> model
 ```
-
-Output path:
-
-```text
-model/query results -> rendering helpers -> UI -> terminal
+model/query results → rendering helpers → UI → terminal
 ```
 
 ---
 
-## 1. Terminal Layer (Device / Presentation)
+# 1. Terminal Layer (Device / Presentation)
 
-Current implementation: src/kingdom/GUI/terminal_style.py
+**Responsibilities:**
 
-Responsibilities:
+- manage OLD_SCHOOL vs modern terminal modes  
+- low‑level printing, wrapping, clearing  
+- optional session logging  
 
-- mode switching between OLD_SCHOOL and modern output
-- low-level print/prompt and wrapping behavior
-- screen clearing and terminal presentation details
-- optional session logging integration
+**Non‑responsibilities:**
 
-Non-responsibilities:
-
-- no command parsing or semantic resolution
-- no game rule evaluation
-- no world mutation
+- no parsing  
+- no semantic logic  
+- no world mutation  
 
 ---
 
-## 2. Input Layer (UI / Interaction)
+# 2. Input Layer (UI / Interaction)
 
-Current implementation: src/kingdom/GUI/UI.py
+**Responsibilities:**
 
-Responsibilities:
+- collect raw player input  
+- provide confirm/save/load/quit prompts  
+- forward output to terminal layer  
+- enforce safe filename prompts  
 
-- collect raw player input
-- provide confirm/save/load/quit prompts
-- forward printable output and room lines to terminal layer
-- enforce safe save/load filename prompts
+**Non‑responsibilities:**
 
-Non-responsibilities:
-
-- no parsing, interpretation, or execution
-- no direct mutation of world entities
+- no parsing or interpretation  
+- no world mutation  
 
 ---
 
-## 3. Renderer Layer (Formatting and Text Composition)
+# 3. Renderer Layer (Formatting and Text Composition)
 
-Current implementation:
+**Responsibilities:**
 
-- src/kingdom/rendering/descriptions.py
-- src/kingdom/rendering/command_results.py
-- src/kingdom/rendering/textutils.py
+- convert model facts into player‑facing lines  
+- build room descriptions  
+- build exit summaries  
+- shape text for UI  
 
-Responsibilities:
+**Non‑responsibilities:**
 
-- convert model facts into player-facing lines
-- build room description output
-- build summary text such as exit messages
-
-Non-responsibilities:
-
-- no parser/interpreter logic
-- no action rule execution
-- no direct input handling
+- no parser/interpreter logic  
+- no verb execution  
+- no world mutation  
 
 ---
 
-## 4. Main Layer (Entry Point and Orchestrator)
-
-Current implementation:
-
-- entry point in main.py
-- orchestration in src/kingdom/engine/exception_handling.py
+# 4. Main Layer (Entry Point and Orchestrator)
 
 ### 4a. Entry Point
 
-Responsibilities:
+**Responsibilities:**
 
-- parse startup args
-- set terminal mode
-- initialize session logging
-- initialize game state
-- run the command loop
+- parse startup args  
+- set terminal mode  
+- initialize session logging  
+- initialize game state  
+- run the command loop  
 
 ### 4b. Turn Orchestrator
 
-Responsibilities:
+**Responsibilities:**
 
-- receive raw command input
-- parse -> interpret -> execute pipeline dispatch
-- handle SaveGame, LoadGame, QuitGame, and GameOver control flow
-- handle recovery mode constraints
-- trigger room rendering on startup/load/game-over recovery
+- receive raw input  
+- dispatch through parse → interpret → execute  
+- handle SaveGame, LoadGame, QuitGame, GameOver  
+- trigger room rendering on startup/load/recovery  
 
-Important note:
+**Notes:**
 
-- runtime state is held in Game via get_game(), along with SessionPrefs and current world/player references
-
----
-
-## 5. Parser Layer (Syntax)
-
-Current implementation: src/kingdom/language/parser.py
-
-Primary contract:
-
-- parse(text, lexicon) -> list[ParsedAction]
-
-Responsibilities:
-
-- normalize and tokenize input
-- identify primary verb and verb source
-- capture object phrases and prepositional phrases
-- capture direction/modifier/unknown tokens
-- split and group conjunction patterns
-
-Non-responsibilities:
-
-- no world mutation
-- no verb execution
+- runtime state lives in `Game` via `get_game()`  
 
 ---
 
-## 6. Semantic Interpretation Layer (Resolution)
+# 5. Parser Layer (Syntax)
 
-Current implementation: src/kingdom/language/interpreter.py
+**Contract:**  
+`parse(text, lexicon) → list[ParsedAction]`
 
-Primary contract:
+**Responsibilities:**
 
-- interpret(parsed_actions, world, lexicon) -> list[InterpretedCommand]
+- tokenize and normalize input  
+- identify verb token and verb source  
+- capture noun phrases and prepositional phrases  
+- capture directions, modifiers, unknown tokens  
+- split conjunctions  
 
-Responsibilities:
+**Non‑responsibilities:**
 
-- resolve parsed fields into executable command shape
-- attach resolved direct/prepositional targets when available
-- canonicalize direction handling for verb usage
-- preserve token context for error handling and downstream messaging
-
-Non-responsibilities:
-
-- no world mutation
-- no direct terminal output
-
----
-
-## 7. Verb Execution Layer (Action Behavior)
-
-Current implementation:
-
-- bridge: src/kingdom/language/executor.py
-- command contract: src/kingdom/engine/verbs/verb_handler.py (ExecuteCommand)
-- handlers: src/kingdom/engine/verbs/*.py
-- special behavior hooks: src/kingdom/engine/item_behaviors.py
-
-Primary contract:
-
-- execute(interpreted_command, world, original_command) -> CommandOutcome
-
-Responsibilities:
-
-- map interpreted command into handler command contract
-- execute verb-specific rules and mutations
-- return outcome messages for display
-- enforce gameplay constraints via handler logic
-
-Non-responsibilities:
-
-- no raw input handling
-- no terminal rendering concerns
+- no world mutation  
+- no semantic role assignment  
+- no verb execution  
 
 ---
 
-## 8. Game Model Layer (World State and Persistence)
+# 6. Semantic Interpretation Layer (Resolution)
 
-Current implementation:
+**Contract:**  
+`interpret(parsed_actions, world, lexicon) → list[InterpretedCommand]`
 
-- src/kingdom/model/noun_model.py
-- src/kingdom/model/game_model.py
-- src/kingdom/model/direction_model.py
-- src/kingdom/model/verb_model.py
+**Responsibilities:**
 
-Responsibilities:
+- resolve parsed fields into executable command shape  
+- resolve nouns to world objects when possible  
+- **map prepositions → semantic roles using verb‑declared slot tables**  
+- normalize synonyms (e.g., “loot” → take‑all‑from)  
+- normalize “all/everything”  
+- apply fallback container logic  
+- resolve directions for movement verbs  
+- preserve token context for error messaging  
 
-- represent rooms, exits, items, containers, features, player
-- maintain session state in Game
-- support save/load and world reconstruction
-- maintain gameplay metrics such as score and discovery counters
+**Non‑responsibilities:**
 
-Non-responsibilities:
-
-- no parser logic
-- no UI/terminal I/O
-
----
-
-## Data Contracts Between Layers
-
-Current contracts in code:
-
-- Parser output: ParsedAction
-- Interpreter output: InterpretedCommand
-- Executor output: CommandOutcome
-- Verb handler input: ExecuteCommand
-- Persistent runtime/session state: Game and SessionPrefs
-
-These contracts are still evolving, but they are now explicit and module-scoped.
+- no world mutation  
+- no conversation‑state tracking  
+- no capability checks  
+- no verb semantics  
 
 ---
 
-## Practical Refactor Guidance
+# 7. Verb Execution Layer (Action Behavior + Conversation State)
 
-When refactoring, prefer these boundaries:
+This layer contains two cooperating subsystems:
 
-- keep orchestration and exception-routing in engine/exception_handling
-- keep syntax concerns in parser
-- keep semantic mapping in interpreter
-- keep behavior rules in engine/verbs and item_behaviors
-- keep text shaping in rendering
-- keep storage/state invariants in model
+1. **Conversation‑State Executor**  
+2. **Verb Handlers**  
 
-This keeps the command pipeline easier to test and reduces cross-layer coupling.
+Together they turn an `InterpretedCommand` into a `CommandOutcome`.
+
+---
+
+## 7a. Conversation‑State Executor (Continuation + Ambiguity Resolution)
+
+**Responsibilities:**
+
+- track incomplete or ambiguous commands  
+  - “take fish” → “Which fish?”  
+  - “give coin” → “Give coin to whom?”  
+- track missing semantic roles  
+- track ambiguous candidates  
+- detect continuation input  
+  - “the blue one”  
+  - “to the mermaid”  
+  - “in the bag”  
+- synthesize a completed command and re‑issue it  
+- handle implicit verbs  
+  - “north” → go north  
+  - noun‑only follow‑ups (“the rope”)  
+
+**Non‑responsibilities:**
+
+- no world mutation  
+- no capability checks  
+- no semantic interpretation  
+- no rendering  
+
+The executor is a **conversation manager**, not a world‑mutation engine.
+
+---
+
+## 7b. Verb Handlers (Verb Semantics)
+
+**Responsibilities:**
+
+- implement verb semantics  
+- perform capability/state checks  
+- run special handler pipeline  
+- call noun‑model methods for world mutation  
+- apply side effects (e.g., opening exits)  
+- construct narrative messages  
+- return `CommandOutcome`  
+
+**Non‑responsibilities:**
+
+- no parsing  
+- no preposition → role mapping  
+- no conversation‑state tracking  
+- no low‑level world mutation logic  
+
+Verb handlers decide *what the verb means*, not *how the world is mutated*.
+
+---
+
+## 7c. State‑Changing Verb Framework (Shared Logic)
+
+Many verbs share a common pattern:
+
+- capability check (`is_openable`, `is_lightable`, etc.)  
+- state check (`is_open`, `is_lit`, etc.)  
+- special handler pipeline  
+- state mutation  
+- optional side effects  
+- message construction  
+
+These verbs (open, close, unlock, light, extinguish, rub, etc.) are unified under a shared helper framework inside the verb layer.
+
+This keeps verb semantics clean and avoids duplication.
+
+---
+
+## 7d. Verb Slot Declarations (Interpreter → Verb Contract)
+
+Each verb may declare the prepositions it accepts and the semantic roles they map to.
+
+These declarations belong to the verb surface in `verb_registration.py` and are stored on `Verb` instances in the verb model. The interpreter reads that metadata when assigning semantic roles.
+
+Example:
+
+```python
+Verb("give", inventory.give, role_slots={
+  "recipient": ["to", "with"],
+  "trade_item": ["for"],
+})
+
+Verb("take", inventory.take, role_slots={
+  "source": ["from", "in"],
+})
+
+Verb("put", inventory.drop, role_slots={
+  "destination": ["into", "in"],
+  "surface": ["on", "onto"],
+})
+```
+
+The interpreter uses this registered verb metadata to assign roles automatically.
+
+This removes preposition‑parsing logic from verb handlers.
+
+---
+
+# 8. Game Model Layer (World State and Mutation)
+
+**Responsibilities:**
+
+- represent rooms, exits, items, containers, features, player  
+- maintain session state in `Game`  
+- support save/load and world reconstruction  
+- maintain score and discovery metrics  
+- **provide all primitive world‑mutation operations**, including:  
+  - moving items between room/inventory/containers  
+  - opening/closing/locking/unlocking  
+  - updating state attributes  
+  - managing container contents  
+  - managing exits and passability  
+  - updating discovery score  
+  - dispatching special handlers  
+
+**Non‑responsibilities:**
+
+- no parsing  
+- no semantic interpretation  
+- no conversation‑state tracking  
+- no rendering  
+
+The noun model *is* the world‑mutation API.
+
+---
+
+# Data Contracts Between Layers
+
+- **Parser output:** `ParsedAction`  
+- **Interpreter output:** `InterpretedCommand`  
+- **Executor output:** `CommandOutcome`  
+- **Verb handler input:** `ExecuteCommand`  
+- **Persistent runtime state:** `Game`, `SessionPrefs`  
+
+These contracts are explicit and stable.
+
+---
+
+# Practical Refactor Guidance
+
+- keep orchestration in `engine/exception_handling`  
+- keep syntax in parser  
+- keep semantic role mapping in interpreter  
+- keep verb semantics in verb handlers  
+- keep world mutation in noun model  
+- keep text shaping in renderer  
+- keep continuation logic in executor  
+
+This separation keeps the command pipeline testable, predictable, and maintainable.
+

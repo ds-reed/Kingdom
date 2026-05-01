@@ -19,6 +19,11 @@ _WALL_PATTERN = re.compile(
 
 _WALL_ADJ_PATTERN = re.compile(r"\bwall\s+\w+", re.IGNORECASE)
 
+_POSSESSION_TAIL_PATTERN = re.compile(
+    r"\b(with|holding|clutching|gripping|carrying|cradling|bearing|brandishing)\s*$",
+    re.IGNORECASE,
+)
+
 
 
 class RoomRenderer:
@@ -56,17 +61,20 @@ class RoomRenderer:
         # Items and containers (concise description only)
         visible_items = [i for i in room.items if getattr(i, "is_visible", True)]
         visible_containers = [c for c in room.containers if getattr(c, "is_visible", True)]
-        for container in visible_containers:
-            if container.is_transparent:
-                visible_items.extend(container.contents)
-
         all_visible_objects = []
 
         for item in visible_items:
-            all_visible_objects.append(("item", item))
+            all_visible_objects.append(("item", item, item.stateful_name()))
 
         for container in visible_containers:
-            all_visible_objects.append(("container", container))
+            all_visible_objects.append(("container", container, container.stateful_name()))
+            if container.is_transparent:
+                container_phrase = tu.add_definite_article(container.stateful_name())
+                for item in container.contents:
+                    if getattr(item, "is_visible", True):
+                        all_visible_objects.append(
+                            ("item", item, f"{item.stateful_name()} held by {container_phrase}")
+                        )
 
         # Sort by render_priority (higher first)
         all_visible_objects.sort(
@@ -76,8 +84,12 @@ class RoomRenderer:
 
         if all_visible_objects:
             lines.append("You see:")
-            for _kind, obj in all_visible_objects:
-                lines.append(F"-  {obj.stateful_name()}")
+            for _kind, obj, label in all_visible_objects:
+                lines.append(
+                    tu.capitalize_bullet_line(
+                        f"- {tu.add_indefinite_article(label)}"
+                    )
+                )
 
         
         #now exits
@@ -88,7 +100,7 @@ class RoomRenderer:
             lines.append("Available exits:")  
             for _, direction, _ in exits:
                 if isinstance(direction, str):
-                    lines.append(f"- {direction}")
+                    lines.append(tu.capitalize_bullet_line(f"- {direction}"))
 
         
         return lines
@@ -446,12 +458,9 @@ class RoomRenderer:
                     [tu.add_indefinite_article(i.stateful_name()) for i in obj.contents]
                 )
                 if loc:
-                    # Author loc provides the positioning verb; we append the contents
-                    # transformation so it still shows. Example:
-                    # "A glass box rests on the altar holding a ruby and a key"
-                    full_phrase = f"{name} {loc} holding {inner}"
+                    full_phrase = self._compose_transparent_container_phrase(name, loc, inner)
                 else:
-                    full_phrase = f"{name} holding {inner}"
+                    full_phrase = f"{name} has {inner}"
 
                 return tu.terminate(
                     tu.capitalize_first(
@@ -503,6 +512,18 @@ class RoomRenderer:
         return tu.terminate(tu.capitalize_first(
             f"{tu.add_indefinite_article(name)} is here"
         ))
+
+    def _compose_transparent_container_phrase(self, name: str, loc: str, inner: str) -> str:
+        authored_loc = loc or ""
+        authored_loc_rstrip = authored_loc.rstrip()
+        authored_tail = authored_loc_rstrip.rstrip(",")
+
+        # If the authored location already implies possession, append the object directly.
+        if _POSSESSION_TAIL_PATTERN.search(authored_tail):
+            spacer = "" if authored_loc.endswith(" ") else " "
+            return f"{name} {authored_loc}{spacer}{inner}"
+
+        return f"{name} {authored_loc_rstrip} has {inner}"
 
 
     def group_floor_items(self, items):

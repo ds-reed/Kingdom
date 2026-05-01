@@ -1,7 +1,7 @@
 # dummy_lexicon.py
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 
 from kingdom.model.verb_model import Verb
 from kingdom.model.noun_model import Noun
@@ -54,7 +54,7 @@ class Lexicon:
     particles: List[str]
 
     token_to_verb: Dict[str, VerbEntry]
-    token_to_noun: Dict[str, NounEntry]
+    noun_tokens: Set[str]
     token_to_direction: Dict[str, DirectionEntry]
 
     # NEW
@@ -234,7 +234,7 @@ def build_dummy_lexicon() -> Lexicon:
 
 
     nouns = []
-    token_to_noun = {}
+    noun_tokens = set()
     for canonical, synonyms, adjectives in noun_specs:
         entry = NounEntry(
             handle=canonical,
@@ -244,9 +244,9 @@ def build_dummy_lexicon() -> Lexicon:
             adjectives=adjectives
         )
         nouns.append(entry)
-        token_to_noun[canonical] = entry
+        noun_tokens.add(canonical)
         for s in synonyms:
-            token_to_noun[s] = entry
+            noun_tokens.add(s)
 
     # ============================================================
     # DIRECTIONS
@@ -348,7 +348,7 @@ def build_dummy_lexicon() -> Lexicon:
         conjunctions=conjunctions,
         particles=particles,
         token_to_verb=token_to_verb,
-        token_to_noun=token_to_noun,
+        noun_tokens=noun_tokens,
         token_to_direction=token_to_direction,
         token_to_preposition=token_to_preposition,
     )

@@ -32,8 +32,13 @@ class UI:
             self.print("Invalid input, try again.")
 
     def confirm(self, question: str = "Continue? [y/n] ") -> bool:
-        ans = tty_prompt(prompt_text=question).lower().strip()
-        return ans in ("y", "yes", "1", "true")
+        while True:
+            ans = self.prompt(question).lower().strip()
+            if ans in ("y", "yes", "1", "true"):
+                return True
+            if ans in ("n", "no", "0", "false"):
+                return False
+            self.print("Please answer y or n.")
 
 
     def _prompt_for_filename(self, action_label: str, default_filename: str) -> str:

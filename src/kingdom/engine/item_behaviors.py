@@ -12,6 +12,7 @@ from typing import Callable, Optional
 
 from enum import Enum, auto
 
+from kingdom.language.lexicon import add_noun_to_lexicon
 from kingdom.model.game_model import Game, GameOver, get_game
 from kingdom.model.noun_model import Item, Noun, Room, World, Item
 from kingdom.rendering.descriptions import render_current_room
@@ -105,10 +106,12 @@ def _spawn_room_item(game: Game | None, name = None, **kwargs) -> None:
         name,
         **kwargs
         )
-    
-    # need to update lexicon
 
-    room.items.append(new_item)   
+    room.items.append(new_item)
+
+    lexicon = getattr(game, "lexicon", None)
+    if lexicon is not None:
+        add_noun_to_lexicon(new_item, lexicon)
 
 
 
@@ -235,7 +238,7 @@ def rub_lamp(item, verb, **kwargs):
                     message=(
                         "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
                         "The smoke solidifies into a an extremely angry looking djinni!\n"
-                        "He intones: 'TAKHLUB ARRAQ MINTA NAKH!', glares at you, then disappears.\n"
+                        "He intones: 'TAKHLUB ARRAQ MINTA NAKH!' and glares at you.\n"
                         "(This means in magic Arabic, 'Stop that, it's really annoying me.')"
                     ),
                     control=VerbControl.STOP
@@ -246,7 +249,7 @@ def rub_lamp(item, verb, **kwargs):
             message=(
                 "The lamp begins to emit a cloud of bluish smoke, which fills the air.\n"
                 "The smoke solidifies into a an imposing djinni!\n"
-                "He intones: ' \"MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?\"' and looks at you inquiringly.\n"
+                "He intones: 'MYPCLY JUBURUAY MIT DE NURDY SMUDY DIGNIC PIC?' and looks at you inquiringly.\n"
                 "(This means in magic Arabic, 'I will grant you one wish.')"
             ),
             control=VerbControl.STOP
@@ -284,8 +287,8 @@ def _djinni_scripted_action(djinni, verb, **kwargs):
 
     message_lines = [
         "The Djinni seems puzzled by your exotic language.",
-        "Genies aren't omniscient, just omnipotent!",
-        "But seeing that you are at a dead end and wanting to be helpful,",
+        "Genies aren't omniscient, just omnipotent.",
+        "But seeing that you are at a dead end, and wanting to be helpful,",
         "he places a doorway in the west wall and disappears."
     ]
 
@@ -339,7 +342,13 @@ def drop_torch(item, verb_name, indirect_obj = None, **kwargs):
         if not indirect_obj:
             return None
 
-        container = Noun.get_by_name(indirect_obj[0])
+        container = None
+        container_token = indirect_obj[0] if isinstance(indirect_obj, (list, tuple)) and indirect_obj else indirect_obj
+        if room is not None and container_token:
+            for candidate in getattr(room, "containers", []):
+                if candidate.matches_reference(container_token):
+                    container = candidate
+                    break
         if container and getattr(container, "is_flamable", False):
             message.append(f"As you put the burning torch into {container.display_name()} it catches on fire!")
             for contained_item in list(container.contents):
@@ -371,7 +380,12 @@ def hit_victrola(item, verb_name, indirect_obj = None, **kwargs):
     message.append("The haunting magical melody swells and seems to fill the room.")
 
     desired_room_name = game.world.start_room_name
-    desired_room = Room.by_name(desired_room_name)
+    desired_room = game.world.start_room or game.world.rooms.get(desired_room_name)
+    if desired_room is None:
+        return VerbOutcome(
+            message="The Victrola groans ominously, but nothing else happens.",
+            control=VerbControl.STOP,
+        )
     game.current_room = desired_room
 
     message.append("Suddenly, you find yourself transported back to your starting location!")
